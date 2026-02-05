@@ -1,0 +1,88 @@
+﻿@page "/"
+@inject AichmeeLab.Services.LibraryService.ILibraryService LibraryService;
+
+<PageTitle>Home</PageTitle>
+
+
+<div class="viewport-center">
+    <div class="window-box">
+        <nav class="window-tabs">
+            <button class="@(IsTabActive(Tab.Home))" @onclick="() => SetTab(Tab.Home)">
+                Home
+            </button>
+            <button class="@(IsTabActive(Tab.About))" @onclick="() => SetTab(Tab.About)">
+                About Me
+            </button>
+            <button class="@(IsTabActive(Tab.Content))" @onclick="() => SetTab(Tab.Content)">
+                Content
+            </button>
+            <button class="@(IsTabActive(Tab.FunZone))" @onclick="() => SetTab(Tab.FunZone)">
+                Fun Zone
+            </button>
+        </nav>
+
+        <div class="window-content">
+        @switch (activeTab)
+        {
+            case Tab.Home:
+                <div class="view">
+                    <h1>Welcome to my page</h1>
+                </div>
+                break;
+            case Tab.About:
+                <div class="view">
+                    <div class="about-wrapper">
+                    <div class="profile-column">
+                            <img src="Images\owner.jpg" />
+                    </div>
+                        <div class="info-column">
+                            <h2>Dimitris</h2>
+                            <p>Contact Info</p>
+                            <p>dimimytimain@gmail.com</p>
+                        </div>
+                        </div>
+                </div>
+                break;
+            case Tab.Content:
+                <div class="view">
+                    <h1>Check out articles and photo albums</h1>
+                </div>
+                break;
+            case Tab.FunZone:
+                <div class="view">
+                    <h1>Enjoy interactive content I created</h1>
+                </div>
+                break;
+
+
+        }
+        </div>
+
+    </div>
+
+
+
+</div>
+@code{
+
+    private enum Tab { Home, About, Content, FunZone }
+    private Tab activeTab = Tab.Home;
+
+    string _message = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var response = await LibraryService.GetStatus();
+
+        if (response.Success)
+            _message = response.Data;
+        else
+            _message = response.Message;
+    }
+
+
+    private void SetTab(Tab tab) => activeTab = tab;
+
+    private string IsTabActive(Tab tab) => activeTab == tab ? "tab-btn active" : "tab-btn";
+
+}

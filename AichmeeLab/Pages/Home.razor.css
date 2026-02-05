@@ -1,0 +1,60 @@
+﻿/* Centers the window in the middle of the screen */
+.viewport-center {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+/* The actual Box */
+.window-box {
+    width: min(550px, 90vw);
+    height: min(300px, 80vh);
+
+    display: flex;
+    flex-direction: column;
+    border: 2px solid #000; /* Skeleton border */
+    background: #fff;
+    background-color: #38332A;
+}
+
+/* Tab Bar */
+.window-tabs {
+    display: flex;
+    border-bottom: 1px solid #000;
+    /*background: #29251F;*/
+    background-color: #38332A;
+}
+
+.tab-btn {
+    padding: 10px 20px;
+    border: none;
+    cursor: pointer;
+    background: transparent;
+}
+
+    .tab-btn.active {
+        background: #29251F;
+        font-weight: bold;
+        border-bottom: 2px solid gray; /* Visual indicator for the active tab */
+    }
+
+/* Content Area */
+.window-content {
+    flex-grow: 1;
+    padding: 30px;
+    overflow-y: auto;
+}
+
+
+/* About Tab*/
+.about-wrapper {
+    display: flex; /* Places columns side-by-side */
+    align-items: flex-start; /* Aligns items to the top of the container */
+    gap: 30px; /* Creates the space between the image and the text */
+    height: 100%; /* Ensures the container fills the window */
+}
+
