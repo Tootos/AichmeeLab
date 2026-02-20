@@ -1,0 +1,92 @@
+﻿@inject IJSRuntime jSRuntime;
+@inject AichmeeLab.Services.DashboardService.IDashboardService DashboardService;
+
+<h2>@_message</h2>
+
+<EditForm Model="@_currentArticle" OnValidSubmit="SaveEntry">
+    <DataAnnotationsValidator />
+
+    <div class="button-header">
+        <button type="submit" class="btn btn-primary mt-3 w-100">Publish</button>
+    </div>
+    <div class="form-group mb-3">
+        <InputText @bind-value="_currentArticle.Title" id="title"
+                   class="article-title-input h3 border-0 w-100"
+                   placeholder="Article Title"
+                   style="outline:none;" />
+        <ValidationMessage For="@(() => _currentArticle.Title)" class="text-danger" />
+    </div>
+    <div class="form-group mb-3">
+        <InputText @bind-value="_currentArticle.Description" id="description"
+                   class="article-description-input border-0 w-100"
+                   placeholder="Short description or subtitle..."
+                   style="outline:groove;" />
+        <ValidationMessage For="@(() => _currentArticle.Description)" class="text-danger" />
+    </div>
+
+    <div class="editor-wrapper">
+        <div id="editorjs"></div>
+    </div>
+
+
+</EditForm>
+
+@code {
+    Article _currentArticle = new Article();
+    string JsonContent { get; set; } = string.Empty;
+    string _message = string.Empty;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+
+        var response = await DashboardService.CheckDB();
+
+
+                await Task.Delay(50);
+                await jSRuntime.InvokeVoidAsync("setupEditor", "editorjs");
+
+    }
+
+    private async Task SaveEntry()
+    {
+        try
+        {
+            //Get json content from Editor.js
+            var jsonResult = await jSRuntime.InvokeAsync<string>("saveEditorData");
+
+            if (string.IsNullOrEmpty(jsonResult)) throw new Exception("Json is empty!");
+
+
+
+            _currentArticle.Content = jsonResult;
+
+            var article = new Article
+            {
+                Title = _currentArticle.Title,
+                Description = _currentArticle.Description,
+                HeaderImage = string.Empty,
+                Content = jsonResult,
+
+            };
+
+            var response = await DashboardService.UpdateArticle(article);
+            if (response.Success)
+            {
+                // This opens the standard browser popup with your "Article saved" message
+                await jSRuntime.InvokeVoidAsync("alert", response.Message);
+                _currentArticle.Id = article.Id;
+            }
+            else
+            {
+                await jSRuntime.InvokeVoidAsync("alert", $"Error: {response.Message}");
+            }
+        }
+        catch (Exception ex)
+        {
+            
+            _message = $"Error: {ex.Message}";
+        }
+    }
+}
+
+}

@@ -1,5 +1,5 @@
 ﻿@page "/"
-@inject AichmeeLab.Services.LibraryService.ILibraryService LibraryService;
+@inject AichmeeLab.Services.DashboardService.IDashboardService DashboardService;
 
 <PageTitle>Home</PageTitle>
 
@@ -70,15 +70,6 @@
 
     string _message = string.Empty;
 
-    protected override async Task OnInitializedAsync()
-    {
-        var response = await LibraryService.GetStatus();
-
-        if (response.Success)
-            _message = response.Data;
-        else
-            _message = response.Message;
-    }
 
 
     private void SetTab(Tab tab) => activeTab = tab;

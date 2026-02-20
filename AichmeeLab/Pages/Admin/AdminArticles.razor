@@ -1,0 +1,83 @@
+﻿
+@page "/admin/articles/{Action?}"
+@using AichmeeLab.Pages.Admin.Includes
+@inject NavigationManager NavigationManager;
+@inject AichmeeLab.Services.DashboardService.IDashboardService DashboardService;
+
+
+<div class="admin-layout-container">
+
+    <div class="viewport-left">
+        <div class="window-options">
+            <h1>Articles</h1>
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <button class="btn btn-link" @onclick="() => selectedTab = Tab.Home">Dashboard</button>
+                </li>
+                <li class="nav-item">
+                    <button class="btn btn-link" @onclick="() => selectedTab = Tab.Upload">Publish New</button>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="viewport-center">
+        <div class="work-window">
+            @switch (selectedTab)
+            {
+                case Tab.Home:
+                        <SearchBar/>
+                        <ArticlesList/>
+                    break;
+                case Tab.Upload:
+                        <ArticlesEdit/>
+                    break;
+            }
+        </div>
+    </div>
+
+    <div class="viewport-right-spacer"/>
+
+</div>
+
+
+
+@code {
+    [Parameter]
+    public string? Action { get; set; }
+
+    private enum State { Idle, Loading, Success, Error }
+    private State currentStatus = State.Idle;
+    private string _message = "Upload .docx file.";
+
+    enum Tab {Home, Review, Upload   }
+    Tab selectedTab = Tab.Home;
+
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+        var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
+
+        DateTime? dateFrom;
+        DateTime? dateTo;
+
+        // 1. Assign values to the Service
+        var searchTerm = query.TryGetValue("q", out var q) ? q.ToString() : "";
+
+        if (query.TryGetValue("from", out var f) && DateTime.TryParse(f, out var df))
+            dateFrom = df;
+        else
+            dateFrom = null;
+
+        if (query.TryGetValue("to", out var t) && DateTime.TryParse(t, out var dt))
+            dateTo = dt;
+        else
+            dateTo = null;
+
+        DashboardService.CurrentPage = query.TryGetValue("page", out var p) && int.TryParse(p, out var pg) ? pg : 1;
+
+        // 2. Load the data from the API
+        await DashboardService.GetArticles(searchTerm, dateFrom, dateTo);
+    }
+}

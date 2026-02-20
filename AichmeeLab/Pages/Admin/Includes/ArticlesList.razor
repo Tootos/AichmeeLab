@@ -1,0 +1,88 @@
+﻿@implements IDisposable
+@inject AichmeeLab.Services.DashboardService.IDashboardService DashboardService
+@inject NavigationManager NavigationManager
+
+
+@if(DashboardService.Articles.Count ==0 || DashboardService.Articles == null)
+{
+    <span>@_message</span>
+}
+else
+{
+    <div class="container-fluid p-0">
+        <div class="row g-4">
+            @* g-4 adds a nice gap between boxes *@
+            @foreach (var article in DashboardService.Articles)
+            {
+                <div class="col-md-4">
+                    <div class="card h-100 shadow-sm article-card" @onclick="() => OnEdit(article.Id)">
+                        <div class="card-body">
+                            <h5 class="card-title text-truncate">@article.Title</h5>
+                            <p class="card-text text-muted small">
+                                @(article.Description?.Length > 100
+                                                        ? article.Description.Substring(0, 100) + "..."
+                                                        : article.Description)
+                    </p>
+                </div>
+                <div class="card-footer bg-transparent border-0">
+                    <span class="badge bg-light text-dark border">
+                        @article.DatePublished.ToString("MMM dd, yyyy")
+                    </span>
+                </div>
+            </div>
+        </div>
+                }
+        </div>
+
+        @* Pagination Controls below the grid *@
+        <div class="d-flex justify-content-between align-items-center mt-4 p-3 bg-light rounded">
+            <button class="btn btn-outline-primary"
+                    disabled="@(DashboardService.CurrentPage <= 1)"
+                    @onclick="GoToPrevious">
+                Previous
+            </button>
+
+            <span class="fw-bold">Page @DashboardService.CurrentPage</span>
+
+            <button class="btn btn-outline-primary"
+                    disabled="@(DashboardService.CurrentPage * 9 >= DashboardService.PageCount)"
+                    @onclick="GoToNext">
+                Next
+            </button>
+        </div>
+    </div>
+}
+
+
+@code {
+
+    string _message = "Loading...";
+
+
+
+    void GoToPrevious() => ChangePage(DashboardService.CurrentPage-1);
+    void GoToNext() => ChangePage(DashboardService.CurrentPage+1);
+
+    protected override void OnInitialized()
+    {
+        DashboardService.ListChanged += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        DashboardService.ListChanged -= StateHasChanged;
+    }
+
+    private void ChangePage(int page)
+    {
+        // Use the helper to keep current search/dates but change only the page
+        var uri = NavigationManager.GetUriWithQueryParameter("page", page);
+        NavigationManager.NavigateTo(uri);
+    }
+
+
+    void OnEdit(string id)
+    {
+        
+    }
+}

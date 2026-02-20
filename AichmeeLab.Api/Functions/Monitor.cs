@@ -6,9 +6,11 @@ using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Azure.Functions.Worker.Extensions.OpenApi;
 using Microsoft.Extensions.Logging;
 using System.Net;
+using Newtonsoft.Json;
+using MongoDB.Bson.IO;
 
 
-namespace AichmeeLab.Api
+namespace AichmeeLab.Api.Functions
 {
     public class Monitor
     {
@@ -19,17 +21,7 @@ namespace AichmeeLab.Api
             _logger = logger;
         }
 
-        [Function("GetMessage")]
-        public async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Function, "get", Route = "GetMessage")] HttpRequest req)
-        {
-            _logger.LogInformation("Getting a status message");
+        
 
-            var response = new ServiceResponse<string>
-            {
-                Data = "Hello world"
-            };
-
-            return new  OkObjectResult(response);
-        }
     }
 }
