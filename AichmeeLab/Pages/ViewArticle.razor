@@ -1,0 +1,74 @@
+@page "/article/{Id}"
+@using System.Text.Json
+@inject AichmeeLab.Services.UserService.IUserService UserService
+
+
+@if(_article == null){
+    <span>@_message</span>
+}else{
+    <div class="viewport-center">
+        <div class="media-wrapper">
+            
+            <h2>@_article.Title</h2>
+            <div class="top-row px-4">               
+            </div>
+            <span>@_article.Description</span>
+            <div class="media-body">
+                @if (parsedContent?.Blocks != null) {
+                    @foreach (var block in parsedContent.Blocks) {
+                        @if (block.Type == "paragraph") {
+                            <p>@((MarkupString)block.Data.Text)</p>
+                        }
+                        else if (block.Type == "header") {
+                            @* You can check block.Data.Level here if needed *@
+                            <h3>@((MarkupString)block.Data.Text)</h3>
+                        }
+                    }
+                }               
+            </div>
+
+
+
+        </div>
+
+    </div>
+}
+
+
+@code{
+    [Parameter]
+    public string Id {get;set;} = string.Empty;
+    Article? _article = null;
+    
+    EditorJsData? parsedContent;
+
+    public class EditorJsData { public List<EditorJsBlock> Blocks { get; set; } = new();}
+
+    public class EditorJsBlock { public string Type { get; set; } = string.Empty;
+    public EditorJsDataContent Data { get; set; }}
+
+    public class EditorJsDataContent { public string Text { get; set; } =string.Empty;}
+
+    string _message {get;set;} = "Loading. . .";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var result = await UserService.GetArticleAsync(Id);
+
+        if(result.Success){
+            _article = result.Data;    
+
+            if (!string.IsNullOrEmpty(_article?.Content)) {
+                try {
+                    parsedContent = JsonSerializer.Deserialize<EditorJsData>(_article.Content, 
+                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                } catch {
+                    _message = "Error parsing article content.";
+                }
+            }
+        }else{
+            _message = result.Message;
+        }
+    }
+
+}

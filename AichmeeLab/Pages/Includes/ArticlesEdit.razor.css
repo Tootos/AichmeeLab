@@ -1,0 +1,121 @@
+﻿.editor-layout {
+    display: flex;
+    gap: 30px;
+    height: 100%;
+    align-items: flex-start;
+}
+/*Left Toolbar*/
+.editor-toolbar {
+    background-color: azure;
+    /* flex: 1; */
+    border-radius: 12px;
+    padding: 12px 25px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+    gap: 30px;
+}
+
+
+/* Middle Editor */
+.editor-wrapper {
+    background: azure;
+    border-radius: 12px;
+    padding: 10px;
+    flex: 1;
+    overflow-y: auto;
+    position: relative;
+    height: 95%;
+}
+
+/* Custom Scrollbar for the Editor Wrapper */
+.editor-wrapper::-webkit-scrollbar {
+    width: 14px; /* Thicker scrollbar */
+}
+
+.editor-wrapper::-webkit-scrollbar-thumb {
+    background-color: #555; /* Much darker gray */
+    border-radius: 8px; /* Slightly softer corners */
+    border: 3px solid #fff; /* White border to create "padding" from the edge */
+}
+
+.editor-wrapper::-webkit-scrollbar-thumb:hover {
+    background-color: #333; /* Darker on hover */
+}
+
+.editor-wrapper::-webkit-scrollbar-track {
+    background: #f1f1f1; /* Light gray track so the thumb stands out */
+    border-radius: 8px; /* Match the thumb's radius */
+}
+
+
+/*Right Bar */
+.metadata-container {
+    background: azure;
+    padding: 10px;
+    border-radius: 15px;
+}
+
+/* Clean Input Styling */
+.article-title-input, 
+.article-description-input,
+.form-control-sm {
+    width: 100%;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-size: 0.9rem;
+    margin-top: 5px;
+    background-color: #fdfdfd;
+    transition: border-color 0.2s;
+}
+
+.article-title-input:focus, 
+.article-description-input:focus {
+    outline: none;
+    border-color: #0d6efd;
+    background-color: #fff;
+}
+
+.article-description-input {
+    min-height: 100px;
+    resize: vertical;
+}
+
+/* Metadata Labels */
+.inspector-label {
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: #212529;
+    text-transform: uppercase;
+    letter-spacing: 0.02rem;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+
+.x-small {
+    font-size: 0.65rem;
+    letter-spacing: 0.05rem;
+}
+
+/* EditorJS */
+/*
+.ce-block__content,
+.ce-toolbar__content {
+    max-width: 95% !important;
+}
+    
+/* This ensures the editor container itself fills the wrapper 
+.codex-editor {
+    width: 100%;
+}
+    */
+
+/* Optional: If you want the text to start higher up 
+.codex-editor--empty .ce-block {
+    margin-top: 0;
+}
+    */
+

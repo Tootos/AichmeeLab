@@ -1,0 +1,35 @@
+ 
+ 
+ <div class="pagination-bar">
+            <button class="nav-btn" 
+            disabled="@(CurrentPage <= 1)" 
+            @onclick="GoToPreviousAsync">
+                <i class="bi bi-arrow-left"></i> Previous
+            </button>
+
+            <span class="page-indicator">@CurrentPage</span>
+
+            <button class="nav-btn" disabled="@(CurrentPage * PageSize >= PageCount)" @onclick="GoToNextAsync">
+                Next <i class="bi bi-arrow-right"></i>
+            </button>
+        </div>
+
+
+@code{
+    [Parameter] public int CurrentPage { get; set; }
+    [Parameter] public int PageSize {get; set;}
+    [Parameter] public long PageCount { get; set; }
+    [Parameter] public EventCallback<int> OnPageChanged { get; set; }
+
+     async Task GoToPreviousAsync(){
+        CurrentPage -=1;
+        await OnPageChanged.InvokeAsync(CurrentPage);
+     }
+
+
+     async Task GoToNextAsync(){
+        CurrentPage += 1;
+        await OnPageChanged.InvokeAsync(CurrentPage);
+     }
+
+}

@@ -1,18 +1,22 @@
 ﻿using Aichmee.Shared;
 using System.Linq.Expressions;
 using System.Net.Http.Json;
-using AichmeeLab.Local;
+using Microsoft.AspNetCore.Components.WebAssembly.Http;
 
 namespace AichmeeLab.Services.DashboardService
 {
     public class DashboardService : IDashboardService
     {
 
-        
+
         public List<Article> Articles { get; set; } = new List<Article>();
-        public event Action ListChanged;
+        public event Action? ListChanged;
         public int CurrentPage { get; set; } = 1;
-        public int PageCount { get; set; }
+        public short PageSize { get; set; } = 12;
+        public long PageCount { get; set; }
+        public string SearchTerm { get; set; } = string.Empty;
+        public DateTime? DateFrom { get; set; }
+        public DateTime? DateTo { get; set; }
 
         private readonly HttpClient _httpClient;
 
@@ -21,56 +25,142 @@ namespace AichmeeLab.Services.DashboardService
             _httpClient = http;
         }
 
-        public async Task GetArticles()
+        public async Task<ServiceResponse<Article>> GetArticleAsync(string id)
         {
             try
             {
-                var result = await _httpClient.GetFromJsonAsync<ServiceResponse<List<Article>>>("api/dashboard/articles/get");
+                var request = new HttpRequestMessage(HttpMethod.Get, $"api/dashboard/article/get/{id}");
 
-                if (result == null || result.Data== null)
+                request.SetBrowserRequestCredentials(BrowserRequestCredentials.Include);
+
+                var response = await _httpClient.SendAsync(request);
+
+                if (response.IsSuccessStatusCode)
                 {
+                    var result = await response.Content.ReadFromJsonAsync<ServiceResponse<Article>>();
+                    return result ?? new ServiceResponse<Article> { Success = false, Message = "No Content" };
 
                 }
+
+                return new ServiceResponse<Article>
+                {
+                    Success = false,
+                    Message = "No Response"
+                };
+
+
             }
             catch (Exception ex)
             {
-
-            }
-        }
-
-        public async Task<ServiceResponse<Article>> UpdateArticle(Article article)
-        {          
-            try
-            {
-                var result = await _httpClient.PutAsJsonAsync("api/dashboard/articles/put", article);
-
-                if (result.IsSuccessStatusCode)
-                {
-                    return await result.Content.ReadFromJsonAsync<ServiceResponse<Article>>() 
-                        ?? new ServiceResponse<Article>() { Message = "API returned an Empty response", Success = false};
-
-                }
-                
-                return new ServiceResponse<Article> { 
-                    Message = $"API Error: {result.StatusCode}" ,Success = false };
-            }
-            catch(Exception ex)
-            {
-                return new  ServiceResponse<Article>
+                return new ServiceResponse<Article>
                 {
                     Message = $"Connection failed: {ex.Message}",
                     Success = false
 
                 };
             }
-            
-           
+        }
+
+        public async Task GetArticlesAsync()
+        {
+            var request = new HttpRequestMessage(HttpMethod.Get, GetSearchURL());
+
+            request.SetBrowserRequestCredentials(BrowserRequestCredentials.Include);
+
+            var response = await _httpClient.SendAsync(request);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<ServiceResponse<PagedResult<Article>>>();
+                if (result?.Data?.Items != null)
+                {
+                    Articles = result.Data.Items;
+                    PageCount = result.Data.PageCount;
+
+                    ListChanged?.Invoke();
+                }
+
+            }
+        }
+
+
+        public async Task<ServiceResponse<bool>> DeleteArticleAsync(string id)
+        {
+            try
+            {
+
+                var request = new HttpRequestMessage(HttpMethod.Delete, $"api/dashboard/article/delete/{id}");
+
+                request.SetBrowserRequestCredentials(BrowserRequestCredentials.Include);
+
+                var response = await _httpClient.SendAsync(request);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var result = await response.Content.ReadFromJsonAsync<ServiceResponse<bool>>();
+                    return result ?? new ServiceResponse<bool> { Success = false, Message = "No Results" };
+                }
+
+                return new ServiceResponse<bool>
+                {
+                    Success = false,
+                    Message = "No Response"
+                };
+
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResponse<bool>
+                {
+                    Message = $"Connection failed: {ex.Message}",
+                    Success = false
+
+                };
+            }
+        }
+
+        public async Task<ServiceResponse<Article>> UpdateArticleAsync(Article article)
+        {
+            try
+            {
+                var request = new HttpRequestMessage(HttpMethod.Put, "api/dashboard/articles/put");
+
+                request.Content = JsonContent.Create(article);
+
+                request.SetBrowserRequestCredentials(BrowserRequestCredentials.Include);
+
+                var response = await _httpClient.SendAsync(request);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var result = await response.Content.ReadFromJsonAsync<ServiceResponse<Article>>();
+                    return result ?? new ServiceResponse<Article>() { Message = "No Results", Success = false };
+
+                }
+
+                return new ServiceResponse<Article>
+                {
+                    Message = "No Response",
+                    Success = false
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResponse<Article>
+                {
+                    Message = $"Connection failed: {ex.Message}",
+                    Success = false
+
+                };
+            }
+
+
         }
 
         public async Task<string> CheckDB()
         {
             // Now we expect a JSON object that matches ServiceResponse<string>
-            var result = await _httpClient.GetAsync("api/CheckDB");
+            var result = await _httpClient.GetAsync("api/dashboard/CheckDB");
 
             if (result.IsSuccessStatusCode)
             {
@@ -80,32 +170,23 @@ namespace AichmeeLab.Services.DashboardService
             return "ERROR";
         }
 
-        public async Task GetArticles(string searchTerm,DateTime ?dateFrom, DateTime ?dateTo)
+
+
+        private string GetSearchURL()
         {
             // Construct the URL with query strings
-            var url = $"api/articles/get?page={CurrentPage}&pageSize=6";
+            var url = $"api/dashboard/articles/get?page={CurrentPage}&pageSize={PageSize}";
 
-            if (!string.IsNullOrEmpty(searchTerm))
-                url += $"&search={Uri.EscapeDataString(searchTerm)}";
+            if (!string.IsNullOrEmpty(SearchTerm))
+                url += $"&search={Uri.EscapeDataString(SearchTerm)}";
 
-            if (dateFrom.HasValue)
-                url += $"&dateFrom={dateFrom.Value:yyyy-MM-dd}";
-            if (dateTo.HasValue)
-                url += $"&dateTo={dateTo.Value:yyyy-MM-dd}";
+            if (DateFrom.HasValue)
+                url += $"&dateFrom={DateFrom.Value:yyyy-MM-dd}";
+            if (DateTo.HasValue)
+                url += $"&dateTo={DateTo.Value:yyyy-MM-dd}";
 
-
-
-            var response = await _httpClient.GetFromJsonAsync<ServiceResponse<PagedResult<Article>>>(url);
-
-
-            if ( response != null)
-            {
-                Articles = response.Data.Items;
-                PageCount = response.Data.PageCount;
-
-                ListChanged.Invoke();
-            }
-
+            return url;
         }
+
     }
 }

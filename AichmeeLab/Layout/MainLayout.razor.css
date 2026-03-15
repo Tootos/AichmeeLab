@@ -1,99 +1,135 @@
-*{
+* {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
 }
 
 .page {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    background-color:#2c2c2c;
-    
+position: relative;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden; /* Prevents the background from scrolling */
+    background-color: #29251F; /* Or your preferred deep base color */
+}
 
-    min-height: 100vh;
+/* Top Navbar Start */
+.top-navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
     width: 100%;
-}
-
-main {
-    flex: 1;
+    height: 45px; 
+    z-index: 9999;
+    background: linear-gradient(to bottom, #212529 45px, transparent 45px);
+    
     display: flex;
-    flex-direction: column;
-    height: 100vh; /* Force it to be exactly screen height */
-    overflow: hidden; /* Disable page-level scrolling */
-}
-/* Ensure the article (where your content renders) fills the space */
-article {
-    flex: 1;
-    height: 100%;
-    overflow: hidden; /* Again, no scrolling here */
-    padding: 0 !important; /* Remove default padding to let your admin layout fill the screen */
+    align-items: flex-start; /* Align content to the top */
 }
 
-.sidebar {
-    background-image: linear-gradient(180deg, rgb(5, 39, 103) 0%, #3a0647 70%);
-}
-
-.top-row {
-    background-color: #f7f7f7;
-    border-bottom: 1px solid #d6d5d5;
-    justify-content: flex-end;
-    height: 3.5rem;
+/* Using your exact class: .nav-container */
+.nav-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+    height: 45px; /* This keeps your links centered in the DARK part */
     display: flex;
+    justify-content: space-between;
     align-items: center;
 }
 
-    .top-row ::deep a, .top-row ::deep .btn-link {
-        white-space: nowrap;
-        margin-left: 1.5rem;
-        text-decoration: none;
-    }
-
-    .top-row ::deep a:hover, .top-row ::deep .btn-link:hover {
-        text-decoration: underline;
-    }
-
-    .top-row ::deep a:first-child {
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-@media (max-width: 640.98px) {
-    .top-row {
-        justify-content: space-between;
-    }
-
-    .top-row ::deep a, .top-row ::deep .btn-link {
-        margin-left: 0;
-    }
+/* Logo and Link styling within your classes */
+.nav-logo {
+    color: #ffffff;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 1.25rem;
 }
+
+.nav-links .nav-item {
+    color: #adb5bd;
+    text-decoration: none;
+    margin-left: 20px;
+    font-weight: 500;
+    transition: color 0.2s ease;
+}
+
+.nav-links .nav-item:hover, 
+.nav-links .nav-item.active {
+    color: #ffffff;
+}
+
+.window-container {
+/* Positioning & Spacing */
+    position: relative;
+    margin: 65px auto 25px auto; 
+    z-index: 10;
+    
+    /* Sizing Constraints */
+    width: 95%;
+    height: calc(100vh - 90px); 
+    
+    /* Layout flow for children */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/*Admin button*/
+.admin-quick-access {
+    position: fixed;
+    bottom: 40px;
+    right: 40px;
+    z-index: 9999;
+}
+
+.btn-admin-gear {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 50px;
+    height: 50px;
+    
+    /* Sleek Gray Theme */
+    background-color: #3a3a3a; 
+    color: #e0e0e0;
+    
+    /* Clean finish */
+    border: none;
+    border-radius: 12px;
+    text-decoration: none;
+    
+    /* Shadow for the "Floating" effect */
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+    
+    /* Smooth transition for the expansion */
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.btn-admin-gear:hover {
+    color: #ffffff;
+    background-color: #4a4a4a;
+    
+    /* The expansion effect */
+    transform: scale(1.15); 
+    
+    /* Stronger shadow on hover to match the height increase */
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4);
+}
+
+.btn-admin-gear i {
+    font-size: 1.4rem;
+}
+/*Admin button*/
+
 
 @media (min-width: 641px) {
     .page {
         flex-direction: row;
     }
 
-    .sidebar {
-        width: 250px;
-        height: 100vh;
-        position: sticky;
-        top: 0;
-    }
-
-    .top-row {
-        position: sticky;
-        top: 0;
-        z-index: 1;
-    }
-
-    .top-row.auth ::deep a:first-child {
-        flex: 1;
-        text-align: right;
-        width: 0;
-    }
-
+    /* Neutralize the default Blazor padding that causes the shift */
     .top-row, article {
-        padding-left: 2rem !important;
-        padding-right: 1.5rem !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
     }
 }

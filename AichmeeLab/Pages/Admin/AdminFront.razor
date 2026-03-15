@@ -1,0 +1,21 @@
+@page "/admin/"
+@using AichmeeLab.Pages.Includes;
+@inject AichmeeLab.Services.SecurityService.ISecurityService SecurityService;
+@inject NavigationManager NavigationManager;
+<h1>BOSS</h1>
+
+<div class="viewport-left">
+      <NavPanel />
+    </div>
+
+@code{
+    protected  override async Task OnInitializedAsync()
+    {
+        if(!await SecurityService.IsAuthorizedAsync()){
+          NavigationManager.NavigateTo("/unauthorized/");
+        }
+    }
+
+
+
+}

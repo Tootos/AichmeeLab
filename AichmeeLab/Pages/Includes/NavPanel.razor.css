@@ -1,0 +1,8 @@
+.nav-wrapper {
+    background: azure;
+    height: fit-content;
+    /* border: saddlebrown; */
+    /* box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.3); */
+    border-radius: 12px;
+    padding: 10px 15px 30px 0px;
+}

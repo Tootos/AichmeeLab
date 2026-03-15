@@ -1,83 +1,132 @@
-﻿
-@page "/admin/articles/{Action?}"
-@using AichmeeLab.Pages.Admin.Includes
+﻿@page "/admin/articles/{Action?}"
+@using AichmeeLab.Pages.Includes
+@using System.Net.Security
+@implements IDisposable
 @inject NavigationManager NavigationManager;
 @inject AichmeeLab.Services.DashboardService.IDashboardService DashboardService;
-
+@inject AichmeeLab.Services.SecurityService.ISecurityService SecurityService;
 
 <div class="admin-layout-container">
 
     <div class="viewport-left">
-        <div class="window-options">
-            <h1>Articles</h1>
-            <ul class="nav flex-column">
-                <li class="nav-item">
-                    <button class="btn btn-link" @onclick="() => selectedTab = Tab.Home">Dashboard</button>
-                </li>
-                <li class="nav-item">
-                    <button class="btn btn-link" @onclick="() => selectedTab = Tab.Upload">Publish New</button>
-                </li>
-            </ul>
-        </div>
+        <NavPanel />
     </div>
 
     <div class="viewport-center">
-        <div class="work-window">
-            @switch (selectedTab)
-            {
-                case Tab.Home:
-                        <SearchBar/>
-                        <ArticlesList/>
-                    break;
-                case Tab.Upload:
-                        <ArticlesEdit/>
-                    break;
-            }
+        <div class="view-switcher-header">
+            <div class="btn-group w-100" role="group">
+                <button type="button" class="btn @(selectedTab == Tab.List ? "btn-primary" : "btn-outline-primary")"
+                        @onclick="() => SwitchToTab(Tab.List)">
+                    <i class="bi bi-grid-3x3-gap"></i> Article List
+                </button>
+                <button type="button" class="btn @(selectedTab == Tab.Article ? "btn-primary" : "btn-outline-primary")"
+                        @onclick="() => SwitchToTab(Tab.Article)">
+                    <i class="bi bi-pencil-square"></i> @(string.IsNullOrEmpty(articleToEdit.Title) ? "Publish New" :
+                                        articleToEdit.Title)
+                </button>
+            </div>
         </div>
+
+
+        @switch (selectedTab)
+        {
+            case Tab.List:
+                <div class="search-container">
+                    <SearchBar OnSearchPerformed="LoadList" />
+                </div>
+                <ArticlesList OnEditRequested="HandleEditRequestAsync" />
+
+                break;
+            case Tab.Article:
+
+                <ArticlesEdit id="@selectedId" SelectedArticle="@articleToEdit"                                  OnReady="StateHasChanged" OnReset="ResetData" />
+
+                break;
+        }
+
     </div>
-
-    <div class="viewport-right-spacer"/>
-
-</div>
-
-
-
+</div> @* ADDED: This closes .admin-layout-container *@
 @code {
     [Parameter]
     public string? Action { get; set; }
-
-    private enum State { Idle, Loading, Success, Error }
-    private State currentStatus = State.Idle;
     private string _message = "Upload .docx file.";
+    private string? selectedId { get; set; } = null;
+    enum Tab { List, Article }
+    Tab selectedTab = Tab.List;
 
-    enum Tab {Home, Review, Upload   }
-    Tab selectedTab = Tab.Home;
+    Article articleToEdit = new Article();
 
 
-    protected override async Task OnParametersSetAsync()
+    protected override async Task OnInitializedAsync()
+    {
+        if (!await SecurityService.IsAuthorizedAsync())
+            NavigationManager.NavigateTo("/unauthorized/");
+
+    }
+    //Listener set up
+    protected override void OnInitialized()
+    {
+        NavigationManager.LocationChanged += HandleLocationChanged;
+    }
+    // Initial loading
+    protected override void OnParametersSet()
+    {
+        LoadList();
+    }
+    //This runs every time the URL changes
+    private void HandleLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        LoadList();
+        StateHasChanged();
+    }
+
+    //ArticleList: Get data from service
+    protected void LoadList()
     {
         var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
         var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
 
-        DateTime? dateFrom;
-        DateTime? dateTo;
-
-        // 1. Assign values to the Service
-        var searchTerm = query.TryGetValue("q", out var q) ? q.ToString() : "";
+        DashboardService.SearchTerm = query.TryGetValue("q", out var q) ? q.ToString() : "";
 
         if (query.TryGetValue("from", out var f) && DateTime.TryParse(f, out var df))
-            dateFrom = df;
+            DashboardService.DateFrom = df;
         else
-            dateFrom = null;
+            DashboardService.DateFrom = null;
 
         if (query.TryGetValue("to", out var t) && DateTime.TryParse(t, out var dt))
-            dateTo = dt;
+            DashboardService.DateTo = dt;
         else
-            dateTo = null;
+            DashboardService.DateTo = null;
 
         DashboardService.CurrentPage = query.TryGetValue("page", out var p) && int.TryParse(p, out var pg) ? pg : 1;
-
-        // 2. Load the data from the API
-        await DashboardService.GetArticles(searchTerm, dateFrom, dateTo);
     }
+    //Clean up to avoid memory leaks
+    public void Dispose()
+    {
+        NavigationManager.LocationChanged -= HandleLocationChanged;
+    }
+
+    //Switching to Editor
+    private async Task HandleEditRequestAsync(string id)
+    {
+        var response = await DashboardService.GetArticleAsync(id);
+        if (response != null && response.Data != null)
+        {
+            articleToEdit = response.Data;
+            selectedId = id; // Set the ID
+            selectedTab = Tab.Article; // Flip the switch to the Edit
+            StateHasChanged();
+        }
+
+    }
+    //Editor has clears fields.
+    void ResetData()
+    {
+        selectedId = null;
+        articleToEdit = new Article();
+        StateHasChanged();
+    }
+    //Switch Tab
+    void SwitchToTab(Tab tab) => selectedTab = tab;
+
 }

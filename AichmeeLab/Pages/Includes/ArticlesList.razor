@@ -1,0 +1,108 @@
+﻿@implements IDisposable
+@inject AichmeeLab.Services.DashboardService.IDashboardService DashboardService
+@inject NavigationManager NavigationManager
+
+<div class="articles-list-layout">
+    @if (DashboardService.Articles == null || DashboardService.Articles.Count == 0)
+    {
+        <div class="empty-state">
+            <i class="bi bi-inbox"></i>
+            <p>@_message</p>
+        </div>
+    }
+    else
+    {
+        <div class="articles-grid">
+            @foreach (var article in DashboardService.Articles)
+            {
+                <div class="article-card" @onclick="() => OnEditAsync(article.Id)">
+                    <div class="card-content">
+                        <h5 class="article-title">@article.Title</h5>
+                        <p class="article-author">by @(string.IsNullOrEmpty(article.Author) ? "Unknown" : article.Author)</p>
+
+                        <div class="article-footer">
+                            <div class="metadata-group">
+                                <div class="meta-item">
+                                    <label>Updated</label>
+                                    <span>@article.LastUpdate.ToString("MMM dd")</span>
+                                </div>
+                                <div class="meta-item border-left">
+                                    <label>Published</label>
+                                    <span>@article.DatePublished.ToString("MMM dd, yyyy")</span>
+                                </div>
+                            </div>
+
+                            <div class="visibility-toggle">
+                                <span class="visibility-label">VISIBLE</span>
+                                <div class="form-switch">
+                                    <input type="checkbox" checked="@article.IsVisible" 
+                                           @onchange="() => ToggleVisibility(article)"
+                                           @onclick:stopPropagation />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+
+        <Pagination CurrentPage="DashboardService.CurrentPage" 
+         PageCount="@DashboardService.PageCount" PageSize="DashboardService.PageSize" OnPageChanged="HandleChangePage"/>
+
+    }
+</div>
+
+@code {
+
+[Parameter] 
+    public EventCallback<string> OnEditRequested { get; set; }
+
+
+    string _message = "Loading...";
+[Parameter]
+[SupplyParameterFromQuery]
+public int? page { get; set; } 
+
+    void ToggleVisibility(Article article){
+
+    }
+
+    protected override void OnInitialized()
+    {
+        DashboardService.ListChanged += StateHasChanged;
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+       _message = "Loading...";
+
+       DashboardService.CurrentPage = page ?? 1;
+        await DashboardService.GetArticlesAsync(); 
+        
+        if (DashboardService.Articles == null ||DashboardService.Articles.Count == 0)
+        {
+            _message = "No articles found.";
+        }
+
+        StateHasChanged();
+
+    }
+    public void Dispose()
+    {
+        DashboardService.ListChanged -= StateHasChanged;
+    }
+
+    private void HandleChangePage(int page)
+    {
+        // Use the helper to keep current search/dates but change only the page
+        var uri = NavigationManager.GetUriWithQueryParameter("page", page);
+        NavigationManager.NavigateTo(uri);
+    }
+
+
+    async Task  OnEditAsync(string id)
+    {
+        await OnEditRequested.InvokeAsync(id);
+    }
+}

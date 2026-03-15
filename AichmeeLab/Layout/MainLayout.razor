@@ -1,17 +1,56 @@
-﻿@inherits LayoutComponentBase
+﻿@using System.Threading.Tasks
+@inherits LayoutComponentBase
+@inject AichmeeLab.Services.SecurityService.ISecurityService SecurityService;
+@inject NavigationManager NavigationManager
 <div class="page">
-    @if (false)
-    {
-        <div class="sidebar">
-            <NavMenu />
+    @if (!IsHomePage)
+{
+    <nav class="top-navbar shadow-sm">
+        <div class="nav-container">
+            <a href="/" class="nav-logo">AichmeeLab</a>
+            <div class="nav-links">
+                <NavLink href="articles/feed" class="nav-item">Articles</NavLink>
+                <NavLink href="albums" class="nav-item">Albums</NavLink>
+                <NavLink href="about" class="nav-item">About</NavLink>
+            </div>
         </div>
+    </nav>
     }
+
+    <div class="window-container">
+            @Body
+    </div>
+
+        
+    @if(_isAdmin){
+    <div class="admin-quick-access">
+        <a href="/admin
+        " class="btn-admin-gear">
+            <i class="bi bi-gear-fill"></i>
+        </a>
+    </div>
+    }
+
+
+</div>
+
+
+
+@code{
+    private bool IsHomePage => NavigationManager.Uri == NavigationManager.BaseUri;
+
+    private bool _isAdmin {get; set; }= false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _isAdmin = await SecurityService.IsAuthorizedAsync();
+    }
+
+    protected override void OnInitialized()
+    {
+        NavigationManager.LocationChanged += (s, e) => StateHasChanged();
+    }
+
     
 
-    <main>
-
-        <article class="content px-4">
-            @Body
-        </article>
-    </main>
-</div>
+}

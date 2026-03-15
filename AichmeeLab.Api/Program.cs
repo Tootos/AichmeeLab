@@ -5,16 +5,16 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using AichmeeLab.Api.LocalModels;
+using AichmeeLab.Api.Middleware;
 
 var builder = FunctionsApplication.CreateBuilder(args);
 
-builder.ConfigureFunctionsWebApplication();
+builder.UseMiddleware<AuthenticationMiddleware>();;
 
-// 1. Bind the MongoDbSettings class to the configuration section
 builder.Services.Configure<AlexandriaDBSettings>(
-    builder.Configuration.GetSection("AlexandriaDB"));
+    builder.Configuration.GetSection("AlexandriaDBSettings"));
 
-// 2. Register IMongoClient using the settings
+
 builder.Services.AddSingleton<IMongoClient>(sp =>
 {
     // Retrieve the settings from the DI container
@@ -26,5 +26,6 @@ builder.Services.AddSingleton<IMongoClient>(sp =>
     }
     return new MongoClient(settings.ConnectionString);
 });
+
 
 builder.Build().Run();

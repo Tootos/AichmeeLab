@@ -1,0 +1,21 @@
+@page "/admin/unlock/{Keyword}"
+@inject AichmeeLab.Services.SecurityService.ISecurityService SecurityService
+@inject NavigationManager NavigationManager
+
+
+<h1>UNLOCK</h1>
+
+
+
+@code{
+    [Parameter]public string Keyword{get; set;} = string.Empty;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+       if(!string.IsNullOrEmpty(Keyword)) 
+       await SecurityService.GetAdminAccessAsync(Keyword);
+
+    }
+
+}

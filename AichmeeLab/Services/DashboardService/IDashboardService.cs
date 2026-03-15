@@ -4,15 +4,27 @@ namespace AichmeeLab.Services.DashboardService
 {
     public interface IDashboardService
     {
+        
+
         int CurrentPage { get; set; }
-        int PageCount { get; set; }
+        short PageSize {get; set;}
+        string SearchTerm {get; set;}
+
+        DateTime? DateFrom{get; set;}
+        DateTime? DateTo {get; set;}
+        long PageCount { get; set; }
         List<Article> Articles { get; set; }
         event Action ListChanged;
+        
+
+        Task<ServiceResponse<Article>> GetArticleAsync(string id);
+        Task GetArticlesAsync();
+
+        
+        Task<ServiceResponse<Article>> UpdateArticleAsync(Article article);
+        Task<ServiceResponse<bool>> DeleteArticleAsync(string id);
+        
 
         Task<string> CheckDB();
-
-        Task GetArticles();
-        Task<ServiceResponse<Article>> UpdateArticle(Article article);
-        Task GetArticles(string searchTerm, DateTime ?dateFrom, DateTime ?dateTo);
     }
 }

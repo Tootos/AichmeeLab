@@ -1,8 +1,6 @@
 ﻿@inject NavigationManager NavigationManager;
-@inject AichmeeLab.Services.DashboardService.IDashboardService DashboardService;
 
-<div class="card shadow-sm mb-4 border-0 bg-light">
-    <div class="card-body">
+    <div class="search-wrapper">
         <div class="row g-3 align-items-end">
 
             @* 1. Search Field *@
@@ -42,9 +40,10 @@
 
         </div>
     </div>
-</div>
 
 @code {
+    [Parameter]
+    public EventCallback OnSearchPerformed {get;set;}
     string _searchTerm { get; set; } = string.Empty;
     DateTime? _dateFrom { get; set; }
     DateTime? _dateTo { get; set; }
@@ -77,8 +76,9 @@
             ["page"] = 1
         };
 
-        var baseUri = $"/admin/articles/search";
-        var uri = NavigationManager.GetUriWithQueryParameters(baseUri, parameters);
-        NavigationManager.NavigateTo(uri, forceLoad: false);
+        var uri = NavigationManager.GetUriWithQueryParameters(NavigationManager.Uri.Split('?')[0], parameters);
+        NavigationManager.NavigateTo(uri);
+
+        OnSearchPerformed.InvokeAsync();
     }
 }

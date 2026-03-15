@@ -1,5 +1,7 @@
 using AichmeeLab;
 using AichmeeLab.Services.DashboardService;
+using AichmeeLab.Services.SecurityService;
+using AichmeeLab.Services.UserService;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 
@@ -16,6 +18,8 @@ builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(baseAddr
 
 
 builder.Services.AddScoped<IDashboardService, DashboardService>();
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<ISecurityService, SecurityService>();
 
 
 await builder.Build().RunAsync();

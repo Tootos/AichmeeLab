@@ -1,24 +1,23 @@
-﻿/* Centers the window in the middle of the screen */
+﻿/* 1. Use 'min-height' instead of 'height' to prevent squashing */
 .viewport-center {
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh;
+    min-height: 100vh; 
     width: 100%;
-    margin: 0;
-    padding: 0;
 }
 
-/* The actual Box */
+/* 2. Fixed Background and explicit sizing */
 .window-box {
-    width: min(550px, 90vw);
-    height: min(300px, 80vh);
-
+    width: min(600px, 95vw); /* Slightly wider for the About layout */
+    min-height: 350px;       /* Increased to prevent early scrolling */
     display: flex;
     flex-direction: column;
-    border: 2px solid #000; /* Skeleton border */
-    background: #fff;
-    background-color: #38332A;
+    border: 2px solid #000;
+    background-color: #38332A; /* Dark Theme */
+    color: #F5F5F5;            /* Light text for readability */
+    position: relative;        
+    margin-top:-60px;
 }
 
 /* Tab Bar */

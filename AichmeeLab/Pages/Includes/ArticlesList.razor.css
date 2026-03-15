@@ -1,0 +1,101 @@
+/* The Scrollable Wrapper moved inside the component */
+.articles-list-layout {
+    height: 75vh;
+    width: 100%;
+    margin: 0 auto;
+    background: white;
+    padding: 30px 40px;
+    border-radius: 0 0 12px 12px;
+    overflow: auto;
+}
+
+
+/* Grid Layout */
+.articles-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 24px;
+    margin-bottom: 40px;
+}
+
+/* Unified Card Design */
+.article-card {
+    background: white;
+    border-radius: 12px;
+    border: 1px solid #eee;
+    padding: 24px;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+
+.article-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(0,0,0,0.08);
+}
+
+.article-title {
+    font-weight: 700;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.article-author {
+    color: #0d6efd;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 24px;
+}
+
+/* Footer & Metadata */
+.article-footer {
+    margin-top: auto;
+    padding-top: 16px;
+    border-top: 1px solid #f0f0f0;
+}
+
+.metadata-group {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 12px;
+}
+
+.meta-item label {
+    display: block;
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #adb5bd;
+}
+
+.meta-item span {
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.border-left {
+    border-left: 1px solid #eee;
+    padding-left: 16px;
+}
+
+/* Visibility Switch */
+.visibility-toggle {
+    display: flex;
+    align-items: center;
+    background: #f8f9fa;
+    padding: 4px 12px;
+    border-radius: 6px;
+    width: fit-content;
+}
+
+.visibility-label {
+    font-size: 0.6rem;
+    font-weight: 800;
+    color: #6c757d;
+    margin-right: 8px;
+}
+

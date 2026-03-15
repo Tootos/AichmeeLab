@@ -9,8 +9,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AichmeeLab.Api", "AichmeeLa
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aichmee.Shared", "Aichmee.Shared\Aichmee.Shared.csproj", "{DD7BDDB8-415F-4236-BE73-7A5C33826565}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pathfinder", "..\..\..\OneDrive\Visual Studio Projects\Pathfinder\Pathfinder\Pathfinder.csproj", "{0A750694-620A-0AB5-5897-8B2A2219E7A1}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -29,10 +27,6 @@ Global
 		{DD7BDDB8-415F-4236-BE73-7A5C33826565}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DD7BDDB8-415F-4236-BE73-7A5C33826565}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DD7BDDB8-415F-4236-BE73-7A5C33826565}.Release|Any CPU.Build.0 = Release|Any CPU
-		{0A750694-620A-0AB5-5897-8B2A2219E7A1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{0A750694-620A-0AB5-5897-8B2A2219E7A1}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{0A750694-620A-0AB5-5897-8B2A2219E7A1}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{0A750694-620A-0AB5-5897-8B2A2219E7A1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -1,0 +1,86 @@
+.viewport-center {
+    height: 100vh;
+    display: flex;
+    margin-left: auto;
+    margin-right: auto;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.search-container {
+    padding: 20px 40px;
+    background: white;
+    border-bottom: 1px solid #f0f0f0;
+    border-radius: 12px 12px 0 0; 
+    width: 100%;
+    margin: 0 auto;
+}
+
+.articles-list{
+    background: white;
+    margin-bottom: 15px;
+    padding: 5px;
+    overflow: auto;
+}
+
+.slide-content {
+    background: #ffffff;
+    border: 1px solid #7b8590;
+    border-radius: 8px;
+    padding: 2rem;
+    transition: all 0.3s ease;
+}
+.article-title {
+    font-size: 1.75rem;
+    font-weight: 800;
+    margin: 0;
+    color: #1a1a1a;
+}
+
+.article-description {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    color: #4a4a4a;
+    margin-bottom: 1.5rem;
+}
+
+.author-tag {
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #6c757d;
+}
+
+.slide-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 1rem;
+    border-top: 1px solid #f1f3f5;
+}
+
+.date-info {
+    font-size: 0.85rem;
+}
+
+.date-label {
+    color: #adb5bd;
+    margin-right: 4px;
+}
+
+.date-value {
+    color: #495057;
+    font-weight: 500;
+}
+
+.date-divider {
+    margin: 0 10px;
+    color: #dee2e6;
+}
+
+.read-more-link {
+    color: #0d6efd;
+    text-decoration: none;
+    font-weight: 600;
+}

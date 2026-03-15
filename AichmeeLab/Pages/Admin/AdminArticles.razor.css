@@ -1,49 +1,36 @@
 ﻿.admin-layout-container {
     display: flex;
-    height: 100%; /* Take full height of the 'article' tag */
+    height: 100%; /* Fill the window-container height */
     width: 100%;
-    background-color: #f0f2f5;
-    padding: 20px;
-    gap: 50px;
-    box-sizing: border-box; 
-    overflow: hidden;
-    justify-content: center; /* Keeps everything centered on the screen */
+    gap: 20px;
+    box-sizing: border-box;
+    overflow: hidden; 
 }
 
-.viewport-left {
-    flex: 0 0 260px;
-    background: white;
-    border-radius: 12px;
-    padding: 20px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08); /* Soft shadow for "lift" */
-    height: fit-content; /* Only as long as the menu */
-    border: 1px solid #e0e0e0;
-    /* No sticky needed now because the parent doesn't scroll */
+.viewport-left{
+    flex: 0 0 240px;
 }
+
 
 .viewport-center {
-    flex: 0 1 900px;
-    height: 100%; /* Match the parent height */
-    overflow: hidden;
-}
-
-.viewport-right-spacer {
-    flex: 0 0 260px;
-    display: none;
-}
-
-.work-window {
-    display: flex;
-    flex-direction: column;
-    background: white;
-    border-radius: 12px;
-    padding: 40px;
+    flex: 1;
     height: 100%;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-    border: 1px solid #e0e0e0;
-    box-sizing: border-box;
+    width: 90%;
+    overflow: hidden; 
 }
 
+.view-switcher-header{
+    margin-bottom: 5px;
+    justify-content: center;
+    align-items: center;
+}
+
+/* The Fixed Search Section */
+.search-container {
+    padding: 20px;
+    background: azure;
+    border-radius: 20px 20px 0px 0px;
+}
 
 
 

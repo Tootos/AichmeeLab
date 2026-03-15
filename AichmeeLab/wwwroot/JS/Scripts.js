@@ -1,12 +1,24 @@
 ﻿let editorInstance;
 
-window.setupEditor = (id) => {
+window.setupEditor = (id, data) => {
 
     const el = document.getElementById(id);
     if (!el || el.childElementCount > 0) return;
 
+    // Parse the data if it exists
+    let parsedData = {};
+    if (data) {
+        try {
+            parsedData = JSON.parse(data);
+        } catch (e) {
+            console.error("Failed to parse initial EditorJS data", e);
+        }
+    }
+     
     window.editorInstance = new EditorJS({
         holder: id,
+        minHeight: 0,
+        data: parsedData,
         tools: {
             header: Header,
             list: EditorjsList // Direct use of the new variable name
@@ -73,6 +85,20 @@ window.setupEditor = (id) => {
         }
     });
 
+};
+
+window.updateEditorData = async (content) => {
+    if (window.editorInstance && window.editorInstance.isReady) {
+        await window.editorInstance.isReady
+        if(content){
+const data = JSON.parse(content);
+        window.editorInstance.render(data); // Clears old blocks and renders new ones
+        }else{
+            window.editorInstance.blocks.clear();
+        }     
+    } else if (window.editorInstance) {
+        window.editorInstance.blocks.clear(); // Clear for new articles
+    }
 };
 
 window.saveEditorData = async () => {
