@@ -9,8 +9,6 @@ namespace AichmeeLab.Services.SecurityService
 
     public class SecurityService : ISecurityService
     {
-
-
         readonly HttpClient _httpClient;
 
 

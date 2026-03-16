@@ -12,7 +12,7 @@ var builder = FunctionsApplication.CreateBuilder(args);
 builder.UseMiddleware<AuthenticationMiddleware>();;
 
 builder.Services.Configure<DBSettings>(
-    builder.Configuration.GetSection("AlexandriaDBSettings"));
+    builder.Configuration.GetSection("DBSettings"));
 
 
 builder.Services.AddSingleton<IMongoClient>(sp =>

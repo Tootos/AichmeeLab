@@ -1,6 +1,7 @@
 ﻿@using System.Threading.Tasks
+@using AichmeeLab.Pages.Admin
 @inherits LayoutComponentBase
-@inject AichmeeLab.Services.SecurityService.ISecurityService SecurityService;
+
 @inject NavigationManager NavigationManager
 <div class="page">
     @if (!IsHomePage)
@@ -21,15 +22,7 @@
             @Body
     </div>
 
-        
-    @if(_isAdmin){
-    <div class="admin-quick-access">
-        <a href="/admin
-        " class="btn-admin-gear">
-            <i class="bi bi-gear-fill"></i>
-        </a>
-    </div>
-    }
+    <AdminButton/>
 
 
 </div>
@@ -38,13 +31,6 @@
 
 @code{
     private bool IsHomePage => NavigationManager.Uri == NavigationManager.BaseUri;
-
-    private bool _isAdmin {get; set; }= false;
-
-    protected override async Task OnInitializedAsync()
-    {
-        _isAdmin = await SecurityService.IsAuthorizedAsync();
-    }
 
     protected override void OnInitialized()
     {

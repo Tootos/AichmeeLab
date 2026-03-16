@@ -13,8 +13,10 @@
 
     protected override async Task OnInitializedAsync()
     {
-       if(!string.IsNullOrEmpty(Keyword)) 
-       await SecurityService.GetAdminAccessAsync(Keyword);
+
+            await SecurityService.GetAdminAccessAsync(Keyword);
+
+         
 
     }
 
