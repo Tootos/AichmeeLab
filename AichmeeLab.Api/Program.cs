@@ -11,14 +11,14 @@ var builder = FunctionsApplication.CreateBuilder(args);
 
 builder.UseMiddleware<AuthenticationMiddleware>();;
 
-builder.Services.Configure<AlexandriaDBSettings>(
+builder.Services.Configure<DBSettings>(
     builder.Configuration.GetSection("AlexandriaDBSettings"));
 
 
 builder.Services.AddSingleton<IMongoClient>(sp =>
 {
     // Retrieve the settings from the DI container
-    var settings = sp.GetRequiredService<IOptions<AlexandriaDBSettings>>().Value;
+    var settings = sp.GetRequiredService<IOptions<DBSettings>>().Value;
 
     if (string.IsNullOrEmpty(settings.ConnectionString))
     {

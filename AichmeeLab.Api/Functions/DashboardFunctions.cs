@@ -16,11 +16,11 @@ namespace AichmeeLab.Api
         private readonly IMongoClient _mongoClient;
         private readonly IMongoCollection<Article> _collection;
         private readonly ILogger<DashboardFunctions> _logger; 
-        private readonly AlexandriaDBSettings _settings;
+        private readonly DBSettings _settings;
 
         public DashboardFunctions(
             IMongoClient mongoClient,
-            IOptions<AlexandriaDBSettings> options,
+            IOptions<DBSettings> options,
             ILogger<DashboardFunctions> logger)
         {
             _mongoClient = mongoClient;

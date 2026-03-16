@@ -1,0 +1,16 @@
+{
+  "navigationFallback": {
+    "rewrite": "/index.html",
+    "exclude": ["/css/*", "/js/*", "/api/*", "/_framework/*"]
+  },
+  "globalHeaders": {
+    "X-Aichmee-Environment": "QualityControl-QC",
+    "Cache-Control": "no-cache"
+  },
+  "routes": [
+    {
+      "route": "/api/*",
+      "allowedRoles": ["anonymous"]
+    }
+  ]
+}
