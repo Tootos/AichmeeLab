@@ -66,10 +66,14 @@ window.setupEditor = async (id, data) => {
     // 2. Ensure the element is empty before starting
     el.innerHTML = '';
 
-    let parsedData = {};
+    let parsedData = {blocks: []};
     if (data && data !== "null" && data.trim() !== "") {
         try {
-            parsedData = JSON.parse(data);
+            parsedData = typeof data === 'string' ? JSON.parse(data) : data;
+            
+            if (!parsedData.blocks) {
+                parsedData.blocks = [];
+            }
         } catch (e) {
             console.error("Failed to parse initial EditorJS data", e);
         }
