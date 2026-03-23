@@ -1,4 +1,7 @@
+@implements IDisposable
+
 @inject AichmeeLab.Services.SecurityService.ISecurityService SecurityService;
+@inject NavigationManager NavigationManager
 
 
     @if(_isAdmin){
@@ -13,8 +16,21 @@
 @code{
         private bool _isAdmin {get; set; }= false;
 
-    protected override async Task OnParametersSetAsync()
+    protected override async Task OnInitializedAsync()
     {
        _isAdmin = await SecurityService.IsAuthorizedAsync();
+       NavigationManager.LocationChanged += HandleLocationChangedAsync;
     }  
+
+    private async void HandleLocationChangedAsync(object? sender, LocationChangedEventArgs e)
+    {
+        _isAdmin = await SecurityService.IsAuthorizedAsync();
+
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        NavigationManager.LocationChanged -= HandleLocationChangedAsync;
+    }
 }

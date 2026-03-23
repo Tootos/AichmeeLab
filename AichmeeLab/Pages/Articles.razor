@@ -13,14 +13,16 @@
     }else{
         <div class="articles-list">
          @foreach(var article in UserService.Articles){
-            <div class="article-slide shadow-sm">
+            <div class="article-slide">
             <div class="slide-content">
                 <h2 class="article-title">@article.Title</h2>
+                <span class="author-tag">by @(article.Author ?? "Anon")</span>
                 <p class="article-description">@article.Description</p>
+                <div class="separator-line"></div>
                 <div class="slide-meta">
                     <span class="date-label">Published</span>
                         <span class="date-value">@article.DatePublished.ToString("dd MMM yyyy")</span>
-                        
+                    
                         <span class="date-divider">/</span>
                         
                         <span class="date-label">Updated</span>

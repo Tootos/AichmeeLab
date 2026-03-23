@@ -18,69 +18,86 @@
                 <div class="article-card" @onclick="() => OnEditAsync(article.Id)">
                     <div class="card-content">
                         <h5 class="article-title">@article.Title</h5>
-                        <p class="article-author">by @(string.IsNullOrEmpty(article.Author) ? "Unknown" : article.Author)</p>
-
+                        <p class="author-tag">by @(string.IsNullOrEmpty(article.Author) ? "Unknown" : article.Author)</p>
+                        <div class="separator-line"></div>
                         <div class="article-footer">
                             <div class="metadata-group">
                                 <div class="meta-item">
                                     <label>Updated</label>
-                                    <span>@article.LastUpdate.ToString("MMM dd")</span>
+                                    <span class="date-value">@article.LastUpdate.ToString("MMM dd")</span>
                                 </div>
                                 <div class="meta-item border-left">
                                     <label>Published</label>
-                                    <span>@article.DatePublished.ToString("MMM dd, yyyy")</span>
+                                    <span class="date-value">@article.DatePublished.ToString("MMM dd, yyyy")</span>
                                 </div>
                             </div>
 
-                            <div class="visibility-toggle">
-                                <span class="visibility-label">VISIBLE</span>
-                                <div class="form-switch">
-                                    <input type="checkbox" checked="@article.IsVisible" 
-                                           @onchange="() => ToggleVisibility(article)"
-                                           @onclick:stopPropagation />
-                                </div>
+                            <label class="form-status" @onclick:stopPropagation="true">
+                                <span>@(article.IsVisible ? "VISIBLE" : "HIDDEN")</span>
+
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" role="switch" checked="@article.IsVisible"
+                                           @onchange="() => ToggleVisibility(article.Id, article.IsVisible)">
+                                    </div>
+                                </label>
                             </div>
                         </div>
                     </div>
-                </div>
-            }
-        </div>
+                }
+            </div>
 
 
-        <Pagination CurrentPage="DashboardService.CurrentPage" 
-         PageCount="@DashboardService.PageCount" PageSize="DashboardService.PageSize" OnPageChanged="HandleChangePage"/>
+            <Pagination CurrentPage="DashboardService.CurrentPage" PageCount="@DashboardService.PageCount"
+                        PageSize="DashboardService.PageSize" OnPageChanged="HandleChangePage" />
 
-    }
-</div>
+        }
+
+
+        @if (changeVisibility.Count  > 0)
+        {
+            <div class="floating-save-container">
+                <button class="btn-bulk-save" @onclick="BulkSaveAsync" title="Save changes to @changeVisibility.Count articles">
+                    <i class="bi bi-cloud-check-fill"></i>
+                    <span class="save-counter">@changeVisibility.Count</span>
+                </button>
+            </div>
+
+        }
+
+
+    </div>
 
 @code {
-
-[Parameter] 
+    [Parameter]
     public EventCallback<string> OnEditRequested { get; set; }
-
-
     string _message = "Loading...";
-[Parameter]
-[SupplyParameterFromQuery]
-public int? page { get; set; } 
+    Dictionary<string, bool> changeVisibility = new();
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public int? page { get; set; }
 
-    void ToggleVisibility(Article article){
-
+    void ToggleVisibility(string id, bool visible)
+    {
+        if(changeVisibility.ContainsKey(id)){
+            changeVisibility.Remove(id);
+        }else{
+            changeVisibility.Add(id, !visible);
+        }
     }
 
     protected override void OnInitialized()
     {
-        DashboardService.ListChanged += StateHasChanged;
+        DashboardService.ServiceChanged += StateHasChanged;
     }
 
     protected override async Task OnParametersSetAsync()
     {
-       _message = "Loading...";
+        _message = "Loading...";
 
-       DashboardService.CurrentPage = page ?? 1;
-        await DashboardService.GetArticlesAsync(); 
-        
-        if (DashboardService.Articles == null ||DashboardService.Articles.Count == 0)
+        DashboardService.CurrentPage = page ?? 1;
+        await DashboardService.GetArticlesAsync();
+
+        if (DashboardService.Articles == null || DashboardService.Articles.Count == 0)
         {
             _message = "No articles found.";
         }
@@ -90,7 +107,7 @@ public int? page { get; set; }
     }
     public void Dispose()
     {
-        DashboardService.ListChanged -= StateHasChanged;
+        DashboardService.ServiceChanged -= StateHasChanged;
     }
 
     private void HandleChangePage(int page)
@@ -100,8 +117,17 @@ public int? page { get; set; }
         NavigationManager.NavigateTo(uri);
     }
 
+    async Task BulkSaveAsync()
+    {
+        var response = await DashboardService.UpdateVisibilityAsync(changeVisibility);
+        changeVisibility.Clear();
 
-    async Task  OnEditAsync(string id)
+        StateHasChanged();
+
+    }
+
+
+    async Task OnEditAsync(string id)
     {
         await OnEditRequested.InvokeAsync(id);
     }

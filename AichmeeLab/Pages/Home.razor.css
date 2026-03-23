@@ -1,59 +1,111 @@
-﻿/* 1. Use 'min-height' instead of 'height' to prevent squashing */
-.viewport-center {
+﻿.viewport-center {
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: 100vh; 
+    min-height: 100vh;
     width: 100%;
 }
 
 /* 2. Fixed Background and explicit sizing */
 .window-box {
-    width: min(600px, 95vw); /* Slightly wider for the About layout */
-    min-height: 350px;       /* Increased to prevent early scrolling */
+    width: min(600px, 95vw);
+    min-height: 350px;
     display: flex;
     flex-direction: column;
-    border: 2px solid #000;
-    background-color: #38332A; /* Dark Theme */
-    color: #F5F5F5;            /* Light text for readability */
-    position: relative;        
-    margin-top:-60px;
+    border-radius: var(--border-radius);
+    padding: 10px 5px;
+    box-shadow: var(--box-shadow);
+    background-color: var(--background-window-dark);
+    position: relative;
+    /* z-index: 20; */
+    margin-top: -90px;
 }
 
 /* Tab Bar */
 .window-tabs {
     display: flex;
-    border-bottom: 1px solid #000;
-    /*background: #29251F;*/
-    background-color: #38332A;
+    background-color: transparent
 }
 
 .tab-btn {
-    padding: 10px 20px;
+padding: 10px 20px;
+    background-color: var(--background-window-dark);
+    color: var(--light-grey);
     border: none;
     cursor: pointer;
-    background: transparent;
+    border-radius: var(--border-radius-top);
+    box-shadow: var(--button-shadow);
+    text-decoration: none;
 }
 
-    .tab-btn.active {
-        background: #29251F;
-        font-weight: bold;
-        border-bottom: 2px solid gray; /* Visual indicator for the active tab */
-    }
+.tab-btn.active {
+    font-weight: bold;
+    transform: scale(1.1) translateY(-2px);
+    transform-origin: left;
+}
+
+.separator-line {
+    /*Neat trick to ignore padding*/
+    margin-left: -5px;
+    margin-right: -5px;
+
+    border: 1px solid black;
+}
 
 /* Content Area */
 .window-content {
     flex-grow: 1;
-    padding: 30px;
+    padding: 20px;
     overflow-y: auto;
 }
 
 
-/* About Tab*/
-.about-wrapper {
-    display: flex; /* Places columns side-by-side */
-    align-items: flex-start; /* Aligns items to the top of the container */
-    gap: 30px; /* Creates the space between the image and the text */
-    height: 100%; /* Ensures the container fills the window */
+/* View Tab*/
+
+.navigation-tiles {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 20px;
+    margin-top: 2rem;
+
 }
 
+.tile-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    width: 140px;
+    aspect-ratio: 1 / 1;
+    color: var(--light-grey);
+
+    box-shadow: var(--box-shadow);
+    border-radius: var(--border-radius);
+    
+}
+
+.tile-btn i {
+    font-size: 2.2rem;
+    margin-bottom: 8px;
+    
+}
+/* Hover State */
+.tile-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+}
+
+/* About Tab*/
+.about-wrapper {
+    display: flex;
+    /* Places columns side-by-side */
+    align-items: flex-start;
+    /* Aligns items to the top of the container */
+    gap: 30px;
+    /* Creates the space between the image and the text */
+    height: 100%;
+    /* Ensures the container fills the window */
+}

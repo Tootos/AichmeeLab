@@ -1,111 +1,197 @@
 ﻿@inject IJSRuntime jSRuntime;
 @inject AichmeeLab.Services.DashboardService.IDashboardService DashboardService;
-
 <div class="editor-layout">
-     <div class="editor-toolbar">
-            <h4 class="fw-bold m-0">Editor</h4>
-            <button type="button" class="btn-link-action" @onclick="ResetEditorAsync">
-                <i class="bi bi-plus-lg"></i> Create New
-            </button>
-        </div>
-        <div class="editor-wrapper">
-            <div id="editorjs" style="border: 1px solid black;"></div>
-        </div>
-    
+    @if (_isPreviewMode)
+    {
+        <button type="button" class="btn btn-outline-secondary" @onclick="TogglePreviewAsync">
+            <i class="bi bi-arrow-left me-1"></i>
+        </button>
+        <ViewArticle SelectedArticle="SelectedArticle" />
+    }
+    else
+    {
+        <div class="editor-container">
+            <div class="header-image-manager @(isHeaderOpen ? "is-open" : "is-closed")">
+                <div class="manager-toggle" @onclick="() => isHeaderOpen = !isHeaderOpen">
+                    <span><i class="bi bi-image me-2"></i> ARTICLE HEADER</span>
+                    <i class="bi @(isHeaderOpen ? "bi-chevron-up" : "bi-chevron-down")"></i>
+                </div>
 
-    <div class="metadata-container">
-            <EditForm Model="SelectedArticle" OnValidSubmit="SaveEntryAsync">
+                <div class="split-view">
+                    @if (isHeaderOpen)
+                    {
+                        <div class="meta-container">
+
+                            <div class="field-group">
+                                <InputText @bind-Value="SelectedArticle.Title" class="inspector-field"
+                                           placeholder="Title. . ." />
+                            </div>
+
+                            <div class="field-group">
+                                <InputText @bind-Value="SelectedArticle.Author" class="inspector-field"
+                                           placeholder="Author. . ." />
+                            </div>
+
+                            <div class="field-group">
+                                <InputTextArea @bind-Value="SelectedArticle.Description" class="description-field"
+                                               placeholder="Description" />
+
+                            </div>
+
+
+                        </div>
+
+                        <div class="image-wrapper">
+                            @if (!string.IsNullOrEmpty(SelectedArticle.HeaderImage))
+                            {
+                                <div class="header-preview-container">
+                                    <img src="@SelectedArticle.HeaderImage" class="img-fluid rounded" alt="Header Preview" />
+                                    <button type="button" class="btn-clear"
+                                            @onclick="() => SelectedArticle.HeaderImage = string.Empty">
+                                        <i class="bi bi-trash"></i> Remove
+                                    </button>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="header-input-group">
+                                    <label class="x-small text-muted d-block mb-1">IMAGE URL</label>
+                                    <InputText @bind-Value="SelectedArticle.HeaderImage" class="inspector-field"
+                                               placeholder="Paste Azure Blob URL..." />
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+            <div class="editor-canvas" @key="@(SelectedArticle.Id ?? "new article")">
+                <div id="editorjs"></div>
+            </div>
+
+        </div>
+
+
+        <div class="action-container">
+            <EditForm Model="SelectedArticle" OnValidSubmit="SaveEntryAsync" class="form-wrapper">
                 <DataAnnotationsValidator />
 
-                <span class="inspector-label">Article Meta</span>
-
-                <div class="mb-3">
-                    <label class="x-small fw-bold text-muted d-block">TITLE</label>
-                    <InputText @bind-Value="SelectedArticle.Title" class="article-title-input" placeholder="Enter title..." />
-                    <ValidationMessage For="@(() => SelectedArticle.Title)" />
-                </div>
-
-                <div class="mb-3">
-                    <label class="x-small fw-bold text-muted d-block">DESCRIPTION</label>
-                    <InputTextArea @bind-Value="SelectedArticle.Description" class="article-description-input" placeholder="Brief summary..." />
-                    <ValidationMessage For="@(() => SelectedArticle.Description)" />
-                </div>
-
-                <div class="row g-2 mb-3">
-                    <div class="col-12">
-                        <label class="x-small fw-bold text-muted d-block">AUTHOR</label>
-                        <InputText @bind-Value="SelectedArticle.Author" class="form-control form-control-sm" />
-                    </div>
-                </div>
-
-                <div class="form-check form-switch mb-4 bg-light p-2 rounded ps-5">
-                    <input class="form-check-input" type="checkbox" role="switch" id="vSwitch" @bind="SelectedArticle.IsVisible">
-                    <label class="form-check-label fw-bold small ms-2" for="vSwitch">VISIBLE</label>
-                </div>
-
-                <button type="submit" class="btn btn-primary w-100 py-2 fw-bold mb-2">
-                    <i class="bi bi-cloud-arrow-up-fill me-1"></i> Save Article
+                <ValidationMessage For="@(() => SelectedArticle.Title)" />
+                <ValidationMessage For="@(() => SelectedArticle.Description)" />
+                <ValidationMessage For="@(() => SelectedArticle.Author)" />
+                <button type="button" class="btn btn-primary" @onclick="TogglePreviewAsync">
+                    <i class="bi bi-eye"></i>Preview
+                </button>
+                <button type="button" class="btn btn-primary" @onclick="ResetEditorAsync">
+                    <i class="bi-arrow-clockwise"></i> Create New
                 </button>
 
-                @if (IsEditMode)
-                {
-                    <button type="button" class="btn btn-outline-danger btn-sm w-100 border-0 mt-2" @onclick="DeleteFromDbAsync">
-                        Delete from Database
-                    </button>
-                }
-            </EditForm>
-        </div>
-    </div>
+                <div class="form-check form-switch visibility-control">
+                    <input type="checkbox" class="btn-check" id="vSwitch" @bind="SelectedArticle.IsVisible"
+                           autocomplete="off">
+                        <label
+                            class="btn @(SelectedArticle.IsVisible ? "btn-success" : "btn-outline-secondary") w-100 py-2 fw-bold"
+                            for="vSwitch">
+                            <i class="bi @(SelectedArticle.IsVisible ? "bi-eye-fill" : "bi-eye-slash") me-1"></i>
+                            @(SelectedArticle.IsVisible ? "VISIBLE" : "HIDDEN")
+                        </label>
+                    </div>
 
+                    <button type="submit" class="btn btn-primary w-100 py-2 fw-bold mb-2">
+                        <i class="bi bi-cloud-arrow-up-fill me-1"></i> Save Article
+                    </button>
+
+                    @if (IsEditMode)
+                    {
+                        <button type="button" class="btn btn-outline-danger btn-sm w-100 border-0 mt-2"
+                                @onclick="DeleteFromDbAsync">
+                            Delete from Database
+                        </button>
+                    }
+                </EditForm>
+            </div>
+
+        }
+    </div>
 @code {
-    [Parameter] public string? id { get; set; }
     [Parameter] public Article SelectedArticle { get; set; } = new Article();
     [Parameter] public EventCallback OnReady { get; set; }
-    [Parameter] public EventCallback OnReset { get; set; }
+    [Parameter] public EventCallback<Article?> OnChange { get; set; }
 
-    public bool IsEditMode => !string.IsNullOrEmpty(SelectedArticle.Id);
-
+    bool IsEditMode => !string.IsNullOrEmpty(SelectedArticle.Id);
+    bool _isPreviewMode { get; set; } = false;
+    bool _jsIsReady { get; set; }
+    string? _lastId;
+    bool isHeaderOpen { get; set; } = false;
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender)
+        // 1. Exit if we are in preview mode
+        if (_isPreviewMode) return;
+
+        // 2. Only initialize if the ID has changed or it's the first time
+        if (_lastId != SelectedArticle.Id)
         {
-            await Task.Delay(100); // Give JS a moment to breathe
+            _lastId = SelectedArticle.Id;
+        
+            // We still need a tiny delay to ensure the DOM element
+            // with the new @key is actually painted.
+            await Task.Delay(50);
+        
             await jSRuntime.InvokeVoidAsync("setupEditor", "editorjs", SelectedArticle.Content);
-            await OnReady.InvokeAsync();
         }
     }
-
-    // Triggered when clicking an article in the list
-    protected override async Task OnParametersSetAsync()
-    {
-        // Important: Only update JS if the editor is already initialized
-        await jSRuntime.InvokeVoidAsync("updateEditorData", SelectedArticle.Content);
-    }
-
     public async Task SaveEntryAsync()
     {
         var jsonResult = await jSRuntime.InvokeAsync<string>("saveEditorData");
         SelectedArticle.Content = jsonResult;
 
         var response = await DashboardService.UpdateArticleAsync(SelectedArticle);
+        if (response.Success && response.Data != null)
+            SelectedArticle = response.Data;
+
+
         await jSRuntime.InvokeVoidAsync("alert", response.Message);
+
+        await OnChange.InvokeAsync(SelectedArticle);
+
     }
 
-    async Task ResetEditorAsync() 
+    async Task ResetEditorAsync()
     {
-        await jSRuntime.InvokeVoidAsync("updateEditorData", string.Empty);
+        
+        await jSRuntime.InvokeVoidAsync("destroyEditor");
 
-        await OnReset.InvokeAsync();
+    
+        _jsIsReady = false;
+        _lastId = null;
+        SelectedArticle = new Article();
+
+        await OnChange.InvokeAsync(SelectedArticle);
     }
 
-    async Task DeleteFromDbAsync() { 
 
-        if(string.IsNullOrEmpty(SelectedArticle.Id)) return;
+    async Task TogglePreviewAsync()
+    {
+        if (!_isPreviewMode)
+        {
+            SelectedArticle.Content = await jSRuntime.InvokeAsync<string>("saveEditorData");
+            await jSRuntime.InvokeVoidAsync("destroyEditor");
+        
+            _jsIsReady = false;
+            _lastId = null; // Resetting this ensures OnAfterRender runs setupEditor again
+        }
 
-         var response =  await DashboardService.DeleteArticleAsync(SelectedArticle.Id);
-         await jSRuntime.InvokeVoidAsync("alert", response.Message);
+        _isPreviewMode = !_isPreviewMode;
+        StateHasChanged();
+    }
+
+    async Task DeleteFromDbAsync()
+    {
+        if (string.IsNullOrEmpty(SelectedArticle.Id)) return;
+
+        var response = await DashboardService.DeleteArticleAsync(SelectedArticle.Id);
+        await jSRuntime.InvokeVoidAsync("alert", response.Message);
 
         await ResetEditorAsync();
- 
-     }
+
+    }
 }

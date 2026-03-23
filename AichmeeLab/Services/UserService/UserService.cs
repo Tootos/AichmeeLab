@@ -10,30 +10,30 @@ namespace AichmeeLab.Services.UserService
         public event Action? ListChanged;
         public int CurrentPage { get; set; } = 1;
 
-        public short PageSize {get; set; } = 9;
+        public short PageSize { get; set; } = 9;
         public long PageCount { get; set; }
-        public string SearchTerm { get; set;} = string.Empty;
+        public string SearchTerm { get; set; } = string.Empty;
         public DateTime? DateFrom { get; set; }
         public DateTime? DateTo { get; set; }
 
         private readonly HttpClient _httpClient;
 
-               public UserService(HttpClient http)
+        public UserService(HttpClient http)
         {
             _httpClient = http;
         }
 
-public async Task<ServiceResponse<Article>> GetArticleAsync(string id)
+        public async Task<ServiceResponse<Article>> GetArticleAsync(string id)
         {
             try
             {
                 var result = await _httpClient.GetFromJsonAsync<ServiceResponse<Article>>($"api/anon/article/get/{id}");
-                if(result==null || result.Data == null)
+                if (result == null || result.Data == null)
                 {
                     return new ServiceResponse<Article>
                     {
-                      Success = false,  
-                      Message = $"Article with ID: {id} not found!"  
+                        Success = false,
+                        Message = $"Article with ID: {id} not found!"
                     };
                 }
 
@@ -42,10 +42,11 @@ public async Task<ServiceResponse<Article>> GetArticleAsync(string id)
                     Data = result.Data
                 };
 
-                
-            }catch(Exception ex)
+
+            }
+            catch (Exception ex)
             {
-                return new  ServiceResponse<Article>
+                return new ServiceResponse<Article>
                 {
                     Message = $"Connection failed: {ex.Message}",
                     Success = false
@@ -55,11 +56,11 @@ public async Task<ServiceResponse<Article>> GetArticleAsync(string id)
 
 
         }
-        
+
 
         public async Task GetArticlesAsync()
         {
-            
+
 
             var url = GetSearchURL();
 
@@ -67,7 +68,7 @@ public async Task<ServiceResponse<Article>> GetArticleAsync(string id)
             ServiceResponse<PagedResult<Article>>>(url);
 
 
-            if ( response != null)
+            if (response != null)
             {
                 Articles = response.Data.Items;
                 PageCount = response.Data.PageCount;
@@ -78,7 +79,7 @@ public async Task<ServiceResponse<Article>> GetArticleAsync(string id)
         }
 
 
-                private string GetSearchURL()
+        private string GetSearchURL()
         {
             // Construct the URL with query strings
             var url = $"api/anon/articles/get?page={CurrentPage}&pageSize={PageSize}";

@@ -22,7 +22,7 @@
                 <button type="button" class="btn @(selectedTab == Tab.Article ? "btn-primary" : "btn-outline-primary")"
                         @onclick="() => SwitchToTab(Tab.Article)">
                     <i class="bi bi-pencil-square"></i> @(string.IsNullOrEmpty(articleToEdit.Title) ? "Publish New" :
-                                        articleToEdit.Title)
+                                                                                                                                                                                    articleToEdit.Title)
                 </button>
             </div>
         </div>
@@ -39,18 +39,16 @@
                 break;
             case Tab.Article:
 
-                <ArticlesEdit id="@selectedId" SelectedArticle="@articleToEdit"                                  OnReady="StateHasChanged" OnReset="ResetData" />
+                <ArticlesEdit SelectedArticle="@articleToEdit" OnReady="StateHasChanged" OnChange="HandleChange" />
 
                 break;
         }
 
     </div>
-</div> @* ADDED: This closes .admin-layout-container *@
+</div>
 @code {
     [Parameter]
     public string? Action { get; set; }
-    private string _message = "Upload .docx file.";
-    private string? selectedId { get; set; } = null;
     enum Tab { List, Article }
     Tab selectedTab = Tab.List;
 
@@ -113,18 +111,18 @@
         if (response != null && response.Data != null)
         {
             articleToEdit = response.Data;
-            selectedId = id; // Set the ID
-            selectedTab = Tab.Article; // Flip the switch to the Edit
+            selectedTab = Tab.Article;
             StateHasChanged();
         }
 
     }
-    //Editor has clears fields.
-    void ResetData()
+
+    void HandleChange(Article article)
     {
-        selectedId = null;
-        articleToEdit = new Article();
+        articleToEdit = article;
+
         StateHasChanged();
+
     }
     //Switch Tab
     void SwitchToTab(Tab tab) => selectedTab = tab;

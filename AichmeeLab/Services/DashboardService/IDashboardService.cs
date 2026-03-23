@@ -14,7 +14,7 @@ namespace AichmeeLab.Services.DashboardService
         DateTime? DateTo {get; set;}
         long PageCount { get; set; }
         List<Article> Articles { get; set; }
-        event Action ListChanged;
+        event Action ServiceChanged;
         
 
         Task<ServiceResponse<Article>> GetArticleAsync(string id);
@@ -22,9 +22,8 @@ namespace AichmeeLab.Services.DashboardService
 
         
         Task<ServiceResponse<Article>> UpdateArticleAsync(Article article);
+        Task<ServiceResponse<int>>  UpdateVisibilityAsync(Dictionary<string, bool> bulkChange);
         Task<ServiceResponse<bool>> DeleteArticleAsync(string id);
         
-
-        Task<string> CheckDB();
     }
 }

@@ -1,0 +1,17 @@
+.article-viewer{
+display: flex;
+    flex-direction: column;
+    background: beige;
+    padding: 30px;
+    gap: 5px;
+    height: 90vh;
+    width: 65%;
+    margin: 0px auto;
+    overflow: auto;
+}
+
+.separator-line{
+    margin-left: -30px;
+    margin-right: -30px;
+    border: 1px solid black;
+}

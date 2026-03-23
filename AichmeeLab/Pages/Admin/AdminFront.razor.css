@@ -1,0 +1,18 @@
+.admin-dashboard{
+    display: flex;
+    height: 100%; /* Fill the window-container height */
+    width: 100%;
+    gap: 20px;
+    box-sizing: border-box;
+    overflow: hidden; 
+}
+
+.viewport-center {
+    flex: 1;
+    height: 100%;
+    width: 90%;
+    overflow: hidden; 
+}
+.option-wrapper{
+    background-color: var(--background-window-dark);
+}

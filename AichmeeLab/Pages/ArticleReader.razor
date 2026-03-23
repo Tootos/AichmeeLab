@@ -1,0 +1,38 @@
+@page "/article/{Id}"
+@using AichmeeLab.Pages.Includes
+@inject AichmeeLab.Services.UserService.IUserService UserService
+
+
+@if (SelectedArticle == null)
+{
+    <span style="color: var(--light-grey)">@_message</span>
+}
+else
+{
+    <ViewArticle SelectedArticle="SelectedArticle" />
+}
+
+
+@code {
+    [Parameter]
+    public string Id { get; set; } = string.Empty;
+
+    string _message { get; set; } = "Loading. . .";
+
+    Article SelectedArticle { get; set; } = null;
+
+
+    protected async override Task OnParametersSetAsync()
+    {
+        var result = await UserService.GetArticleAsync(Id);
+        if (result.Success && result.Data != null)
+        {
+            SelectedArticle = result.Data;
+        }
+        else
+        {
+            _message = string.IsNullOrEmpty(result.Message) ? result.Message : "Article not found.";
+        }
+    }
+
+}

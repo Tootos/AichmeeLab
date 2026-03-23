@@ -1,0 +1,7 @@
+.search-wrapper {
+    padding: 20px 40px;
+    background: var(--background-window-dark);
+    border-radius: var(--border-radius-top); 
+    width: 100%;
+    margin: 0 auto;
+}

@@ -10,7 +10,7 @@ namespace AichmeeLab.Services.DashboardService
 
 
         public List<Article> Articles { get; set; } = new List<Article>();
-        public event Action? ListChanged;
+        public event Action? ServiceChanged;
         public int CurrentPage { get; set; } = 1;
         public short PageSize { get; set; } = 12;
         public long PageCount { get; set; }
@@ -77,7 +77,7 @@ namespace AichmeeLab.Services.DashboardService
                     Articles = result.Data.Items;
                     PageCount = result.Data.PageCount;
 
-                    ListChanged?.Invoke();
+                    ServiceChanged?.Invoke();
                 }
 
             }
@@ -157,17 +157,41 @@ namespace AichmeeLab.Services.DashboardService
 
         }
 
-        public async Task<string> CheckDB()
+
+        public async Task<ServiceResponse<int>> UpdateVisibilityAsync(Dictionary<string, bool> bulkChange)
         {
-            // Now we expect a JSON object that matches ServiceResponse<string>
-            var result = await _httpClient.GetAsync("api/dashboard/CheckDB");
-
-            if (result.IsSuccessStatusCode)
+            try
             {
+                var request = new HttpRequestMessage(HttpMethod.Put, "api/dashboard/articles/visibility");
 
-                return await result.Content.ReadAsStringAsync();
+                request.Content = JsonContent.Create(bulkChange);
+
+                request.SetBrowserRequestCredentials(BrowserRequestCredentials.Include);
+
+                var response = await _httpClient.SendAsync(request);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var result = await response.Content.ReadFromJsonAsync<ServiceResponse<int>>();
+                    return result ?? new ServiceResponse<int> { Message = "No results", Success = false };
+                }
+
+                return new ServiceResponse<int>
+                {
+                    Message = "No Response",
+                    Success = false
+                };
             }
-            return "ERROR";
+            catch (Exception ex)
+            {
+                return new ServiceResponse<int>
+                {
+                    Message = $"Connection failed: {ex.Message}",
+                    Success = false
+
+                };
+            }
+
         }
 
 

@@ -1,8 +1,12 @@
+
 .nav-wrapper {
-    background: azure;
+    background: var(--background-window-dark);
+    /* flex: 0 0 240px; */
     height: fit-content;
     /* border: saddlebrown; */
-    /* box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.3); */
-    border-radius: 12px;
+    box-shadow: var(--box-shadow);
+    border-radius: var(--border-radius);
+    min-width: 180px;
+    margin-left: 5px;
     padding: 10px 15px 30px 0px;
 }

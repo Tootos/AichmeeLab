@@ -15,7 +15,7 @@ namespace AichmeeLab.Api
     {
         private readonly IMongoClient _mongoClient;
         private readonly IMongoCollection<Article> _collection;
-        private readonly ILogger<DashboardFunctions> _logger; 
+        private readonly ILogger<DashboardFunctions> _logger;
         private readonly DBSettings _settings;
 
         public DashboardFunctions(
@@ -51,8 +51,8 @@ namespace AichmeeLab.Api
                 if (!string.IsNullOrWhiteSpace(searchTerm))
                 {
                     var regex = new MongoDB.Bson.BsonRegularExpression(searchTerm, "i");
-                    var searchFilter = filterBuilder.Regex(a => a.Title, regex) | 
-                                       filterBuilder.Regex(a => a.Description, regex) | 
+                    var searchFilter = filterBuilder.Regex(a => a.Title, regex) |
+                                       filterBuilder.Regex(a => a.Description, regex) |
                                        filterBuilder.Regex(a => a.Author, regex);
                     filter &= searchFilter;
                 }
@@ -77,7 +77,7 @@ namespace AichmeeLab.Api
                                                 .ToListAsync();
 
                 long totalCount = await _collection.CountDocumentsAsync(filter);
-                
+
                 var response = req.CreateResponse(HttpStatusCode.OK);
                 await response.WriteAsJsonAsync(new ServiceResponse<PagedResult<Article>>
                 {
@@ -86,7 +86,7 @@ namespace AichmeeLab.Api
                 });
                 return response;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 var response = req.CreateResponse(HttpStatusCode.BadRequest);
                 await response.WriteAsJsonAsync(new ServiceResponse<string> { Success = false, Message = ex.Message });
@@ -101,7 +101,7 @@ namespace AichmeeLab.Api
             try
             {
                 var article = await _collection.Find(a => a.Id == id && !a.IsDeleted).FirstOrDefaultAsync();
-                
+
                 if (article == null)
                 {
                     var notFound = req.CreateResponse(HttpStatusCode.NotFound);
@@ -115,7 +115,7 @@ namespace AichmeeLab.Api
                     Data = article,
                     Success = true,
                     Message = $"Successfully retrieved article {article.Id}"
-                });                
+                });
                 return response;
             }
             catch (Exception ex)
@@ -136,7 +136,7 @@ namespace AichmeeLab.Api
                 PropertyNameCaseInsensitive = true
             });
 
-            if(article == null) 
+            if (article == null)
             {
                 var badRequest = req.CreateResponse(HttpStatusCode.BadRequest);
                 await badRequest.WriteAsJsonAsync(new ServiceResponse<Article> { Data = null, Message = "Failed put operation", Success = false });
@@ -150,7 +150,7 @@ namespace AichmeeLab.Api
                 article.Id = ObjectId.GenerateNewId().ToString();
                 article.DatePublished = DateTime.UtcNow;
                 await _collection.InsertOneAsync(article);
-            } 
+            }
             else
             {
                 var filter = Builders<Article>.Filter.Eq(a => a.Id, article.Id);
@@ -162,14 +162,46 @@ namespace AichmeeLab.Api
             return response;
         }
 
+        [Function("UpdateVisibility")]
+        public async Task<HttpResponseData> UpdateVisibility(
+            [HttpTrigger(AuthorizationLevel.Function, "put", Route = "dashboard/articles/visibility")] HttpRequestData req)
+        {
+            var articleUpdates = await JsonSerializer.DeserializeAsync<Dictionary<string, bool>>(req.Body);
+
+            if (articleUpdates == null || articleUpdates.Count == 0)
+            {
+                var badRequest = req.CreateResponse(HttpStatusCode.BadRequest);
+                await badRequest.WriteAsJsonAsync(new ServiceResponse<int> { Data = 0, Message = "Failed put operation", Success = false });
+                return badRequest;
+            }
+
+            var updates = articleUpdates.Select(x =>
+                new UpdateOneModel<Article>(
+                    Builders<Article>.Filter.Eq(a => a.Id, x.Key),
+                    Builders<Article>.Update.Set(a => a.IsVisible, x.Value)
+                )
+            );
+
+           var result = await _collection.BulkWriteAsync(updates);
+
+            var successResponse = req.CreateResponse(HttpStatusCode.OK);
+            await successResponse.WriteAsJsonAsync(new ServiceResponse<int>
+            {
+                Data = Convert.ToInt32(result.ModifiedCount),
+                Message = $"Updated {result.ModifiedCount} articles",
+                Success = true
+            });
+            return successResponse;
+       }
+
         [Function("DeleteArticle")]
         public async Task<HttpResponseData> DeleteArticle(
             [HttpTrigger(AuthorizationLevel.Function, "delete", Route = "dashboard/article/delete/{id?}")] HttpRequestData req, string? id)
         {
             _logger.LogInformation("Attempting delete");
             var article = await _collection.Find(a => a.Id == id && !a.IsDeleted).FirstOrDefaultAsync();
-            
-            if(article == null)
+
+            if (article == null)
             {
                 var badRequest = req.CreateResponse(HttpStatusCode.BadRequest);
                 await badRequest.WriteAsJsonAsync(new ServiceResponse<bool> { Data = false, Message = "Failed delete operation", Success = false });

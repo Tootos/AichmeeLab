@@ -4,11 +4,15 @@
     justify-content: space-between;
     align-items: center;
     padding: 12px 24px;
-    background: white;
-    border: 1px solid #eee;
-    border-radius: 50px;
+    background: var(--background-window-dark);
+    border-radius: 5px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.05);
 }
+
+.page-indicator{
+    color: var(--light-grey);
+}
+
 
 .nav-btn {
     border: 1px solid #0d6efd;

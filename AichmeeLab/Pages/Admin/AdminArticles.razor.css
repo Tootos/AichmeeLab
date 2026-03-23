@@ -4,33 +4,21 @@
     width: 100%;
     gap: 20px;
     box-sizing: border-box;
-    overflow: hidden; 
+    overflow: hidden;
 }
-
-.viewport-left{
-    flex: 0 0 240px;
-}
-
 
 .viewport-center {
     flex: 1;
-    height: 100%;
-    width: 90%;
-    overflow: hidden; 
+    margin-right: 80px;
 }
 
 .view-switcher-header{
-    margin-bottom: 5px;
+    margin-bottom: 10px;
     justify-content: center;
     align-items: center;
 }
 
-/* The Fixed Search Section */
-.search-container {
-    padding: 20px;
-    background: azure;
-    border-radius: 20px 20px 0px 0px;
-}
+
 
 
 

@@ -3,7 +3,7 @@
 @inherits LayoutComponentBase
 
 @inject NavigationManager NavigationManager
-<div class="page">
+<div class="page @(IsHomePage ? "no-navbar" : "has-navbar")">
     @if (!IsHomePage)
 {
     <nav class="top-navbar shadow-sm">
@@ -18,12 +18,14 @@
     </nav>
     }
 
+<div class="page-shadow"></div>
+
+
     <div class="window-container">
             @Body
     </div>
 
     <AdminButton/>
-
 
 </div>
 

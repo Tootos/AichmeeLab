@@ -1,9 +1,0 @@
-.media-wrapper{
-display: flex;
-    flex-direction: column;
-    background: beige;
-    padding: 30px;
-    gap: 5px;
-    height: 100vh;
-    overflow: auto;
-}

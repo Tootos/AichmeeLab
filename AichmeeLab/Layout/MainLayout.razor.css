@@ -4,12 +4,13 @@
     padding: 0;
 }
 
+
 .page {
 position: relative;
     width: 100vw;
     height: 100vh;
-    overflow: hidden; /* Prevents the background from scrolling */
-    background-color: #29251F; /* Or your preferred deep base color */
+    background-color: var(--background-page-dark); 
+    --navbar-height:45px;
 }
 
 /* Top Navbar Start */
@@ -18,7 +19,7 @@ position: relative;
     top: 0;
     left: 0;
     width: 100%;
-    height: 45px; 
+    height: var(--navbar-height);
     z-index: 9999;
     background: linear-gradient(to bottom, #212529 45px, transparent 45px);
     
@@ -26,18 +27,16 @@ position: relative;
     align-items: flex-start; /* Align content to the top */
 }
 
-/* Using your exact class: .nav-container */
 .nav-container {
     max-width: 1200px;
     margin: 0 auto;
     width: 100%;
-    height: 45px; /* This keeps your links centered in the DARK part */
+    height: var(--navbar-height);
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
 
-/* Logo and Link styling within your classes */
 .nav-logo {
     color: #ffffff;
     text-decoration: none;
@@ -57,23 +56,47 @@ position: relative;
 .nav-links .nav-item.active {
     color: #ffffff;
 }
+/* Top NavBar End*/
+
+.page-shadow{
+    position: fixed;
+    left: 0;
+    width: 100vw;
+    pointer-events: none;
+    
+    box-shadow: inset 0px 0px 20px 15px #0d0d0ebf; 
+    z-index: 1;
+}
+
+.no-navbar .page-shadow, 
+.no-navbar .window-container{
+    top: 0;
+    height: 100vh;
+}
+
+
+.has-navbar .page-shadow, 
+.has-navbar .window-container{
+    top: var(--navbar-height);
+    height: calc(100vh - var(--navbar-height));
+}
+
 
 .window-container {
 /* Positioning & Spacing */
-    position: relative;
-    margin: 65px auto 25px auto; 
+    position: fixed;
+    left: 0;
     z-index: 10;
     
     /* Sizing Constraints */
-    width: 95%;
-    height: calc(100vh - 90px); 
+    margin: 15px;
+    width: 100%; 
     
     /* Layout flow for children */
     display: flex;
     flex-direction: column;
     overflow: hidden;
 }
-
 
 @media (min-width: 641px) {
     .page {

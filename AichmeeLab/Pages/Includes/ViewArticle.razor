@@ -1,0 +1,70 @@
+@using System.Text.Json
+@using Aichmee.Shared;
+
+@inject AichmeeLab.Services.UserService.IUserService UserService
+
+
+        <div class="article-viewer">
+
+            <h1>@SelectedArticle.Title</h1>
+            <p>by @SelectedArticle.Author</p>
+            <span>@SelectedArticle.Description</span>
+            <div class="separator-line"></div>
+            <div class="media-body">
+                @if (parsedContent?.Blocks != null)
+                {
+                    @foreach (var block in parsedContent.Blocks)
+                    {
+                        @if (block.Type == "paragraph")
+                        {
+                            <p>@((MarkupString)block.Data.Text)</p>
+                        }
+                        else if (block.Type == "header")
+                        {
+                            @* You can check block.Data.Level here if needed *@
+                            <h3>@((MarkupString)block.Data.Text)</h3>
+                        }
+                    }
+                }
+            </div>
+        </div>
+
+
+
+@code {
+    [Parameter]
+    public Article SelectedArticle {get; set;} = new Article();
+
+    EditorJsData? parsedContent;
+
+    public class EditorJsData { public List<EditorJsBlock> Blocks { get; set; } = new(); }
+
+    public class EditorJsBlock
+    {
+        public string Type { get; set; } = string.Empty;
+        public EditorJsDataContent Data { get; set; }
+    }
+
+    public class EditorJsDataContent { public string Text { get; set; } = string.Empty; }
+
+    string _message { get; set; } = "Loading. . .";
+
+
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!string.IsNullOrEmpty(SelectedArticle.Content))
+        {
+            try
+            {
+                parsedContent = JsonSerializer.Deserialize<EditorJsData>(SelectedArticle.Content,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            }
+            catch
+            {
+                _message = "Error parsing article content.";
+            }
+        }
+    }
+
+}

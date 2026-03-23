@@ -1,121 +1,142 @@
 ﻿.editor-layout {
     display: flex;
-    gap: 30px;
+    gap: 15px;
     height: 100%;
     align-items: flex-start;
+    margin-left: 10vh;
 }
-/*Left Toolbar*/
-.editor-toolbar {
-    background-color: azure;
-    /* flex: 1; */
-    border-radius: 12px;
-    padding: 12px 25px;
-    margin-bottom: 20px;
-    display: flex;
-    align-items: center;
-    flex-direction: column;
-    gap: 30px;
-}
-
 
 /* Middle Editor */
-.editor-wrapper {
-    background: azure;
-    border-radius: 12px;
-    padding: 10px;
-    flex: 1;
-    overflow-y: auto;
+
+.editor-container {
     position: relative;
-    height: 95%;
+    height: 100vh;
+    max-width: 65%;
+    flex:1;
+    flex-direction: column;
+    display: flex ;
+}
+
+/* 2. The Floating Manager */
+.header-image-manager {
+    width: 100%;
+    z-index: 10;
+    background: var(--background-window-dark);
+    border-radius: 5px;
+    transition: max-height 0.3s ease-out;
+    overflow: hidden;
+}
+
+/* 3. Toggle States */
+.is-closed { max-height: 40px; }
+.is-open { max-height: fit-content; }
+
+.manager-toggle {
+    height: 40px;
+    padding: 0 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #888;
+}
+
+.split-view {
+    display: flex;
+    gap: 20px;
+    padding: 15px;
+    align-items: flex-start; /* Keeps items at the top if one col is longer */
+}
+
+.meta-container {
+    min-width: 300px;
+}
+
+.image-wrapper {
+    flex: 1; 
+    min-width: 250px;
+}
+
+/* 4. Inside the Drawer */
+.header-input-group, .header-preview-container {
+    padding: 15px;
+    border-top: 1px solid #333;
+    background: #181818;
+}
+
+.header-preview-container img {
+max-height: 200px;
+    object-fit: cover;
+    width: 100%;
+}
+
+.editor-canvas {
+    background: beige;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    padding: 10px;
+    height: 85%;
+    overflow-y: auto;
 }
 
 /* Custom Scrollbar for the Editor Wrapper */
-.editor-wrapper::-webkit-scrollbar {
-    width: 14px; /* Thicker scrollbar */
+.editor-canvas::-webkit-scrollbar {
+    width: 14px;
+    /* Thicker scrollbar */
 }
 
-.editor-wrapper::-webkit-scrollbar-thumb {
-    background-color: #555; /* Much darker gray */
-    border-radius: 8px; /* Slightly softer corners */
-    border: 3px solid #fff; /* White border to create "padding" from the edge */
+.editor-canvas::-webkit-scrollbar-thumb {
+    background-color: #555;
+    /* Much darker gray */
+    border-radius: 8px;
+    /* Slightly softer corners */
+    border: 3px solid #fff;
+    /* White border to create "padding" from the edge */
 }
 
-.editor-wrapper::-webkit-scrollbar-thumb:hover {
-    background-color: #333; /* Darker on hover */
+.editor-canvas::-webkit-scrollbar-thumb:hover {
+    background-color: #333;
+    /* Darker on hover */
 }
 
-.editor-wrapper::-webkit-scrollbar-track {
-    background: #f1f1f1; /* Light gray track so the thumb stands out */
-    border-radius: 8px; /* Match the thumb's radius */
+.editor-canvas::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    /* Light gray track so the thumb stands out */
+    border-radius: 8px;
+    /* Match the thumb's radius */
+}
+.field-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 1.5rem;
 }
 
+.inspector-field {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.description-field{
+    width: 100%;
+}
 
 /*Right Bar */
-.metadata-container {
-    background: azure;
-    padding: 10px;
-    border-radius: 15px;
+.action-container {
+    background-color: var(--background-window-dark);
+    box-shadow: var(--box-shadow);
+    /* flex: 1; */
+    border-radius: var(--border-radius);
+    padding: 20px;
 }
 
-/* Clean Input Styling */
-.article-title-input, 
-.article-description-input,
-.form-control-sm {
-    width: 100%;
-    border: 1px solid #dee2e6;
-    border-radius: 6px;
-    padding: 10px 12px;
-    font-size: 0.9rem;
-    margin-top: 5px;
-    background-color: #fdfdfd;
-    transition: border-color 0.2s;
+.form-wrapper{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 5px;
 }
-
-.article-title-input:focus, 
-.article-description-input:focus {
-    outline: none;
-    border-color: #0d6efd;
-    background-color: #fff;
-}
-
-.article-description-input {
-    min-height: 100px;
-    resize: vertical;
-}
-
-/* Metadata Labels */
-.inspector-label {
-    font-size: 0.75rem;
-    font-weight: 800;
-    color: #212529;
-    text-transform: uppercase;
-    letter-spacing: 0.02rem;
-    margin-bottom: 20px;
-    border-bottom: 1px solid #eee;
-    padding-bottom: 10px;
-}
-
-.x-small {
-    font-size: 0.65rem;
-    letter-spacing: 0.05rem;
-}
-
-/* EditorJS */
-/*
-.ce-block__content,
-.ce-toolbar__content {
-    max-width: 95% !important;
-}
-    
-/* This ensures the editor container itself fills the wrapper 
-.codex-editor {
-    width: 100%;
-}
-    */
-
-/* Optional: If you want the text to start higher up 
-.codex-editor--empty .ce-block {
-    margin-top: 0;
-}
-    */
-

@@ -20,54 +20,55 @@
                 Fun Zone
             </button>
         </nav>
+        <div class="separator-line"></div>
 
         <div class="window-content">
-        @switch (activeTab)
-        {
-            case Tab.Home:
-                <div class="view">
-                    <h1>Welcome to my page</h1>
-                </div>
-                break;
-            case Tab.About:
-                <div class="view">
-                    <div class="about-wrapper">
-                    <div class="profile-column">
-                            <img src="Images\owner.jpg" />
+            @switch (activeTab)
+            {
+                case Tab.Home:
+                    <div class="view">
+                        <h1>Welcome to my page</h1>
                     </div>
-                        <div class="info-column">
-                            <h2>Dimitris</h2>
-                            <p>Contact Info</p>
-                            <p>dimimytimain@gmail.com</p>
+                    break;
+                case Tab.About:
+                    <div class="view">
+                        <div class="about-wrapper">
+                            <div class="profile-column">
+                                <img src="Images\owner.jpg" />
+                            </div>
+                            <div class="info-column">
+                                <h2>Dimitris</h2>
+                                <p>Contact Info</p>
+                                <p>dimimytimain@gmail.com</p>
+                            </div>
                         </div>
+                    </div>
+                    break;
+                case Tab.Content:
+                    <div class="view">
+                        <div class="navigation-tiles">
+
+                            <a href="/articles/feed" class="tile-btn">
+                                <i class="bi bi-newspaper"></i>
+                                <span>WRITINGS</span>
+                            </a>
+
+                            <a href="/albums/feed/"  class="tile-btn">
+                                <i class="bi bi-camera"></i>
+                                <span>PHOTOS</span>
+                            </a>
+
                         </div>
-                </div>
-                break;
-            case Tab.Content:
-                <div class="view">
-                    <h1>Check out articles and photo albums</h1>
-
-                <div class="d-flex flex-column align-items-start gap-2">
-                
-                <a href="/articles/feed" class="btn btn-link btn-sm text-decoration-none p-0 text-dark fw-bold custom-nav-btn">
-                    <i class="bi bi-arrow-right-short"></i> WRITINGS
-                </a>
-
-                <a href="/albums/feed/" class="btn btn-link btn-sm text-decoration-none p-0 text-secondary fw-bold custom-nav-btn">
-                    <i class="bi bi-arrow-right-short"></i> PHOTOS
-                </a>
-                
-            </div>
-        </div>
-                break;
-            case Tab.FunZone:
-                <div class="view">
-                    <h1>Enjoy interactive content I created</h1>
-                </div>
-                break;
+                    </div>
+                    break;
+                case Tab.FunZone:
+                    <div class="view">
+                        <h1>Enjoy interactive content I created</h1>
+                    </div>
+                    break;
 
 
-        }
+            }
         </div>
 
     </div>
@@ -75,7 +76,7 @@
 
 
 </div>
-@code{
+@code {
 
     private enum Tab { Home, About, Content, FunZone }
     private Tab activeTab = Tab.Home;
