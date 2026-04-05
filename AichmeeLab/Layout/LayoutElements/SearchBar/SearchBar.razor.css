@@ -1,0 +1,63 @@
+.search-window {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 50px;
+    width: 100%;
+}
+
+.search-layout {
+    padding: 20px 40px;
+    display: flex;
+    flex-wrap: wrap;
+    margin-top: calc(-1 * 1rem);
+    /* Offset for gutter */
+    margin-right: calc(-0.5 * 1rem);
+    margin-left: calc(-0.5 * 1rem);
+    align-items: flex-end;
+    gap:10px;
+    /* align-items-end */
+}
+
+.search-layout button {
+    color: var(--font-color1);
+}
+
+.search-fields {
+    display: flex;
+    gap: 5px;
+    width: 100%;
+}
+
+.search-fields-col label {
+    display: inline-block;
+    margin-bottom: 0.5rem;
+
+    /* Corresponds to: small */
+    font-size: 0.875em;
+
+    /* Corresponds to: fw-bold */
+    font-weight: 700;
+
+    /* Corresponds to: text-uppercase */
+    text-transform: uppercase;
+
+    /* Corresponds to: text-muted */
+    color: var(--font-color1);
+
+    /* Extra 'Solid' touch: Letter spacing makes uppercase labels more readable */
+    letter-spacing: 0.05rem;
+}
+
+.search-fields-col input {
+    display: block;
+    width: 100%;
+    padding: 5px;
+    font-weight: 400;
+    color: var(--font-color1);
+    background-color: var(--surface-color2);
+
+    border: 1px solid var(--border-color);
+
+    border-radius: 15px;
+    transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out;
+}

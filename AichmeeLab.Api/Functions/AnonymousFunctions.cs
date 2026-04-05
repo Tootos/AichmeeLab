@@ -1,142 +1,125 @@
 using Aichmee.Shared;
 using AichmeeLab.Api.LocalModels;
+using AichmeeLab.Api.Services.ArticleService;
+using AichmeeLab.Api.Services.ImageService;
+using AichmeeLab.Api.Services.ContentService;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using MongoDB.Driver;
+using Microsoft.Extensions.Configuration;
 using System.Net;
 
 namespace AichmeeLab.Api
 {
     class AnonymousFunctions
     {
-        private readonly IMongoClient _mongoClient;
-        private readonly IMongoCollection<Article> _collection;
-        private readonly ILogger<DashboardFunctions> _logger;
-        private readonly DBSettings _settings;
 
-        public AnonymousFunctions(
-            IMongoClient mongoClient,
-            IOptions<DBSettings> options,
-            ILogger<DashboardFunctions> logger)
+        readonly IArticleService _articleService;
+        readonly IImageService _imageService;
+        readonly IContentService _contentService;
+        readonly IConfiguration _config;
+
+
+        public AnonymousFunctions(IArticleService articleService, IImageService imageService, IContentService contentService,
+        IConfiguration config)
         {
-            _mongoClient = mongoClient;
-            _settings = options.Value;
-            _logger = logger;
-
-            var database = mongoClient.GetDatabase(_settings.DatabaseName);
-            _collection = database.GetCollection<Article>(_settings.ArticlesCollectionName);
+            _articleService = articleService;
+            _imageService = imageService;
+            _contentService = contentService;
+            _config = config;
         }
 
         [Function("GetUserArticle")]
         public async Task<HttpResponseData> Get(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "anon/article/get/{id?}")] HttpRequestData req, string? id)
+            [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "anon/article/get/{id?}")]
+            HttpRequestData req, string id)
         {
-            try
-            {
-                var article = await _collection.Find(
-                    a => a.Id == id && !a.IsDeleted && a.IsVisible).FirstOrDefaultAsync();
-                
-                if (article == null)
-                {
-                    var notFoundResponse = req.CreateResponse(HttpStatusCode.NotFound);
-                    await notFoundResponse.WriteAsJsonAsync(new ServiceResponse<Article>
-                    {
-                        Success = false,
-                        Message = "Article not found."
-                    });
-                    return notFoundResponse;
-                }
 
-                var response = req.CreateResponse(HttpStatusCode.OK);
-                await response.WriteAsJsonAsync(new ServiceResponse<Article>
-                {
-                    Data = article,
-                    Success = true,
-                    Message = $"Successfully retrieved article {article.Id}"
-                });
-                return response;
-            }
-            catch (Exception ex)
+            var result = await _articleService.GetArticle(id, false);
+            if (result.Success)
             {
-                var badResponse = req.CreateResponse(HttpStatusCode.BadRequest);
-                await badResponse.WriteAsJsonAsync(new ServiceResponse<List<Article>>
-                {
-                    Success = false,
-                    Message = ex.Message
-                });
-                return badResponse;
+                var successResponse = req.CreateResponse(HttpStatusCode.OK);
+                await successResponse.WriteAsJsonAsync(result);
+                return successResponse;
             }
+
+            var notFoundResponse = req.CreateResponse(HttpStatusCode.NotFound);
+            await notFoundResponse.WriteAsJsonAsync(result);
+            return notFoundResponse;
+
         }
 
         [Function("GetUserArticles")]
         public async Task<HttpResponseData> GetList(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "anon/articles/get")] HttpRequestData req)
+            [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "anon/articles/get")]
+            HttpRequestData req)
         {
+
+            var result = await _articleService.GetArticles(req.Url.Query, false);
+            if (result.Success)
+            {
+                var successResponse = req.CreateResponse(HttpStatusCode.OK);
+                await successResponse.WriteAsJsonAsync(result);
+                return successResponse;
+            }
+
+            var badResponse = req.CreateResponse(HttpStatusCode.BadRequest);
+            await badResponse.WriteAsJsonAsync(result);
+            return badResponse;
+        }
+
+        [Function("GetImage")]
+        public async Task<HttpResponseData> GetImage(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get",Route = "anon/image/get/{id?}")]
+        HttpRequestData req, string id)
+        {
+            var result = await _imageService.GetHeaderImage(id);
+            if (result.Success)
+            {
+                var successResponse = req.CreateResponse(HttpStatusCode.OK);
+                await successResponse.WriteAsJsonAsync(result);
+                return successResponse;
+            }
+
+            var badResponse = req.CreateResponse(HttpStatusCode.BadRequest);
+            await badResponse.WriteAsJsonAsync(result);
+            return badResponse;
+        }
+
+
+
+
+        [Function("GetFeedList")]
+        public async Task<HttpResponseData> GetFeed(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "anon/feed/get")] HttpRequestData req)
+        {
+            var query = req.Url.Query;
+
+
+            var queryParams = System.Web.HttpUtility.ParseQueryString(query);
+            int skip = int.TryParse(queryParams["skip"], out var s) ? s : 0;
+            int take = int.TryParse(queryParams["take"], out var t) ? t : 10;
+            if (take > 10) take = 10;//Safety cap
+
+            var response = req.CreateResponse(HttpStatusCode.OK);
             try
             {
-                // 1. Extract Query Parameters (Accessing via System.Web or manual parsing as Req.Query is different)
-                var query = System.Web.HttpUtility.ParseQueryString(req.Url.Query);
+                var result = await _contentService.GetFeedList(_contentService.GetSearchFilter(query),skip, take, false);
+                await response.WriteAsJsonAsync(result);
                 
-                int page = int.Parse(query["page"] ?? "1");
-                int pageSize = int.Parse(query["pageSize"] ?? "10");
-                string? searchTerm = query["search"];
-                string? dateFrom = query["dateFrom"];
-                string? dateTo = query["dateTo"];
-
-                // 2. Build the MongoDB Filter
-                var filterBuilder = Builders<Article>.Filter;
-                var filter = filterBuilder.Eq(a => a.IsDeleted, false)
-                           & filterBuilder.Eq(a => a.IsVisible, true);
-
-                if (!string.IsNullOrWhiteSpace(searchTerm))
-                {
-                    var regex = new MongoDB.Bson.BsonRegularExpression(searchTerm, "i");
-                    var searchFilter = filterBuilder.Regex(a => a.Title, regex) |
-                                       filterBuilder.Regex(a => a.Description, regex) |
-                                       filterBuilder.Regex(a => a.Author, regex);
-                    filter &= searchFilter;
-                }
-
-                if (!string.IsNullOrWhiteSpace(dateFrom) && DateTime.TryParse(dateFrom, out DateTime startDate))
-                {
-                    filter &= filterBuilder.Gte(a => a.DatePublished, startDate);
-                }
-
-                if (!string.IsNullOrWhiteSpace(dateTo) && DateTime.TryParse(dateTo, out DateTime endDate))
-                {
-                    var endOfDay = endDate.Date.AddDays(1).AddTicks(-1);
-                    filter &= filterBuilder.Lte(a => a.DatePublished, endOfDay);
-                }
-
-                // 3. Execute Paged Query
-                int skip = (page - 1) * pageSize;
-
-                var articles = await _collection.Find(filter)
-                                                .SortByDescending(a => a.DatePublished)
-                                                .Skip(skip)
-                                                .Limit(pageSize)
-                                                .ToListAsync();
-
-                long totalCount = await _collection.CountDocumentsAsync(filter);
-
-                Console.WriteLine("PageCount:", totalCount);
-                
-                var response = req.CreateResponse(HttpStatusCode.OK);
-                await response.WriteAsJsonAsync(new ServiceResponse<PagedResult<Article>>
-                {
-                    Data = new PagedResult<Article> { Items = articles, PageCount = totalCount },
-                    Success = true
-                });
-                return response;
             }
             catch (Exception ex)
             {
-                var badResponse = req.CreateResponse(HttpStatusCode.BadRequest);
-                await badResponse.WriteAsJsonAsync(new ServiceResponse<string> { Success = false, Message = ex.Message });
-                return badResponse;
+
+                var errorBody = new ServiceResponse<List<Post>> { Success = false, Message = ex.Message };
+                await response.WriteAsJsonAsync(errorBody);
             }
+                return response;
         }
+
+
+
     }
+
+
+
 }

@@ -6,16 +6,16 @@ namespace AichmeeLab.Services.UserService
 
     public class UserService : IUserService
     {
-        public List<Article> Articles { get; set; } = new List<Article>();
-        public event Action? ListChanged;
-        public int CurrentPage { get; set; } = 1;
 
-        public short PageSize { get; set; } = 9;
-        public long PageCount { get; set; }
+        public event Action? ListChanged;
         public string SearchTerm { get; set; } = string.Empty;
+        public string ItemType { get; set; } = string.Empty;
         public DateTime? DateFrom { get; set; }
         public DateTime? DateTo { get; set; }
+        public List<Post> Posts { get; set; } = new List<Post>();
+        public bool HasMoreItems { get; set; } = true;
 
+        int _skipPosts { get; set; } = 0;
         private readonly HttpClient _httpClient;
 
         public UserService(HttpClient http)
@@ -53,47 +53,61 @@ namespace AichmeeLab.Services.UserService
 
                 };
             }
-
-
         }
 
 
-        public async Task GetArticlesAsync()
+
+
+        public async Task GetFeedItemsAsync(bool clearList)
         {
-
-
-            var url = GetSearchURL();
-
-            var response = await _httpClient.GetFromJsonAsync<
-            ServiceResponse<PagedResult<Article>>>(url);
-
-
-            if (response != null)
+            if (clearList)
             {
-                Articles = response.Data.Items;
-                PageCount = response.Data.PageCount;
+                Posts.Clear();
+                _skipPosts = 0;
+                HasMoreItems = true;
+            }
+            if (!HasMoreItems) return;
+            try
+            {
+                var url = $"api/anon/feed/get?type={(!string.IsNullOrEmpty(ItemType) ? ItemType : string.Empty)}";
 
+
+                if (!string.IsNullOrEmpty(SearchTerm))
+                    url += $"&search={Uri.EscapeDataString(SearchTerm)}";
+
+                if (DateFrom.HasValue)
+                    url += $"&dateFrom={DateFrom.Value:yyyy-MM-dd}";
+                if (DateTo.HasValue)
+                    url += $"&dateTo={DateTo.Value:yyyy-MM-dd}";
+
+                url += $"&skip={_skipPosts}";
+
+                var response = await _httpClient.GetFromJsonAsync<
+                            ServiceResponse<List<Post>>>(url);
+
+
+                if (response != null && response.Data != null && response.Data.Count > 0)
+                {
+                    Posts.AddRange(response.Data);
+                    _skipPosts += response.Data.Count;
+                }
+                else
+                {
+                    HasMoreItems = false;
+                }
+            }
+            catch
+            {
+                HasMoreItems = false;
+            }
+            finally
+            {
                 ListChanged?.Invoke();
             }
 
         }
 
 
-        private string GetSearchURL()
-        {
-            // Construct the URL with query strings
-            var url = $"api/anon/articles/get?page={CurrentPage}&pageSize={PageSize}";
-
-            if (!string.IsNullOrEmpty(SearchTerm))
-                url += $"&search={Uri.EscapeDataString(SearchTerm)}";
-
-            if (DateFrom.HasValue)
-                url += $"&dateFrom={DateFrom.Value:yyyy-MM-dd}";
-            if (DateTo.HasValue)
-                url += $"&dateTo={DateTo.Value:yyyy-MM-dd}";
-
-            return url;
-        }
     }
-
 }
+

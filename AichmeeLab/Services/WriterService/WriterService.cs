@@ -3,9 +3,9 @@ using System.Linq.Expressions;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Components.WebAssembly.Http;
 
-namespace AichmeeLab.Services.DashboardService
+namespace AichmeeLab.Services.WriterService
 {
-    public class DashboardService : IDashboardService
+    public class WriterService : IWriterService
     {
 
 
@@ -20,7 +20,7 @@ namespace AichmeeLab.Services.DashboardService
 
         private readonly HttpClient _httpClient;
 
-        public DashboardService(HttpClient http)
+        public WriterService(HttpClient http)
         {
             _httpClient = http;
         }

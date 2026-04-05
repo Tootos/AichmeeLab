@@ -1,0 +1,20 @@
+﻿
+
+.admin-layout {
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+    gap: 10px;
+}
+
+.admin-widget-header {
+    color: var(--font-color2);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.admin-widget-body {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    padding: 10px;
+}

@@ -16,7 +16,7 @@ namespace AichmeeLab.Services.SecurityService
         {
             _httpClient = httpClient;
         }
-        public async Task<ServiceResponse<bool>> GetAdminAccessAsync(string keyword)
+        public async Task<ServiceResponse<string>> GetAdminAccessAsync(string keyword)
         {
             try
             {
@@ -28,12 +28,12 @@ namespace AichmeeLab.Services.SecurityService
                 var response = await _httpClient.SendAsync(request);
 
                 // This will parse your ServiceResponse<bool> regardless of 200 or 401
-                var result = await response.Content.ReadFromJsonAsync<ServiceResponse<bool>>();
-                return result ?? new ServiceResponse<bool> { Success = false, Message = "No response" };
+                var result = await response.Content.ReadFromJsonAsync<ServiceResponse<string>>();
+                return result ?? new ServiceResponse<string> { Success = false, Message = "No response" };
             }
             catch (Exception ex)
             {
-                return new ServiceResponse<bool> { Success = false, Message = ex.Message };
+                return new ServiceResponse<string> { Success = false, Message = ex.Message };
             }
         }
 

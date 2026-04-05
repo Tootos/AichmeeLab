@@ -1,9 +1,9 @@
 ﻿@implements IDisposable
-@inject AichmeeLab.Services.DashboardService.IDashboardService DashboardService
+@inject AichmeeLab.Services.WriterService.IWriterService WriterService
 @inject NavigationManager NavigationManager
 
 <div class="articles-list-layout">
-    @if (DashboardService.Articles == null || DashboardService.Articles.Count == 0)
+    @if (WriterService.Articles == null || WriterService.Articles.Count == 0)
     {
         <div class="empty-state">
             <i class="bi bi-inbox"></i>
@@ -13,7 +13,7 @@
     else
     {
         <div class="articles-grid">
-            @foreach (var article in DashboardService.Articles)
+            @foreach (var article in WriterService.Articles)
             {
                 <div class="article-card" @onclick="() => OnEditAsync(article.Id)">
                     <div class="card-content">
@@ -47,8 +47,8 @@
             </div>
 
 
-            <Pagination CurrentPage="DashboardService.CurrentPage" PageCount="@DashboardService.PageCount"
-                        PageSize="DashboardService.PageSize" OnPageChanged="HandleChangePage" />
+            <Pagination CurrentPage="WriterService.CurrentPage" PageCount="@WriterService.PageCount"
+                        PageSize="WriterService.PageSize" OnPageChanged="HandleChangePage" />
 
         }
 
@@ -87,17 +87,17 @@
 
     protected override void OnInitialized()
     {
-        DashboardService.ServiceChanged += StateHasChanged;
+        WriterService.ServiceChanged += StateHasChanged;
     }
 
     protected override async Task OnParametersSetAsync()
     {
         _message = "Loading...";
 
-        DashboardService.CurrentPage = page ?? 1;
-        await DashboardService.GetArticlesAsync();
+        WriterService.CurrentPage = page ?? 1;
+        await WriterService.GetArticlesAsync();
 
-        if (DashboardService.Articles == null || DashboardService.Articles.Count == 0)
+        if (WriterService.Articles == null || WriterService.Articles.Count == 0)
         {
             _message = "No articles found.";
         }
@@ -107,7 +107,7 @@
     }
     public void Dispose()
     {
-        DashboardService.ServiceChanged -= StateHasChanged;
+        WriterService.ServiceChanged -= StateHasChanged;
     }
 
     private void HandleChangePage(int page)
@@ -119,7 +119,7 @@
 
     async Task BulkSaveAsync()
     {
-        var response = await DashboardService.UpdateVisibilityAsync(changeVisibility);
+        var response = await WriterService.UpdateVisibilityAsync(changeVisibility);
         changeVisibility.Clear();
 
         StateHasChanged();

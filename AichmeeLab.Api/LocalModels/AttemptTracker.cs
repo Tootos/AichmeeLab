@@ -6,7 +6,7 @@ namespace AichmeeLab.Api.LocalModels
 {
     public class AttemptTracker
     {
-        [BsonId]
+    [BsonId]
     [BsonRepresentation(BsonType.ObjectId)]
     public string? Id { get; set; }
 

@@ -1,0 +1,128 @@
+@using BootstrapBlazor.Components
+@inject AichmeeLab.Services.PhotographerService.IPhotographerService PhotographerService;
+
+
+<div class="work-window">
+    <button class="exit-button" @onclick="CancelAsync">X</button>
+    <div class="split-wrapper">
+
+        <div class="upload-container action-card">
+
+            @if (string.IsNullOrWhiteSpace(_previewUrl) && _isUploading == true)
+            {
+                <div class="loader">Uploading...</div>
+            }
+            else if (string.IsNullOrWhiteSpace(_previewUrl))
+            {
+                <div class="drop-zone">
+                    <label for="file-upload" class="drop-zone-label">
+                        <i class="bi bi-plus-circle-dotted"></i>
+                        <p>Drag or click to upload</p>
+                    </label>
+                    <InputFile id="file-upload" OnChange="CaptureStreamAsync" class="file-input-hidden" />
+                </div>
+            }
+            else
+            {
+                <div class="image-preview">
+                    <img src="@_previewUrl" />
+                    <button class="btn-clear" @onclick="() => ClearPreview()">Clear</button>
+                </div>
+            }
+        </div>
+
+        <div class="library-container action-card">
+            <button class="drop-zone" @onclick="OpenLibraryWindow">
+                <i class="bi bi-images"></i>
+                <p>Browse Library</p>
+            </button>
+        </div>
+
+    </div>
+
+    <div class="footer-actions">
+        <button class="select-button" disabled="@(string.IsNullOrEmpty(_previewUrl))" @onclick="DeliverToEditorAsync">
+            Confirm Selection
+        </button>
+    </div>
+
+</div>
+
+
+
+@code {
+    [Parameter] public EventCallback<Image> OnConfirm { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+    MemoryStream? _fileBuffer { get; set; }
+    string _fileName { get; set; } = string.Empty;
+    string _previewUrl { get; set; } = string.Empty;
+    bool _isUploading { get; set; } = false;
+
+    private async Task CaptureStreamAsync(InputFileChangeEventArgs e)
+    {
+        if (e.File == null) return;
+        var browserFile = e.File;
+        
+        try
+        {
+            // 1. Capture the stream immediately
+            using var browserStream = browserFile.OpenReadStream(10 * 1024 * 1024);
+            _fileName = browserFile.Name;
+        
+            // 2. Drain it into a MemoryStream right now
+            // This is the "Safety Catch"
+            _fileBuffer = new MemoryStream();
+            _isUploading = true;
+            StateHasChanged();
+            await browserStream.CopyToAsync(_fileBuffer);
+
+            // 3. Reset the position to the beginning so the Service can read it
+            _fileBuffer.Position = 0;
+
+            var format = e.File.ContentType;
+            var buffer = _fileBuffer.ToArray();
+            _previewUrl = $"data:{format};base64,{Convert.ToBase64String(buffer)}";
+
+        
+            
+        }
+        catch (Exception ex)
+        {
+
+        }
+        finally
+        {
+            _isUploading = false;
+        }
+    }
+
+    async Task DeliverToEditorAsync()
+    {
+        if (_fileBuffer == null) return;
+        try
+        {
+            var result = await PhotographerService.UploadImageAsync(_fileBuffer, _fileName, "Images");
+
+            if (result.Success && result.Data != null)
+            {
+                await OnConfirm.InvokeAsync(result.Data);
+            }
+        }
+        catch(Exception ex) {}
+
+        
+    }
+
+    void ClearPreview(){
+        _previewUrl = string.Empty;
+        _fileBuffer?.Dispose();
+        _fileBuffer = null;
+    }
+
+    void OpenLibraryWindow()
+    {
+
+    }
+
+    async Task CancelAsync() => await OnCancel.InvokeAsync();
+}

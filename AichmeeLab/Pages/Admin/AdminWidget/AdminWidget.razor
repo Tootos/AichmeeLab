@@ -1,0 +1,26 @@
+@inject AichmeeLab.Services.SecurityService.ISecurityService SecurityService;
+@inject NavigationManager NavigationManager
+
+
+<div class="admin-layout">
+        
+    <div class="admin-widget-header">
+        <i class="bi bi-tools"></i>
+        <span>Admin Control</span>
+    </div>
+    <div class="admin-widget-body">
+        <a href="/admin/articles" class="admin-nav-item">
+            Articles
+        </a>
+        <a href="/admin/albums" class="admin-nav-item">
+            Albums
+        </a>
+        <a href="/admin/" class="admin-nav-item">
+            System
+        </a>
+    </div>
+</div>
+
+    
+@code {
+}

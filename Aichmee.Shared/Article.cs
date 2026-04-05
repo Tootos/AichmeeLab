@@ -14,12 +14,11 @@ namespace Aichmee.Shared{
         [BsonRepresentation(BsonType.ObjectId)]
         [JsonPropertyName("id")]
         public string? Id { get; set; }
-
-        /*Article Body*/ 
         [Required]
         [StringLength(20)]
         public string Title {  get; set; } = string.Empty;
-        public string HeaderImage { get; set; } = string.Empty;
+        [BsonRepresentation(BsonType.ObjectId)]
+        public string HeaderImageId { get; set; } = string.Empty;
         [Required]
         [StringLength(60)]
         public string Description { get; set; } = string.Empty;

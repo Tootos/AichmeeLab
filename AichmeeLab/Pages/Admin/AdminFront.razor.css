@@ -14,5 +14,5 @@
     overflow: hidden; 
 }
 .option-wrapper{
-    background-color: var(--background-window-dark);
+    background-color: var(--surface-color);
 }

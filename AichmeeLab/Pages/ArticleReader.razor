@@ -1,6 +1,8 @@
 @page "/article/{Id}"
 @using AichmeeLab.Pages.Includes
+@using BootstrapBlazor.Components
 @inject AichmeeLab.Services.UserService.IUserService UserService
+@inject AichmeeLab.Services.PhotographerService.IPhotographerService PhotographerService
 
 
 @if (SelectedArticle == null)
@@ -9,7 +11,7 @@
 }
 else
 {
-    <ViewArticle SelectedArticle="SelectedArticle" />
+    <ViewArticle SelectedArticle="SelectedArticle" HeaderImage="HeaderImage"/>
 }
 
 
@@ -19,7 +21,8 @@ else
 
     string _message { get; set; } = "Loading. . .";
 
-    Article SelectedArticle { get; set; } = null;
+    Article SelectedArticle { get; set; } = new Article();
+    Image HeaderImage {get; set; } = new Image();
 
 
     protected async override Task OnParametersSetAsync()
@@ -28,6 +31,10 @@ else
         if (result.Success && result.Data != null)
         {
             SelectedArticle = result.Data;
+            if(!string.IsNullOrEmpty(SelectedArticle.HeaderImageId)){
+               var fetching = await PhotographerService.GetImageAsync(SelectedArticle.HeaderImageId);
+               if(fetching.Success && fetching.Data !=null) HeaderImage = fetching.Data ;
+            }
         }
         else
         {

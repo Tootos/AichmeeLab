@@ -1,16 +1,13 @@
 ﻿@page "/admin/articles/{Action?}"
 @using AichmeeLab.Pages.Includes
+@using AichmeeLab.Layout.LayoutElements.SearchBar 
 @using System.Net.Security
 @implements IDisposable
 @inject NavigationManager NavigationManager;
-@inject AichmeeLab.Services.DashboardService.IDashboardService DashboardService;
+@inject AichmeeLab.Services.WriterService.IWriterService WriterService;
 @inject AichmeeLab.Services.SecurityService.ISecurityService SecurityService;
 
 <div class="admin-layout-container">
-
-    <div class="viewport-left">
-        <NavPanel />
-    </div>
 
     <div class="viewport-center">
         <div class="view-switcher-header">
@@ -40,7 +37,6 @@
             case Tab.Article:
 
                 <ArticlesEdit SelectedArticle="@articleToEdit" OnReady="StateHasChanged" OnChange="HandleChange" />
-
                 break;
         }
 
@@ -84,19 +80,19 @@
         var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
         var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
 
-        DashboardService.SearchTerm = query.TryGetValue("q", out var q) ? q.ToString() : "";
+        WriterService.SearchTerm = query.TryGetValue("q", out var q) ? q.ToString() : "";
 
         if (query.TryGetValue("from", out var f) && DateTime.TryParse(f, out var df))
-            DashboardService.DateFrom = df;
+            WriterService.DateFrom = df;
         else
-            DashboardService.DateFrom = null;
+            WriterService.DateFrom = null;
 
         if (query.TryGetValue("to", out var t) && DateTime.TryParse(t, out var dt))
-            DashboardService.DateTo = dt;
+            WriterService.DateTo = dt;
         else
-            DashboardService.DateTo = null;
+            WriterService.DateTo = null;
 
-        DashboardService.CurrentPage = query.TryGetValue("page", out var p) && int.TryParse(p, out var pg) ? pg : 1;
+        WriterService.CurrentPage = query.TryGetValue("page", out var p) && int.TryParse(p, out var pg) ? pg : 1;
     }
     //Clean up to avoid memory leaks
     public void Dispose()
@@ -107,7 +103,7 @@
     //Switching to Editor
     private async Task HandleEditRequestAsync(string id)
     {
-        var response = await DashboardService.GetArticleAsync(id);
+        var response = await WriterService.GetArticleAsync(id);
         if (response != null && response.Data != null)
         {
             articleToEdit = response.Data;

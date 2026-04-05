@@ -1,0 +1,85 @@
+﻿@inject NavigationManager NavigationManager;
+@inject AichmeeLab.Services.UserService.IUserService UserService
+
+<div class="search-window">
+    <div class="search-layout">
+
+        <div class="search-fields">
+            @* 1. Search Field *@
+            <div class="search-fields-col">
+                <label class="form-label small fw-bold text-uppercase text-muted">Keywords</label>
+                <input type="text" class="form-control" placeholder="Search by term" @bind="UserService.SearchTerm"
+                       @bind:event="oninput" @ref="searchInput" @onkeyup="HandleKeyUp" />
+            </div>
+
+            @* 2. Date From *@
+            <div class="search-fields-col">
+                <label class="form-label small fw-bold text-uppercase text-muted">From</label>
+                <input type="date" class="form-control" @bind="UserService.DateFrom" />
+            </div>
+
+            @* 3. Date To *@
+            <div class="search-fields-col">
+                <label class="form-label small fw-bold text-uppercase text-muted">To</label>
+                <input type="date" class="form-control" @bind="UserService.DateTo" />
+            </div>
+        </div>
+        
+            <button class="search-action btn btn-primary w-100" @onclick="HandleSearch">
+                <i class="bi bi-search"></i> Search
+            </button>
+        
+
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public EventCallback OnSearchPerformed { get; set; }
+
+    protected ElementReference searchInput;
+    protected override void OnInitialized()
+    {
+        NavigationManager.LocationChanged += HandleLocationChanged;
+    }
+    private void HandleLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        NavigationManager.LocationChanged -= HandleLocationChanged;
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        //Focus the cursor on the searchbar
+        if (firstRender)
+        {
+            await searchInput.FocusAsync();
+        }
+    }
+
+    void HandleKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            HandleSearch();
+    }
+
+    void HandleSearch()
+    {
+        var parameters = new Dictionary<string, object?>
+        {
+            ["type"] = string.IsNullOrWhiteSpace(UserService.ItemType) ? null : UserService.ItemType,
+            ["q"] = string.IsNullOrWhiteSpace(UserService.SearchTerm) ? null : UserService.SearchTerm,
+            ["from"] = UserService.DateFrom?.ToString("yyyy-MM-dd"),
+            ["to"] = UserService.DateTo?.ToString("yyyy-MM-dd"),
+            ["page"] = 1
+        };
+
+        var newUri = NavigationManager.GetUriWithQueryParameters("/", parameters);
+        NavigationManager.NavigateTo(newUri);
+
+        OnSearchPerformed.InvokeAsync();
+    }
+}

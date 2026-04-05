@@ -1,11 +1,11 @@
-﻿using Aichmee.Shared;
-using AichmeeLab.Api.LocalModels;
+﻿using AichmeeLab.Api.LocalModels;
+using AichmeeLab.Api.Services.ArticleService;
+using AichmeeLab.Api.Services.ImageService;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using MongoDB.Bson;
-using MongoDB.Driver;
 using System.Net;
 using System.Text.Json;
 
@@ -13,245 +13,132 @@ namespace AichmeeLab.Api
 {
     class DashboardFunctions
     {
-        private readonly IMongoClient _mongoClient;
-        private readonly IMongoCollection<Article> _collection;
+        private readonly IArticleService _articleService;
+        readonly IImageService _imageService;
         private readonly ILogger<DashboardFunctions> _logger;
-        private readonly DBSettings _settings;
 
         public DashboardFunctions(
-            IMongoClient mongoClient,
-            IOptions<DBSettings> options,
+            IArticleService articleService,
+            IImageService imageService,
             ILogger<DashboardFunctions> logger)
         {
-            _mongoClient = mongoClient;
-            _settings = options.Value;
+            _articleService = articleService;
+            _imageService = imageService;
             _logger = logger;
 
-            var database = mongoClient.GetDatabase(_settings.DatabaseName);
-            _collection = database.GetCollection<Article>(_settings.ArticlesCollectionName);
+        }
+
+        [Function("GetAdminArticle")]
+        public async Task<HttpResponseData> Get(
+            [HttpTrigger(AuthorizationLevel.Function, "get", Route = "dashboard/article/get/{id?}")] HttpRequestData req, string? id)
+        {
+            var result = await _articleService.GetArticle(id, true);
+            if (result.Success)
+            {
+                var successResponse = req.CreateResponse(HttpStatusCode.OK);
+                await successResponse.WriteAsJsonAsync(result);
+                return successResponse;
+            }
+
+            var notFoundResponse = req.CreateResponse(HttpStatusCode.NotFound);
+            await notFoundResponse.WriteAsJsonAsync(result);
+            return notFoundResponse;
         }
 
         [Function("GetAdminArticles")]
         public async Task<HttpResponseData> GetList([HttpTrigger(AuthorizationLevel.Function, "get", Route = "dashboard/articles/get")] HttpRequestData req)
         {
-            try
+            var result = await _articleService.GetArticles(req.Url.Query, true);
+            if (result.Success)
             {
-                // 1. Extract Query Parameters
-                var query = System.Web.HttpUtility.ParseQueryString(req.Url.Query);
-                int page = int.Parse(query["page"] ?? "1");
-                int pageSize = int.Parse(query["pageSize"] ?? "10");
-                string? searchTerm = query["search"];
-                string? dateFrom = query["dateFrom"];
-                string? dateTo = query["dateTo"];
-
-                // 2. Build the MongoDB Filter
-                var filterBuilder = Builders<Article>.Filter;
-                var filter = filterBuilder.Eq(a => a.IsDeleted, false);
-
-                if (!string.IsNullOrWhiteSpace(searchTerm))
-                {
-                    var regex = new MongoDB.Bson.BsonRegularExpression(searchTerm, "i");
-                    var searchFilter = filterBuilder.Regex(a => a.Title, regex) |
-                                       filterBuilder.Regex(a => a.Description, regex) |
-                                       filterBuilder.Regex(a => a.Author, regex);
-                    filter &= searchFilter;
-                }
-
-                if (!string.IsNullOrWhiteSpace(dateFrom) && DateTime.TryParse(dateFrom, out DateTime startDate))
-                {
-                    filter &= filterBuilder.Gte(a => a.DatePublished, startDate);
-                }
-
-                if (!string.IsNullOrWhiteSpace(dateTo) && DateTime.TryParse(dateTo, out DateTime endDate))
-                {
-                    var endOfDay = endDate.Date.AddDays(1).AddTicks(-1);
-                    filter &= filterBuilder.Lte(a => a.DatePublished, endOfDay);
-                }
-
-                // 3. Execute Paged Query
-                int skip = (page - 1) * pageSize;
-                var articles = await _collection.Find(filter)
-                                                .SortByDescending(a => a.DatePublished)
-                                                .Skip(skip)
-                                                .Limit(pageSize)
-                                                .ToListAsync();
-
-                long totalCount = await _collection.CountDocumentsAsync(filter);
-
                 var response = req.CreateResponse(HttpStatusCode.OK);
-                await response.WriteAsJsonAsync(new ServiceResponse<PagedResult<Article>>
-                {
-                    Data = new PagedResult<Article> { Items = articles, PageCount = totalCount },
-                    Success = true
-                });
+                await response.WriteAsJsonAsync(result);
                 return response;
             }
-            catch (Exception ex)
-            {
-                var response = req.CreateResponse(HttpStatusCode.BadRequest);
-                await response.WriteAsJsonAsync(new ServiceResponse<string> { Success = false, Message = ex.Message });
-                return response;
-            }
-        }
 
-        [Function("GetArticle")]
-        public async Task<HttpResponseData> Get(
-            [HttpTrigger(AuthorizationLevel.Function, "get", Route = "dashboard/article/get/{id?}")] HttpRequestData req, string? id)
-        {
-            try
-            {
-                var article = await _collection.Find(a => a.Id == id && !a.IsDeleted).FirstOrDefaultAsync();
-
-                if (article == null)
-                {
-                    var notFound = req.CreateResponse(HttpStatusCode.NotFound);
-                    await notFound.WriteAsJsonAsync(new ServiceResponse<Article> { Success = false, Message = "Article not found." });
-                    return notFound;
-                }
-
-                var response = req.CreateResponse(HttpStatusCode.OK);
-                await response.WriteAsJsonAsync(new ServiceResponse<Article>
-                {
-                    Data = article,
-                    Success = true,
-                    Message = $"Successfully retrieved article {article.Id}"
-                });
-                return response;
-            }
-            catch (Exception ex)
-            {
-                var response = req.CreateResponse(HttpStatusCode.BadRequest);
-                await response.WriteAsJsonAsync(new ServiceResponse<List<Article>> { Success = false, Message = ex.Message });
-                return response;
-            }
+            var badRequest = req.CreateResponse(HttpStatusCode.BadRequest);
+            await badRequest.WriteAsJsonAsync(result);
+            return badRequest;
         }
 
         [Function("UpdateArticle")]
         public async Task<HttpResponseData> Put(
             [HttpTrigger(AuthorizationLevel.Function, "put", Route = "dashboard/articles/put")] HttpRequestData req)
         {
-            string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
-            var article = JsonSerializer.Deserialize<Article>(requestBody, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            });
+            var result = await _articleService.UpdateArticle(await new StreamReader(req.Body).ReadToEndAsync());
 
-            if (article == null)
+
+            if (result.Success)
             {
-                var badRequest = req.CreateResponse(HttpStatusCode.BadRequest);
-                await badRequest.WriteAsJsonAsync(new ServiceResponse<Article> { Data = null, Message = "Failed put operation", Success = false });
-                return badRequest;
+                var response = req.CreateResponse(HttpStatusCode.OK);
+                await response.WriteAsJsonAsync(result);
+                return response;
             }
 
-            article.LastUpdate = DateTime.UtcNow;
+            var badRequest = req.CreateResponse(HttpStatusCode.BadRequest);
+            await badRequest.WriteAsJsonAsync(result);
+            return badRequest;
 
-            if (string.IsNullOrEmpty(article.Id))
-            {
-                article.Id = ObjectId.GenerateNewId().ToString();
-                article.DatePublished = DateTime.UtcNow;
-                await _collection.InsertOneAsync(article);
-            }
-            else
-            {
-                var filter = Builders<Article>.Filter.Eq(a => a.Id, article.Id);
-                await _collection.ReplaceOneAsync(filter, article, new ReplaceOptions { IsUpsert = true });
-            }
 
-            var response = req.CreateResponse(HttpStatusCode.OK);
-            await response.WriteAsJsonAsync(new ServiceResponse<Article> { Data = article, Message = "Article saved", Success = true });
-            return response;
+
         }
 
         [Function("UpdateVisibility")]
         public async Task<HttpResponseData> UpdateVisibility(
             [HttpTrigger(AuthorizationLevel.Function, "put", Route = "dashboard/articles/visibility")] HttpRequestData req)
         {
-            var articleUpdates = await JsonSerializer.DeserializeAsync<Dictionary<string, bool>>(req.Body);
+            var result = await _articleService.UpdateVisibility(await JsonSerializer.DeserializeAsync<Dictionary<string, bool>>(req.Body));
 
-            if (articleUpdates == null || articleUpdates.Count == 0)
+            if (result.Success)
             {
-                var badRequest = req.CreateResponse(HttpStatusCode.BadRequest);
-                await badRequest.WriteAsJsonAsync(new ServiceResponse<int> { Data = 0, Message = "Failed put operation", Success = false });
-                return badRequest;
+                var response = req.CreateResponse(HttpStatusCode.OK);
+                await response.WriteAsJsonAsync(result);
+                return response;
             }
 
-            var updates = articleUpdates.Select(x =>
-                new UpdateOneModel<Article>(
-                    Builders<Article>.Filter.Eq(a => a.Id, x.Key),
-                    Builders<Article>.Update.Set(a => a.IsVisible, x.Value)
-                )
-            );
-
-           var result = await _collection.BulkWriteAsync(updates);
-
-            var successResponse = req.CreateResponse(HttpStatusCode.OK);
-            await successResponse.WriteAsJsonAsync(new ServiceResponse<int>
-            {
-                Data = Convert.ToInt32(result.ModifiedCount),
-                Message = $"Updated {result.ModifiedCount} articles",
-                Success = true
-            });
-            return successResponse;
-       }
+            var badRequest = req.CreateResponse(HttpStatusCode.BadRequest);
+            await badRequest.WriteAsJsonAsync(result);
+            return badRequest;
+        }
 
         [Function("DeleteArticle")]
         public async Task<HttpResponseData> DeleteArticle(
             [HttpTrigger(AuthorizationLevel.Function, "delete", Route = "dashboard/article/delete/{id?}")] HttpRequestData req, string? id)
         {
             _logger.LogInformation("Attempting delete");
-            var article = await _collection.Find(a => a.Id == id && !a.IsDeleted).FirstOrDefaultAsync();
+            var result = await _articleService.DeleteArticle(id);
 
-            if (article == null)
+            if (result.Success)
             {
-                var badRequest = req.CreateResponse(HttpStatusCode.BadRequest);
-                await badRequest.WriteAsJsonAsync(new ServiceResponse<bool> { Data = false, Message = "Failed delete operation", Success = false });
-                return badRequest;
-            }
-
-            article.IsDeleted = true;
-            article.IsVisible = false;
-            article.LastUpdate = DateTime.UtcNow;
-
-            var filter = Builders<Article>.Filter.Eq(a => a.Id, article.Id);
-            await _collection.ReplaceOneAsync(filter, article);
-
-            var response = req.CreateResponse(HttpStatusCode.OK);
-            await response.WriteAsJsonAsync(new ServiceResponse<bool> { Data = true, Message = "Article deleted", Success = true });
-            return response;
-        }
-
-        [Function("CheckMongoConnection")]
-        public async Task<HttpResponseData> Ping(
-            [HttpTrigger(AuthorizationLevel.Function, "get", Route = "dashboard/CheckDB")] HttpRequestData req)
-        {
-            _logger.LogInformation("Testing MongoDB connection...");
-            try
-            {
-                var database = _mongoClient.GetDatabase(_settings.DatabaseName);
-                await database.RunCommandAsync<BsonDocument>(new BsonDocument("ping", 1));
-
                 var response = req.CreateResponse(HttpStatusCode.OK);
-                await response.WriteAsJsonAsync(new
-                {
-                    Status = "Success",
-                    Message = "Connected to MongoDB successfully!",
-                    Database = _settings.DatabaseName,
-                    Timestamp = DateTime.UtcNow
-                });
+                await response.WriteAsJsonAsync(result);
                 return response;
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "MongoDB connection failed.");
-                var response = req.CreateResponse(HttpStatusCode.InternalServerError);
-                await response.WriteAsJsonAsync(new
-                {
-                    Status = "Error",
-                    Message = "Could not connect to MongoDB.",
-                    Details = ex.Message
-                });
-                return response;
-            }
+
+            var badRequest = req.CreateResponse(HttpStatusCode.BadRequest);
+            await badRequest.WriteAsJsonAsync(result);
+            return badRequest;
+
         }
+        [Function("UploadImage")]
+        public async Task<HttpResponseData> UploadImage(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post",Route = "dashboard/images/post")] HttpRequestData req)
+        {
+            _logger.LogInformation("Attempting to upload and image");
+
+            var result = await _imageService.UploadeImage(req);
+            if (result.Success)
+            {
+                var response = req.CreateResponse(HttpStatusCode.OK);
+                await response.WriteAsJsonAsync(result);
+                return response;
+            }
+
+            var badRequest = req.CreateResponse(HttpStatusCode.BadRequest);
+            await badRequest.WriteAsJsonAsync(result);
+            return badRequest;
+
+        }
+        
     }
 }

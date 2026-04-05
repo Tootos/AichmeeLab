@@ -1,6 +1,9 @@
+using AichmeeLab.Api.Services.AuthenticatorService;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Azure.Functions.Worker.Middleware;
+using Microsoft.Extensions.DependencyInjection;
 using System.Net;
 
 namespace AichmeeLab.Api.Middleware
@@ -13,6 +16,8 @@ namespace AichmeeLab.Api.Middleware
             // TODO: Add authentication logic here if needed
             var requestData = await context.GetHttpRequestDataAsync();
 
+            
+
             if (requestData != null)
             {
                 var path = requestData.Url.PathAndQuery;
@@ -20,7 +25,11 @@ namespace AichmeeLab.Api.Middleware
                 // Safeguard: Only intercept Dashboard routes
                 if (path.Contains("/api/dashboard/", StringComparison.OrdinalIgnoreCase))
                 {
-                    if (!IsAuthorized(requestData))
+
+                    var authService = context.InstanceServices.GetRequiredService<IAuthenticatorService>();
+
+                    var result = await authService.CheckAuthorization(requestData);
+                    if (!result.Success)
                     {
                         var response = requestData.CreateResponse(HttpStatusCode.Unauthorized);
                         await response.WriteAsJsonAsync(new { Success = false, Message = "Access Denied" });

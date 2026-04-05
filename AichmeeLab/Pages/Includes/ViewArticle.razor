@@ -4,36 +4,56 @@
 @inject AichmeeLab.Services.UserService.IUserService UserService
 
 
-        <div class="article-viewer">
+<div class="view-window">
+    <div class="view-layout">
+    <div class="top-footer">
+        <a href="/" class="close-btn"><i class="bi bi-x-lg"></i></a>
+    </div>
+    <div class="article-content">
+        <div class= "header-wrapper">
+            <h1 class="view-title">@SelectedArticle.Title</h1>
+            <h3 class="view-author">by @SelectedArticle.Author</h3>
+        <span class="view-date">Date Published:@SelectedArticle.DatePublished.ToString("MMM dd, yyyy")
+            | Last Updated: @SelectedArticle.LastUpdate.ToString("MMM dd, yyyy")</span>
+        </div>
 
-            <h1>@SelectedArticle.Title</h1>
-            <p>by @SelectedArticle.Author</p>
-            <span>@SelectedArticle.Description</span>
-            <div class="separator-line"></div>
-            <div class="media-body">
-                @if (parsedContent?.Blocks != null)
+    @if (HeaderImage != null && !string.IsNullOrEmpty(HeaderImage.StorageUrl))
+        {
+            <div class="view-img">
+                <img src="@HeaderImage.StorageUrl" alt="@SelectedArticle.Title" class="img-fluid rounded shadow-sm" />
+            </div>
+        }     
+
+        <div class="media-body">
+            <p class="view-description">@SelectedArticle.Description</p>
+
+            @if (parsedContent?.Blocks != null)
+            {
+                @foreach (var block in parsedContent.Blocks)
                 {
-                    @foreach (var block in parsedContent.Blocks)
+                    @if (block.Type == "paragraph")
                     {
-                        @if (block.Type == "paragraph")
-                        {
-                            <p>@((MarkupString)block.Data.Text)</p>
-                        }
-                        else if (block.Type == "header")
-                        {
-                            @* You can check block.Data.Level here if needed *@
-                            <h3>@((MarkupString)block.Data.Text)</h3>
-                        }
+                        <p>@((MarkupString)block.Data.Text)</p>
+                    }
+                    else if (block.Type == "header")
+                    {
+                        @* You can check block.Data.Level here if needed *@
+                        <h3>@((MarkupString)block.Data.Text)</h3>
                     }
                 }
-            </div>
+            }
         </div>
+    </div>
+    </div>
+</div>
 
 
 
 @code {
     [Parameter]
-    public Article SelectedArticle {get; set;} = new Article();
+    public Article SelectedArticle { get; set; } = new Article();
+    [Parameter]
+    public Image HeaderImage { get; set; } = new Image();
 
     EditorJsData? parsedContent;
 
@@ -66,5 +86,4 @@
             }
         }
     }
-
 }

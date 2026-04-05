@@ -1,0 +1,90 @@
+.sidebar-container {
+    position: relative;
+    /* position: fixed; */
+    /* top: 0; */
+    /* left: 0; */
+    width: 240px;
+    height: 100vh;
+    background-color: var(--surface-color);
+    border-right: 1px solid var(--border-color);
+    box-shadow: var(--hover-shadow);
+
+    /* The Drawer Logic */
+    transform: translateX(0);
+    transition: 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+
+    z-index: 20;
+}
+
+.sidebar-container.collapsed {
+    /* transform: translateX(-100%); */
+    margin-left: calc(240px * -1);
+}
+
+.sidebar-layout {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 40px 10px;
+    height: 100%;
+    min-width: 240px;
+}
+
+.sidebar-footer {
+       margin-top: auto;
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.sidebar-toggle {
+    /* Position relative to the sidebar container */
+    position: absolute;
+    top: 50%;
+    left: 100%;
+    /* This is the "Glue" */
+    transform: translateY(-50%);
+
+    /* Aesthetics */
+    background-color: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-left: none;
+    /* Merges it with the sidebar border */
+    color: var(--font-color2);
+
+    padding: 12px 6px;
+    border-radius: 0 8px 8px 0;
+    cursor: pointer;
+    transition: color 0.2s, background-color 0.2s;
+}
+.admin-window{
+    border-radius: 15px;
+    width:100%;
+    box-shadow: var(--resting-shadow);
+    margin-top: 50px;
+}
+
+::deep .nav-text-btn {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    background: transparent;
+    border: none;
+    color: var(--font-color1);
+    padding: 15px 5px;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+::deep .nav-text-btn i {
+    color: var(--font-color1);
+    font-size: 0.9rem;
+    transition: color 0.2s ease;
+}
+
+::deep .nav-text-btn.active,
+::deep .nav-text-btn.active i {
+    color: var(--select-color);
+}

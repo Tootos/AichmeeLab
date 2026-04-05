@@ -1,0 +1,79 @@
+/* --- STRUCTURAL CONTAINERS --- */
+.list-window {
+    position: fixed;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+
+    /* Set to 30% as requested, but keeping max-width for ultra-wide screens */
+    width: 30%;
+    min-width: 400px;
+    /* Prevents it from becoming too skinny on smaller screens */
+    max-width: 800px;
+    height: 100vh;
+
+    padding-top: 80px;
+    box-sizing: border-box;
+    overflow: hidden;
+    background-color: transparent;
+    z-index: 10;
+}
+
+.list-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 48px;
+    /* Increased gap for better breathing room in a borderless design */
+
+    width: 100%;
+    height: 100%;
+
+    overflow-y: auto;
+    padding-bottom: 150px;
+
+    /* Hide scrollbar for the minimalist look */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.list-layout span {
+    color: var(--font-color1);
+}
+
+.list-layout::-webkit-scrollbar {
+    display: none;
+}
+
+
+/* Loading  */
+
+.loading-window {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    background: transparent;
+}
+
+.loading-layout {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 40px 0;
+}
+
+.spinner-icon{
+    font-size: 2rem;
+    color: var(--font-color1);
+    animation: spin 1.2s linear infinite;
+    display: inline-block;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}

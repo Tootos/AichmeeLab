@@ -1,43 +1,73 @@
 ﻿@using System.Threading.Tasks
+@using AichmeeLab.Layout.AboutModal
+@using AichmeeLab.Layout.LayoutElements.SideBar
 @using AichmeeLab.Pages.Admin
 @inherits LayoutComponentBase
 
+@inject AichmeeLab.Services.UserService.IUserService UserService;
+@inject AichmeeLab.Services.SecurityService.ISecurityService SecurityService;
 @inject NavigationManager NavigationManager
-<div class="page @(IsHomePage ? "no-navbar" : "has-navbar")">
-    @if (!IsHomePage)
-{
-    <nav class="top-navbar shadow-sm">
-        <div class="nav-container">
-            <a href="/" class="nav-logo">AichmeeLab</a>
-            <div class="nav-links">
-                <NavLink href="articles/feed" class="nav-item">Articles</NavLink>
-                <NavLink href="albums" class="nav-item">Albums</NavLink>
-                <NavLink href="about" class="nav-item">About</NavLink>
-            </div>
-        </div>
-    </nav>
-    }
+@* <div class="page @(IsHomePage ? "no-navbar" : "has-navbar")"> *@
+<div class="page">
 
-<div class="page-shadow"></div>
+    <div class="page-shadow"></div>
+    <SideBar IsAdmin="_isAdmin" OpenAboutModal="OpenAboutModal" />
 
-
-    <div class="window-container">
-            @Body
+    <div class="page-layout">
+        @Body
     </div>
-
-    <AdminButton/>
+    <AboutModal  IsVisible="_isAboutModalVisible" OnClose="CloseAboutModal"></AboutModal>
 
 </div>
 
 
 
-@code{
-    private bool IsHomePage => NavigationManager.Uri == NavigationManager.BaseUri;
+@code {
+    private bool isHomePage => NavigationManager.Uri == NavigationManager.BaseUri;
+    bool _isAboutModalVisible { get; set; } = false;
+    bool _isAdmin { get; set; } = false;
 
-    protected override void OnInitialized()
+
+    protected override async Task OnInitializedAsync()
     {
-        NavigationManager.LocationChanged += (s, e) => StateHasChanged();
+        _isAdmin = await SecurityService.IsAuthorizedAsync();
+        NavigationManager.LocationChanged += HandleLocationChanged;
     }
+
+    async void HandleLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        _isAdmin = await SecurityService.IsAuthorizedAsync();
+        
+        SynServiceWithUrl();
+        StateHasChanged();
+    }
+    
+    //Sync Services Search Parameters with Url
+    private void SynServiceWithUrl()
+    {
+        var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+        var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
+
+        UserService.SearchTerm = query.TryGetValue("q", out var q) ? q.ToString() : string.Empty;
+        UserService.ItemType = query.TryGetValue("type", out var t) ? t.ToString() : string.Empty;
+        
+        if (query.TryGetValue("from", out var f) && DateTime.TryParse(f, out var df))
+            UserService.DateFrom = df;
+        else
+            UserService.DateFrom = null;
+
+        if (query.TryGetValue("to", out var t2) && DateTime.TryParse(t2, out var dt))
+            UserService.DateTo = dt;
+        else
+            UserService.DateTo = null;
+
+    }
+
+    void OpenAboutModal() => _isAboutModalVisible = true;
+
+    void CloseAboutModal() => _isAboutModalVisible = false;
+
+
 
     
 

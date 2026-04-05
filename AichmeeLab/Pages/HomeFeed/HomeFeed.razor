@@ -1,0 +1,159 @@
+@page "/"
+
+@using AichmeeLab.Layout.LayoutElements.ArticleSlide
+@using AichmeeLab.Pages.Includes
+@using AichmeeLab.Services.UserService
+@using AichmeeLab.Layout.LayoutElements.SearchBar
+@implements IDisposable
+@implements IAsyncDisposable
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+@inject AichmeeLab.Services.UserService.IUserService UserService;
+
+<div class="list-window">
+    <div class="list-layout">
+        <SearchBar />
+        @if (UserService.Posts == null || UserService.Posts.Count == 0)
+        {
+            <span>@_message</span>
+        }
+        else
+        {
+            @foreach (var post in UserService.Posts)
+            {
+                switch (post.Type)
+                {
+                    case ItemType.Article:
+                        <ArticleSlide post=post />
+                        break;
+                    case ItemType.Album:
+
+                        break;
+                    case ItemType.Post:
+
+                        break;
+                }
+            }
+        }
+
+        @* JS Observes the page to detect when the user reaches the end of the list so it can fetch more posts *@
+        @* 1. THE ANCHOR: JS looks for this ID *@
+        <div id="infinite-scroll-anchor" style="height: 20px;"></div>
+        @if (_isFetchingData)
+        {
+            <div class="loading-window">
+                <div class="loading-layout"></div>
+                <div class="spinner-icon">
+                    <i class="bi bi-arrow-clockwise"></i>
+                </div>
+                
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+
+    bool _isFetchingData { get; set; } = false;
+    string _message { get; set; } = "Loading . . .";
+
+    private DotNetObjectReference<HomeFeed>? _selfReference;
+
+    protected override void OnInitialized()
+    {
+        UserService.ListChanged += StateHasChanged;
+        NavigationManager.LocationChanged += HandleLocationChanged;
+        
+    }
+    protected override async Task OnParametersSetAsync()
+    {
+        await FetchDataAsync(true);
+    }
+
+    private async void HandleLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        await FetchDataAsync(true);
+    }
+
+    
+
+    
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // 2. Create a reference to this specific instance of Home.razor
+            _selfReference = DotNetObjectReference.Create(this);
+            
+            // 3. Start the observer
+            await JSRuntime.InvokeVoidAsync("initScrollObserver", _selfReference, "infinite-scroll-anchor");
+        }
+    }
+
+    //This is invoked when the scroll hits the anchor at the end of the list
+    //Check JS script Function.js
+    [JSInvokable]
+    public async Task LoadMorePostsAsync()
+    {
+        await FetchDataAsync(false);
+
+    }
+
+    async Task FetchDataAsync(bool clearList)
+    {
+
+        if (_isFetchingData && UserService.HasMoreItems) return;
+
+        _isFetchingData = true;
+        StateHasChanged(); 
+
+
+        try
+        {
+            FetchSearchTerm();
+            await UserService.GetFeedItemsAsync(clearList);
+
+            if (UserService.Posts == null || UserService.Posts.Count == 0)
+            {
+                _message = "No posts found.";
+            }
+        }
+        finally
+        {
+            _isFetchingData = false;
+            StateHasChanged(); 
+        }
+    }
+
+    public void Dispose()
+    {
+        UserService.ListChanged -= StateHasChanged;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        // Clean up to prevent memory leaks
+        _selfReference?.Dispose();
+    }
+
+    
+
+    void FetchSearchTerm()
+    {
+        var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+        var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
+
+        UserService.ItemType = query.TryGetValue("type", out var type) ? type.ToString() : "";
+        UserService.SearchTerm = query.TryGetValue("q", out var q) ? q.ToString() : "";
+
+        if (query.TryGetValue("from", out var f) && DateTime.TryParse(f, out var df))
+            UserService.DateFrom = df;
+        else
+            UserService.DateFrom = null;
+
+        if (query.TryGetValue("to", out var t) && DateTime.TryParse(t, out var dt))
+            UserService.DateTo = dt;
+        else
+            UserService.DateTo = null;
+    }
+}

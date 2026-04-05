@@ -1,10 +1,10 @@
 
 .nav-wrapper {
-    background: var(--background-window-dark);
+    background: var(--surface-color);
     /* flex: 0 0 240px; */
     height: fit-content;
     /* border: saddlebrown; */
-    box-shadow: var(--box-shadow);
+    box-shadow: var(--hover-shadow);
     border-radius: var(--border-radius);
     min-width: 180px;
     margin-left: 5px;

@@ -1,0 +1,30 @@
+<div class="post-slide">
+    <div class="post-header">
+        <span class="author">@post.Author</span>
+        <span class="dot-separator">•</span>
+        <span class="publish-date">@post.DatePublished.ToString("MMM dd, yyyy")</span>
+    </div>
+
+    <a href="/article/@post.Id" class="post-main-link">
+        <div class="post-image-container">
+            <img src="@post.HeaderImageUrl" alt="@post.Title" />
+            <div class="title-overlay">
+                <h3>@post.Title</h3>
+            </div>
+        </div>
+    </a>
+
+    <div class="post-footer">
+        <p class="description">@post.Description</p>
+        <a href="/article/@post.Id" class="read-more">
+            Read More <i class="bi bi-arrow-right"></i>
+        </a>
+    </div>
+</div>
+
+
+@code {
+    [Parameter]
+    public Post post {get;set;} = new Post();
+                    
+}

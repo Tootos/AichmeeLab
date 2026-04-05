@@ -1,0 +1,59 @@
+@using AichmeeLab.Pages.Admin.AdminWidget
+<aside class="sidebar-container @(_isCollapsed ? "collapsed" : "")">
+    <div class="sidebar-layout">
+
+        <button class="sidebar-toggle" @onclick="ToggleSidebar">
+            <i class="bi @(_isCollapsed ? "bi-chevron-right" : "bi-chevron-left")"></i>
+        </button>
+
+        <div class="sidebar-header">
+            <i class="bi bi-home" />
+        </div>
+
+        <nav class="sidebar-nav">
+            <NavLink class="nav-text-btn" href="/" Match="NavLinkMatch.All">
+                <i class="bi bi-house"></i> Feed
+            </NavLink>
+
+            <NavLink class="nav-text-btn" href="/?type=article">
+                <i class="bi bi-newspaper"></i> Articles
+            </NavLink>
+
+            <NavLink class="nav-text-btn" href="?type=album">
+                <i class="bi bi-camera2"></i> Albums
+            </NavLink>
+        </nav>
+
+        @if (IsAdmin)
+        {
+            <div class="admin-window"><AdminWidget /></div>
+            
+        }
+
+        
+        <div class="sidebar-footer">
+            <button class="nav-text-btn" @onclick="OpenAboutAsync">
+                <i class="bi bi-person-raised-hand"></i> About
+            </button>
+        </div>
+
+    </div>
+</aside>
+
+
+@code {
+    public bool _isCollapsed { get; set; } = false;
+    [Parameter]
+    public bool IsAdmin { get; set; } = false;
+    [Parameter]
+    public EventCallback OpenAboutModal { get; set; }
+
+    ItemType _activeType { get; set; } = ItemType.Post;
+
+    async Task OpenAboutAsync() => await OpenAboutModal.InvokeAsync();
+
+    
+    void ToggleSidebar() => _isCollapsed = !_isCollapsed;
+    string GetButtonClass(ItemType type) =>
+        _activeType == type ? "active" : "";
+}

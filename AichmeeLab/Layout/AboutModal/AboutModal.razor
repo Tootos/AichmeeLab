@@ -1,0 +1,31 @@
+@if (IsVisible)
+{
+    <div class="about-window">
+        <div class="about-layout">
+            <button class="close-btn" @onclick="Close">
+                <i class="bi bi-x-lg"></i>
+            </button>
+
+            <div class="about-content">
+                <div class="left-row">
+                <img src="https://aichmeelab.blob.core.windows.net/public-photos/General/Dimi.png" />
+                <span>I've been reading Blood Merician</span>
+                </div>
+                
+                <div class ="right-row">
+                    <span href="aichmeelab@gmail.com">
+                        <i class="bi bi-envelope"></i> aichmeelab@gmail.com</span>
+                    <button href="https://github.com/Tootos">
+                    <i class="bi bi-github"></i> GitHub</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private async Task Close() => await OnClose.InvokeAsync();
+}

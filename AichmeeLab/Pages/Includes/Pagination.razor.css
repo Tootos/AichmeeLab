@@ -4,7 +4,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 12px 24px;
-    background: var(--background-window-dark);
+    background: var(--surface-color);
     border-radius: 5px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.05);
 }

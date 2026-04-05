@@ -1,0 +1,141 @@
+
+.post-slide {
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto;
+    background: transparent;
+    display: flex;
+    flex-direction: column;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 30px;
+    flex-shrink: 0;
+}
+
+/* Header Logic */
+.post-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+
+}
+
+.header-left {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    font-size: 0.8rem;
+    letter-spacing: 0.5px;
+}
+
+.author {
+    font-weight: 600;
+    color: var(--font-color1);
+}
+
+.dot-separator {
+    color: var(--font-color2);
+    opacity: 0.5;
+}
+
+.publish-date {
+    color: var(--font-color2);
+}
+
+/* Image & Main Link Interaction */
+.post-main-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+    margin-top: 5px;
+}
+
+.post-image-container {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4/3;
+
+    height: auto;
+    min-height: 200px;
+
+    overflow: hidden;
+    background-color: #1a1a1a;
+    border-radius: 5px 5px 0px 0px;
+    margin-top: 12px;
+}
+
+.post-image-container img {
+    display: block;
+    /* Removes bottom whitespace gaps */
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    /* This is the key to preventing "stretch" */
+    object-position: center;
+}
+
+/* --- TITLE OVERLAY FIX --- */
+/* If the title is too long, it might be pushing the image up. 
+   Let's ensure the overlay doesn't interfere with the aspect ratio. */
+.title-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    z-index: 2;
+    padding: 40px 20px 20px;
+    background: var(--surface-color);
+    pointer-events: none;
+    /* Allows clicks to pass through to the link */
+}
+
+.title-overlay h3 {
+    margin: 0;
+    color: var(--font-color1);
+    /* Use clamp so the font size scales with the width */
+    font-size: clamp(1.1rem, 2vw, 1.6rem);
+    font-weight: 700;
+    line-height: 0.5;
+}
+
+/* Interaction Effects */
+.post-main-link:hover img {
+    transform: scale(1.04);
+    opacity: 1;
+}
+
+.post-footer {
+    padding: 15px 0;
+}
+
+.description {
+    color: var(--font-color2);
+    font-size: 1rem;
+    line-height: 1.6;
+    margin-bottom: 12px;
+    /* CSS Line Clamping */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.read-more {
+    color: var(--select-color);
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: gap 0.2s ease;
+}
+
+.read-more i {
+    font-size: 1rem;
+}
+
+.read-more:hover {
+    gap: 12px;
+}
