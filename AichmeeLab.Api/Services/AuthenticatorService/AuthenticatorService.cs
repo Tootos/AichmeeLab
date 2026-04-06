@@ -111,13 +111,14 @@ namespace AichmeeLab.Api.Services.AuthenticatorService
 
             }
 
-            var newToken = Guid.NewGuid().ToString();
+            string dbToken = Guid.NewGuid().ToString();
+string headerToken = new string(dbToken.ToCharArray());
 
 
             // 5. All checks passed! Create entry in Admin list
             var newAdmin = new AdminProfile
             {
-                SessionToken = newToken,
+                SessionToken = dbToken,
                 CreatedAt = DateTime.UtcNow,
                 ExpirationDate = DateTime.UtcNow.AddDays(30),
                 Ip = clientIp
@@ -152,7 +153,7 @@ namespace AichmeeLab.Api.Services.AuthenticatorService
 
             // 6. We create a special cookie object and add it to the response collection
 
-            string cookieHeader = $"AdminSession={sessionToken}; Path=/; HttpOnly; SameSite=Strict; Max-Age=2592000";
+            string cookieHeader = $"AdminSession={headerToken}; Path=/; HttpOnly; SameSite=Strict; Max-Age=2592000";
 
             if (_isSecure) cookieHeader += "; Secure";
 
