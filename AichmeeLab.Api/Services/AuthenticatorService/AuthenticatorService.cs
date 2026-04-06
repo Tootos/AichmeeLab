@@ -42,19 +42,21 @@ namespace AichmeeLab.Api.Services.AuthenticatorService
 
         public async Task<ServiceResponse<string>> AuthorizeUser(HttpRequestData req, string keyword)
         {
-            string response = "authorized";
 
             // 1. Grab the IP (Isolated headers are slightly different)
             //This only works when the app is hosted in Azure
             string clientIp = string.Empty;
             if (req.Headers.TryGetValues("X-Forwarded-For", out var forwardedIps))
             {
-                var rawIp = forwardedIps.FirstOrDefault()?.Split(',').FirstOrDefault()?.Trim() ?? string.Empty;
-                response = forwardedIps != null ? string.Join(" | ", forwardedIps) : "HEADER_MISSING";
+                // 1.1. Get the first entry in the chain
+                var firstEntry = forwardedIps.FirstOrDefault()?.Split(',').FirstOrDefault()?.Trim() ?? string.Empty;
 
-                // 2. REGEX CLEAN: Remove anything that isn't a digit, a dot, or a colon (for IPv6)
-                // This kills any invisible "toxic" characters Azure might be attaching
-                clientIp = Regex.Replace(rawIp, @"[^\d\.\:]", "");
+                // 1.2 Strip the port
+                if (firstEntry.Contains(":"))
+                    clientIp = firstEntry.Split(':').FirstOrDefault() ?? firstEntry;
+                else
+                    clientIp = firstEntry;
+
             }
             else if (_isLocal) //For local development
                 clientIp = "127.0.0.1";
@@ -153,7 +155,7 @@ namespace AichmeeLab.Api.Services.AuthenticatorService
             {
                 Data = cookieHeader,
                 Success = true,
-                Message = response
+                Message = "Authorized"
             };
         }
 
