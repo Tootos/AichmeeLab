@@ -117,7 +117,7 @@ namespace AichmeeLab.Api.Services.AuthenticatorService
 
             try
             {
-                await _adminProfiles.InsertOneAsync(new AdminProfile { SessionToken = "test" });
+                await _adminProfiles.InsertOneAsync(new AdminProfile { SessionToken = "test",CreatedAt= DateTime.UtcNow,Ip="1.1.1.1" });
                 newAdmin.Id = MongoDB.Bson.ObjectId.GenerateNewId().ToString();
                 // Use a CancellationToken to prevent the Function from hanging indefinitely
                 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
