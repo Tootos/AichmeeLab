@@ -38,7 +38,7 @@ builder.Services.AddSingleton(x => new BlobServiceClient(
 
 
 builder.Services.AddScoped<IArticleService, ArticleService>();
-builder.Services.AddScoped<IAuthenticatorService, AuthenticatorService>();
+builder.Services.AddSingleton<IAuthenticatorService, AuthenticatorService>();
 builder.Services.AddScoped<IImageService,ImageService>();
 builder.Services.AddScoped<IContentService, ContentService>();
 
