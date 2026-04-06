@@ -44,7 +44,10 @@ namespace AichmeeLab.Api.Services.AuthenticatorService
             //This only works when the app is hosted in Azure
             string clientIp = string.Empty;
             if (req.Headers.TryGetValues("X-Forwarded-For", out var forwardedIps))
-                clientIp = forwardedIps.FirstOrDefault() ?? string.Empty;
+            {
+                
+                clientIp = forwardedIps.FirstOrDefault()?.Split(',').FirstOrDefault()?.Trim() ?? string.Empty;
+            }
             else if (_isLocal) //For local development
                 clientIp = "127.0.0.1";
 
