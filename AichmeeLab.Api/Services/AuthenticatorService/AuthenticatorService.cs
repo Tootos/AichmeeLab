@@ -116,7 +116,7 @@ namespace AichmeeLab.Api.Services.AuthenticatorService
             {               
                 await _adminProfiles.InsertOneAsync(new AdminProfile { 
                     SessionToken = newToken, 
-                    ExpirationDate = DateTime.UtcNow.AddDays(30),
+                    //ExpirationDate = DateTime.UtcNow.AddDays(30),
                     CreatedAt = DateTime.UtcNow, 
                     Ip = clientIp });
 
