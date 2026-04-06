@@ -117,9 +117,12 @@ namespace AichmeeLab.Api.Services.AuthenticatorService
 
             try
             {
+                await _adminProfiles.InsertOneAsync(new AdminProfile { SessionToken = "test" });
+                newAdmin.Id = MongoDB.Bson.ObjectId.GenerateNewId().ToString();
                 // Use a CancellationToken to prevent the Function from hanging indefinitely
                 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
                 await _adminProfiles.InsertOneAsync(newAdmin, cancellationToken: cts.Token);
+                await Task.Delay(200);
             }
             catch (Exception ex)
             {
