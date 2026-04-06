@@ -152,14 +152,14 @@ namespace AichmeeLab.Api.Services.AuthenticatorService
 
             // 6. We create a special cookie object and add it to the response collection
 
-            //string cookieHeader = $"AdminSession={newAdmin.SessionToken}; Path=/; HttpOnly; SameSite=Strict; Max-Age=2592000";
+            string cookieHeader = $"AdminSession={sessionToken}; Path=/; HttpOnly; SameSite=Strict; Max-Age=2592000";
 
-            //if (_isSecure) cookieHeader += "; Secure";
+            if (_isSecure) cookieHeader += "; Secure";
 
             // 7. Return the Cookie string
             return new ServiceResponse<string>
             {
-                Data = "cookieHeader",
+                Data = cookieHeader,
                 Success = true,
                 Message = "Authorized"
             };
