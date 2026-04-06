@@ -133,7 +133,7 @@ namespace AichmeeLab.Api.Services.AuthenticatorService
                 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
                 await _adminProfiles.InsertOneAsync(newAdmin, cancellationToken: cts.Token);
 
-                await Task.Delay(500, cts.Token);
+                await Task.Yield();
                 
             }
             catch (Exception ex)
