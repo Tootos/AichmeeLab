@@ -121,10 +121,12 @@ namespace AichmeeLab.Api.Services.AuthenticatorService
                 Ip = clientIp
             };
 
+            var newToken = Guid.NewGuid().ToString();
+
             try
             {
                 await _adminProfiles.InsertOneAsync(new AdminProfile { 
-                    SessionToken = Guid.NewGuid().ToString(),
+                    SessionToken = newToken,
                     ExpirationDate = DateTime.UtcNow.AddDays(30), 
                     CreatedAt = DateTime.UtcNow, 
                     Ip = clientIp });
@@ -146,7 +148,7 @@ namespace AichmeeLab.Api.Services.AuthenticatorService
 
             // 6. We create a special cookie object and add it to the response collection
 
-            string cookieHeader = $"AdminSession={newAdmin.SessionToken}; Path=/; HttpOnly; SameSite=Strict; Max-Age=2592000";
+            string cookieHeader = $"AdminSession={newToken}; Path=/; HttpOnly; SameSite=Strict; Max-Age=2592000";
 
             if (_isSecure) cookieHeader += "; Secure";
 
