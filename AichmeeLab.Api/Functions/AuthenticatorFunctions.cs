@@ -36,7 +36,7 @@ namespace AichmeeLab.Api
              HttpRequestData req, string keyword)
         {
 
-            var result = await _authenticatorService.AuthorizeUser(req, keyword);
+            var result = _authenticatorService.AuthorizeUser(req, keyword);
             if (result.Success && result.Data !=null)
             {
                 var successResponse = req.CreateResponse(HttpStatusCode.OK);

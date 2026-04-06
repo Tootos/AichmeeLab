@@ -6,7 +6,7 @@ namespace AichmeeLab.Api.Services.AuthenticatorService
     public interface IAuthenticatorService
     {
 
-        Task<ServiceResponse<string>> AuthorizeUser(HttpRequestData req ,string keyword);
+        ServiceResponse<string> AuthorizeUser(HttpRequestData req ,string keyword);
 
         Task<ServiceResponse<bool>> CheckAuthorization(HttpRequestData req);
     

@@ -1,29 +1,19 @@
 using Aichmee.Shared;
 using AichmeeLab.Api.LocalModels;
-using Microsoft.AspNetCore.Http.HttpResults;
-using Microsoft.Azure.Functions.Worker.Extensions.OpenApi.Extensions;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
-using MongoDB.Bson;
 using MongoDB.Driver;
 using System.Net;
-using System.Text.Json;
-using System.Text.RegularExpressions;
 
 namespace AichmeeLab.Api.Services.AuthenticatorService
 {
     class AuthenticatorService : IAuthenticatorService
     {
-
         readonly IMongoCollection<AdminProfile> _adminProfiles;
-
         readonly bool _isLocal;
-
         readonly string _keyword;
         readonly bool _isSecure;
-
-
 
         public AuthenticatorService(IMongoClient mongoClient, IOptions<MonitorDbSettings> options, IConfiguration config)
         {
@@ -32,132 +22,83 @@ namespace AichmeeLab.Api.Services.AuthenticatorService
             _adminProfiles = database.GetCollection<AdminProfile>(settings.AdminsCollectionName);
 
             _keyword = config["AuthorizationKeyword"] ?? "default_key";
-
-
             _isSecure = config.GetValue<bool>("UseSecure", true);
             _isLocal = config.GetValue<bool>("IsLocal", false);
         }
 
-        public async Task<ServiceResponse<string>> AuthorizeUser(HttpRequestData req, string keyword)
+        // 1. REMOVED 'async Task' - This is now a standard blocking method
+        public ServiceResponse<string> AuthorizeUser(HttpRequestData req, string keyword)
         {
+            string clientIp = GetClientIp(req);
 
-            // 1. Grab the IP (Isolated headers are slightly different)
-            //This only works when the app is hosted in Azure
-            string clientIp = string.Empty;
-            if (req.Headers.TryGetValues("X-Forwarded-For", out var forwardedIps))
-            {
-                // 1.1. Get the first entry in the chain
-                var firstEntry = forwardedIps.FirstOrDefault()?.Split(',').FirstOrDefault()?.Trim() ?? string.Empty;
-
-                // 1.2 Strip the port
-                if (firstEntry.Contains(":"))
-                    clientIp = firstEntry.Split(':').FirstOrDefault() ?? firstEntry;
-                else
-                    clientIp = firstEntry;
-
-            }
-            else if (_isLocal) //For local development
-                clientIp = "127.0.0.1";
-
-
-            // 2. Initial Guard Clause
             if (string.IsNullOrEmpty(clientIp))
             {
-                return new ServiceResponse<string>
-                {
-                    Success = false,
-                    Data = string.Empty,
-                    Message = "Missing IP."
-                };
+                return new ServiceResponse<string> { Success = false, Message = "Missing IP." };
             }
 
-            // 3. Check Keyword
             if (string.IsNullOrEmpty(keyword) || keyword != _keyword)
             {
-                // TODO: Update attempts in your Security DB
-                return new ServiceResponse<string>
-                {
-                    Success = false,
-                    Data = string.Empty,
-                    Message = "Incorrect Key"
-                };
+                return new ServiceResponse<string> { Success = false, Message = "Incorrect Key" };
             }
 
-            // 4. Check if the header already has a token stored in the DB
-            var sessionToken = req.Cookies.FirstOrDefault(c => c.Name == "AdminSession");
-
-            if (sessionToken != null && !string.IsNullOrWhiteSpace(sessionToken.Value))
+            // 2. SYNC CHECK for existing session
+            var sessionCookie = req.Cookies.FirstOrDefault(c => c.Name == "AdminSession");
+            if (sessionCookie != null && !string.IsNullOrWhiteSpace(sessionCookie.Value))
             {
-                var check = await _adminProfiles.Find(a => a.SessionToken.Equals(sessionToken.Value)).FirstOrDefaultAsync();
-                // If token exists in the DB compare the incoming Ip to the DB Ip
+                // Use .Find().FirstOrDefault() (The Sync version)
+                var check = _adminProfiles.Find(a => a.SessionToken == sessionCookie.Value).FirstOrDefault();
+                
                 if (check != null)
-                    if (await DoIpAndTokenMatch(sessionToken.Value, check.Ip, clientIp))
-                        //If the Ips match then there is an entry for the user 
-                        //And we make no changes to the header data
+                {
+                    if (DoIpAndTokenMatchSync(sessionCookie.Value, check.Ip, clientIp))
+                    {
                         return new ServiceResponse<string>
                         {
-                            Data = "SESSION_VALID", // Just a status string
+                            Data = "SESSION_VALID",
                             Success = true,
                             Message = "Access confirmed via existing session."
                         };
+                    }
                     else
-                        //Else we abandon the process IP
-                        return new ServiceResponse<string>
-                        {
-                            Success = false,
-                            Data = string.Empty,
-                            Message = "Invalid Session"
-                        };
-
+                    {
+                        return new ServiceResponse<string> { Success = false, Message = "Invalid Session" };
+                    }
+                }
             }
 
-            string dbToken = Guid.NewGuid().ToString();
-string headerToken = new string(dbToken.ToCharArray());
+            // 3. GENERATE TOKEN
+            string token = Guid.NewGuid().ToString();
 
-
-            // 5. All checks passed! Create entry in Admin list
             var newAdmin = new AdminProfile
             {
-                SessionToken = dbToken,
+                SessionToken = token,
                 CreatedAt = DateTime.UtcNow,
                 ExpirationDate = DateTime.UtcNow.AddDays(30),
                 Ip = clientIp
             };
-            
 
             try
             {
-                // await _adminProfiles.InsertOneAsync(new AdminProfile { 
-                //     SessionToken = newToken,
-                //     ExpirationDate = DateTime.UtcNow.AddDays(30), 
-                //     CreatedAt = DateTime.UtcNow, 
-                //     Ip = clientIp });
+                // 4. THE SYNC ANCHOR - This blocks the thread until the DB write is 100% confirmed
+                _adminProfiles.InsertOne(newAdmin);
 
-                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-                await _adminProfiles.InsertOneAsync(newAdmin, cancellationToken: cts.Token);
-
-                await Task.Yield();
-                
+                // Small physical sleep to ensure the socket buffer clears before return
+                System.Threading.Thread.Sleep(150);
             }
             catch (Exception ex)
             {
-                // If it fails, we NEED to know why in the browser response
                 return new ServiceResponse<string>
                 {
                     Success = false,
                     Message = $"Database Write Failed: {ex.Message}",
-                    Data = ex.StackTrace // Temporarily keep this for debugging
+                    Data = ex.StackTrace
                 };
             }
 
-
-            // 6. We create a special cookie object and add it to the response collection
-
-            string cookieHeader = $"AdminSession={headerToken}; Path=/; HttpOnly; SameSite=Strict; Max-Age=2592000";
-
+            // 5. BUILD COOKIE
+            string cookieHeader = $"AdminSession={token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=2592000";
             if (_isSecure) cookieHeader += "; Secure";
 
-            // 7. Return the Cookie string
             return new ServiceResponse<string>
             {
                 Data = cookieHeader,
@@ -166,73 +107,49 @@ string headerToken = new string(dbToken.ToCharArray());
             };
         }
 
-        public async Task<ServiceResponse<bool>> CheckAuthorization(HttpRequestData req)
+        // Helper for IP extraction to keep main logic clean
+        private string GetClientIp(HttpRequestData req)
         {
-            var sessionToken = req.Cookies.FirstOrDefault(c => c.Name == "AdminSession");
-            // 1. Check if there is a token in the request
-            if (sessionToken == null
-            || string.IsNullOrWhiteSpace(sessionToken.Value))
-                return new ServiceResponse<bool>
-                {
-                    Data = false,
-                    Success = false,
-                    Message = "Failed authentication"
-                };
-
-
-
-            // 2. Compare the token with entries in the DB 
-            var result = await _adminProfiles
-            .Find(a => a.SessionToken == sessionToken.Value)
-            .FirstOrDefaultAsync();
-
-            if (result == null) return new ServiceResponse<bool>
-            {
-                Data = false,
-                Success = false,
-                Message = "Failed authentication"
-            };
-
-            // 3. Check if the cookie matches the clients IP
-            string clientIp = string.Empty;
             if (req.Headers.TryGetValues("X-Forwarded-For", out var forwardedIps))
-                clientIp = forwardedIps.FirstOrDefault() ?? string.Empty;
-            else if (_isLocal) //For local development
-                clientIp = "127.0.0.1";
-
-            if (!await DoIpAndTokenMatch(sessionToken.Value, result.Ip, clientIp))
             {
-
-                return new ServiceResponse<bool>
-                {
-                    Data = false,
-                    Success = false,
-                    Message = "Failed Authentication"
-                };
+                var firstEntry = forwardedIps.FirstOrDefault()?.Split(',').FirstOrDefault()?.Trim() ?? string.Empty;
+                return firstEntry.Contains(":") ? firstEntry.Split(':')[0] : firstEntry;
             }
-
-            return new ServiceResponse<bool>
-            {
-                Data = true,
-                Success = true,
-                Message = "Admin Access"
-            };
-
+            return _isLocal ? "127.0.0.1" : string.Empty;
         }
 
-
-        async Task<bool> DoIpAndTokenMatch(string sessionToken, string dbIp, string incomingIP)
+        // Synchronous version of the IP Matcher
+        private bool DoIpAndTokenMatchSync(string sessionToken, string dbIp, string incomingIP)
         {
             if (!dbIp.Equals(incomingIP))
             {
-                // This could be someone stealing a cookie! 
-                // Force a delete of the old session and deny access.
-                await _adminProfiles.DeleteOneAsync(a => a.SessionToken == sessionToken);
-                //Add this IP to a Blacklist
+                // Blocking delete
+                _adminProfiles.DeleteOne(a => a.SessionToken == sessionToken);
                 return false;
             }
-
             return true;
+        }
+
+        // Keep this async as it's a separate entry point, but it uses Find().FirstOrDefaultAsync() safely
+        public async Task<ServiceResponse<bool>> CheckAuthorization(HttpRequestData req)
+        {
+            var sessionToken = req.Cookies.FirstOrDefault(c => c.Name == "AdminSession");
+            if (sessionToken == null || string.IsNullOrWhiteSpace(sessionToken.Value))
+                return new ServiceResponse<bool> { Success = false, Message = "Failed authentication" };
+
+            var result = await _adminProfiles.Find(a => a.SessionToken == sessionToken.Value).FirstOrDefaultAsync();
+
+            if (result == null) return new ServiceResponse<bool> { Success = false, Message = "Failed authentication" };
+
+            string clientIp = GetClientIp(req);
+            
+            // Reusing the sync matcher here is fine
+            if (!DoIpAndTokenMatchSync(sessionToken.Value, result.Ip, clientIp))
+            {
+                return new ServiceResponse<bool> { Success = false, Message = "Failed Authentication" };
+            }
+
+            return new ServiceResponse<bool> { Data = true, Success = true, Message = "Admin Access" };
         }
     }
 }
