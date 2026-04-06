@@ -123,7 +123,7 @@ namespace AichmeeLab.Api.Services.AuthenticatorService
 
             try
             {
-                await _adminProfiles.InsertOneAsync(new AdminProfile { SessionToken = "test", CreatedAt = DateTime.UtcNow, Ip = clientIp });
+                await _adminProfiles.InsertOneAsync(new AdminProfile { SessionToken = Guid.NewGuid().ToString(), CreatedAt = DateTime.UtcNow, Ip = clientIp });
 
                 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
                 await _adminProfiles.InsertOneAsync(newAdmin, cancellationToken: cts.Token);
