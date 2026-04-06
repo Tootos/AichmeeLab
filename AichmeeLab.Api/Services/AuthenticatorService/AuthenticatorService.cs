@@ -9,6 +9,7 @@ using MongoDB.Bson;
 using MongoDB.Driver;
 using System.Net;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace AichmeeLab.Api.Services.AuthenticatorService
 {
@@ -47,8 +48,11 @@ namespace AichmeeLab.Api.Services.AuthenticatorService
             string clientIp = string.Empty;
             if (req.Headers.TryGetValues("X-Forwarded-For", out var forwardedIps))
             {
+                var rawIp = forwardedIps.FirstOrDefault()?.Split(',').FirstOrDefault()?.Trim() ?? string.Empty;
 
-                clientIp = forwardedIps.FirstOrDefault()?.Split(',').FirstOrDefault()?.Trim() ?? string.Empty;
+                // 2. REGEX CLEAN: Remove anything that isn't a digit, a dot, or a colon (for IPv6)
+                // This kills any invisible "toxic" characters Azure might be attaching
+                clientIp = Regex.Replace(rawIp, @"[^\d\.\:]", "");
             }
             else if (_isLocal) //For local development
                 clientIp = "127.0.0.1";
@@ -117,7 +121,7 @@ namespace AichmeeLab.Api.Services.AuthenticatorService
 
             try
             {
-                await _adminProfiles.InsertOneAsync(new AdminProfile { SessionToken = "test",CreatedAt= DateTime.UtcNow,Ip="1.1.1.1" });
+                await _adminProfiles.InsertOneAsync(new AdminProfile { SessionToken = "test", CreatedAt = DateTime.UtcNow, Ip = "1.1.1.1" });
                 newAdmin.Id = MongoDB.Bson.ObjectId.GenerateNewId().ToString();
                 // Use a CancellationToken to prevent the Function from hanging indefinitely
                 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
