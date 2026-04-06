@@ -30,8 +30,6 @@ namespace AichmeeLab.Api.Services.AuthenticatorService
             var settings = options.Value;
             var database = mongoClient.GetDatabase(settings.DatabaseName);
             _adminProfiles = database.GetCollection<AdminProfile>(settings.AdminsCollectionName);
-            _adminProfiles = database.GetCollection<AdminProfile>(settings.AdminsCollectionName)
-                          .WithWriteConcern(WriteConcern.WMajority);
 
             _keyword = config["AuthorizationKeyword"] ?? "default_key";
 
@@ -117,7 +115,7 @@ namespace AichmeeLab.Api.Services.AuthenticatorService
             // 5. All checks passed! Create entry in Admin list
             var newAdmin = new AdminProfile
             {
-                SessionToken = MongoDB.Bson.ObjectId.GenerateNewId().ToString(),
+                SessionToken = Guid.NewGuid().ToString(),
                 CreatedAt = DateTime.UtcNow,
                 ExpirationDate = DateTime.UtcNow.AddDays(30),
                 Ip = clientIp
@@ -126,11 +124,9 @@ namespace AichmeeLab.Api.Services.AuthenticatorService
             try
             {
                 await _adminProfiles.InsertOneAsync(new AdminProfile { SessionToken = "test", CreatedAt = DateTime.UtcNow, Ip = clientIp });
-                newAdmin.Id = MongoDB.Bson.ObjectId.GenerateNewId().ToString();
-                // Use a CancellationToken to prevent the Function from hanging indefinitely
+
                 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
                 await _adminProfiles.InsertOneAsync(newAdmin, cancellationToken: cts.Token);
-                await Task.Delay(200);
             }
             catch (Exception ex)
             {
