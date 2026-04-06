@@ -29,6 +29,8 @@ namespace AichmeeLab.Api.Services.AuthenticatorService
             var settings = options.Value;
             var database = mongoClient.GetDatabase(settings.DatabaseName);
             _adminProfiles = database.GetCollection<AdminProfile>(settings.AdminsCollectionName);
+            _adminProfiles = database.GetCollection<AdminProfile>(settings.AdminsCollectionName)
+                          .WithWriteConcern(WriteConcern.WMajority);
 
             _keyword = config["AuthorizationKeyword"] ?? "default_key";
 
@@ -45,7 +47,7 @@ namespace AichmeeLab.Api.Services.AuthenticatorService
             string clientIp = string.Empty;
             if (req.Headers.TryGetValues("X-Forwarded-For", out var forwardedIps))
             {
-                
+
                 clientIp = forwardedIps.FirstOrDefault()?.Split(',').FirstOrDefault()?.Trim() ?? string.Empty;
             }
             else if (_isLocal) //For local development
@@ -113,7 +115,22 @@ namespace AichmeeLab.Api.Services.AuthenticatorService
                 Ip = clientIp
             };
 
-            await _adminProfiles.InsertOneAsync(newAdmin);
+            try
+            {
+                // Use a CancellationToken to prevent the Function from hanging indefinitely
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+                await _adminProfiles.InsertOneAsync(newAdmin, cancellationToken: cts.Token);
+            }
+            catch (Exception ex)
+            {
+                // If it fails, we NEED to know why in the browser response
+                return new ServiceResponse<string>
+                {
+                    Success = false,
+                    Message = $"Database Write Failed: {ex.Message}",
+                    Data = ex.StackTrace // Temporarily keep this for debugging
+                };
+            }
 
 
             // 6. We create a special cookie object and add it to the response collection
