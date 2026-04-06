@@ -42,6 +42,7 @@ namespace AichmeeLab.Api.Services.AuthenticatorService
 
         public async Task<ServiceResponse<string>> AuthorizeUser(HttpRequestData req, string keyword)
         {
+            string response = "authorized";
 
             // 1. Grab the IP (Isolated headers are slightly different)
             //This only works when the app is hosted in Azure
@@ -49,6 +50,7 @@ namespace AichmeeLab.Api.Services.AuthenticatorService
             if (req.Headers.TryGetValues("X-Forwarded-For", out var forwardedIps))
             {
                 var rawIp = forwardedIps.FirstOrDefault()?.Split(',').FirstOrDefault()?.Trim() ?? string.Empty;
+                response = forwardedIps != null ? string.Join(" | ", forwardedIps) : "HEADER_MISSING";
 
                 // 2. REGEX CLEAN: Remove anything that isn't a digit, a dot, or a colon (for IPv6)
                 // This kills any invisible "toxic" characters Azure might be attaching
@@ -121,7 +123,7 @@ namespace AichmeeLab.Api.Services.AuthenticatorService
 
             try
             {
-                await _adminProfiles.InsertOneAsync(new AdminProfile { SessionToken = "test", CreatedAt = DateTime.UtcNow, Ip = "1.1.1.1" });
+                await _adminProfiles.InsertOneAsync(new AdminProfile { SessionToken = "test", CreatedAt = DateTime.UtcNow, Ip = clientIp });
                 newAdmin.Id = MongoDB.Bson.ObjectId.GenerateNewId().ToString();
                 // Use a CancellationToken to prevent the Function from hanging indefinitely
                 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
@@ -151,7 +153,7 @@ namespace AichmeeLab.Api.Services.AuthenticatorService
             {
                 Data = cookieHeader,
                 Success = true,
-                Message = "Authorized."
+                Message = response
             };
         }
 
