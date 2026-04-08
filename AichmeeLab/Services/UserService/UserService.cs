@@ -3,17 +3,16 @@ using System.Net.Http.Json;
 
 namespace AichmeeLab.Services.UserService
 {
-
     public class UserService : IUserService
     {
-
         public event Action? ListChanged;
         public string SearchTerm { get; set; } = string.Empty;
         public string ItemType { get; set; } = string.Empty;
         public DateTime? DateFrom { get; set; }
         public DateTime? DateTo { get; set; }
         public List<Post> Posts { get; set; } = new List<Post>();
-        public bool HasMoreItems { get; set; } = true;
+        public bool HasMoreItems { get; set; }
+        bool _isProcessing {get; set;} = false;
 
         int _skipPosts { get; set; } = 0;
         private readonly HttpClient _httpClient;
@@ -60,6 +59,8 @@ namespace AichmeeLab.Services.UserService
 
         public async Task GetFeedItemsAsync(bool clearList)
         {
+            if(_isProcessing) return;
+            _isProcessing = true;
             if (clearList)
             {
                 Posts.Clear();
@@ -90,6 +91,7 @@ namespace AichmeeLab.Services.UserService
                 {
                     Posts.AddRange(response.Data);
                     _skipPosts += response.Data.Count;
+                    HasMoreItems = !(response.Data.Count < 10);// If the service returns less than 10 items then there aren't more to collect
                 }
                 else
                 {
@@ -102,6 +104,7 @@ namespace AichmeeLab.Services.UserService
             }
             finally
             {
+                _isProcessing = false;
                 ListChanged?.Invoke();
             }
 

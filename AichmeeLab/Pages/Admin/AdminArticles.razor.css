@@ -1,0 +1,12 @@
+.admin-layout{
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    gap: 10px;
+}
+
+.view-switcher-header{
+    width: 75%;
+}

@@ -26,7 +26,7 @@ namespace AichmeeLab.Api.Services.AuthenticatorService
             _isLocal = config.GetValue<bool>("IsLocal", false);
         }
 
-        // 1. REMOVED 'async Task' - This is now a standard blocking method
+        // Compromise
         public ServiceResponse<string> AuthorizeUser(HttpRequestData req, string keyword)
         {
             string clientIp = GetClientIp(req);
@@ -41,16 +41,16 @@ namespace AichmeeLab.Api.Services.AuthenticatorService
                 return new ServiceResponse<string> { Success = false, Message = "Incorrect Key" };
             }
 
-            // 2. SYNC CHECK for existing session
+            // 2. CHECK for existing session
             var sessionCookie = req.Cookies.FirstOrDefault(c => c.Name == "AdminSession");
             if (sessionCookie != null && !string.IsNullOrWhiteSpace(sessionCookie.Value))
             {
-                // Use .Find().FirstOrDefault() (The Sync version)
                 var check = _adminProfiles.Find(a => a.SessionToken == sessionCookie.Value).FirstOrDefault();
-                
+
                 if (check != null)
                 {
-                    if (DoIpAndTokenMatchSync(sessionCookie.Value, check.Ip, clientIp))
+
+                    if (check.Ip.Equals(clientIp))
                     {
                         return new ServiceResponse<string>
                         {
@@ -58,6 +58,7 @@ namespace AichmeeLab.Api.Services.AuthenticatorService
                             Success = true,
                             Message = "Access confirmed via existing session."
                         };
+
                     }
                     else
                     {
@@ -65,7 +66,6 @@ namespace AichmeeLab.Api.Services.AuthenticatorService
                     }
                 }
             }
-
             // 3. GENERATE TOKEN
             string token = Guid.NewGuid().ToString();
 
@@ -107,6 +107,7 @@ namespace AichmeeLab.Api.Services.AuthenticatorService
             };
         }
 
+
         // Helper for IP extraction to keep main logic clean
         private string GetClientIp(HttpRequestData req)
         {
@@ -118,19 +119,7 @@ namespace AichmeeLab.Api.Services.AuthenticatorService
             return _isLocal ? "127.0.0.1" : string.Empty;
         }
 
-        // Synchronous version of the IP Matcher
-        private bool DoIpAndTokenMatchSync(string sessionToken, string dbIp, string incomingIP)
-        {
-            if (!dbIp.Equals(incomingIP))
-            {
-                // Blocking delete
-                _adminProfiles.DeleteOne(a => a.SessionToken == sessionToken);
-                return false;
-            }
-            return true;
-        }
-
-        // Keep this async as it's a separate entry point, but it uses Find().FirstOrDefaultAsync() safely
+        // Check session 
         public async Task<ServiceResponse<bool>> CheckAuthorization(HttpRequestData req)
         {
             var sessionToken = req.Cookies.FirstOrDefault(c => c.Name == "AdminSession");
@@ -142,10 +131,12 @@ namespace AichmeeLab.Api.Services.AuthenticatorService
             if (result == null) return new ServiceResponse<bool> { Success = false, Message = "Failed authentication" };
 
             string clientIp = GetClientIp(req);
-            
-            // Reusing the sync matcher here is fine
-            if (!DoIpAndTokenMatchSync(sessionToken.Value, result.Ip, clientIp))
+
+            // Check if existing IPs match
+            // If the Ips don't match delete the entry with the token
+            if (!result.Ip.Equals(clientIp))
             {
+                await _adminProfiles.DeleteOneAsync(a => a.SessionToken == sessionToken.Value);
                 return new ServiceResponse<bool> { Success = false, Message = "Failed Authentication" };
             }
 

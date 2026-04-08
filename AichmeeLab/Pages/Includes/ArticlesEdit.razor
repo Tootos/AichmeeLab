@@ -1,5 +1,6 @@
 ﻿@using AichmeeLab.Pages.Includes.ImageManager
 @using AichmeeLab.Services.PhotographerService
+@using BootstrapBlazor.Components
 @inject IJSRuntime jSRuntime;
 @inject AichmeeLab.Services.WriterService.IWriterService WriterService;
 @inject AichmeeLab.Services.PhotographerService.IPhotographerService PhotographerService;
@@ -14,7 +15,7 @@
     }
     else
     {
-        <div class="editor-container">
+        <div class="writer-layout">
             <div class="header-image-manager @(_isHeaderOpen ? "is-open" : "is-closed")">
                 <div class="manager-toggle" @onclick="HandleHeaderOpeningAsync">
                     <span><i class="bi bi-image me-2"></i> ARTICLE HEADER</span>
@@ -72,7 +73,7 @@
                     }
                 </div>
             </div>
-            <div class="editor-canvas" @key="@(SelectedArticle.Id ?? "new article")">
+            <div class="editor-canvas @(_isHeaderOpen ? "header-is-open" : "header-is-closed")" @key="@(SelectedArticle.Id ?? "new article")">
                 <div id="editorjs"></div>
             </div>
 
@@ -86,6 +87,7 @@
                 <ValidationMessage For="@(() => SelectedArticle.Title)" />
                 <ValidationMessage For="@(() => SelectedArticle.Description)" />
                 <ValidationMessage For="@(() => SelectedArticle.Author)" />
+                <ValidationMessage For="@(() => SelectedArticle.HeaderImageId)" />
                 <button type="button" class="btn btn-primary" @onclick="TogglePreviewAsync">
                     <i class="bi bi-eye"></i>Preview
                 </button>

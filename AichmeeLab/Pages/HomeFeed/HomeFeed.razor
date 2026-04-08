@@ -34,21 +34,28 @@
                         break;
                 }
             }
+            @if (UserService.Posts.Count >= 10)
+            {
+                @* JS Observes the page to detect when the user reaches the end of the list so it can fetch more posts *@
+                @* 1. THE ANCHOR: JS looks for this ID *@
+                <div id="infinite-scroll-anchor" style="height: 20px;"></div>
+                @if (_isFetchingData)
+                {
+                    <div class="loading-window">
+                        <div class="loading-layout"></div>
+                        <div class="spinner-icon">
+                            <i class="bi bi-arrow-clockwise"></i>
+                        </div>
+                
+                    </div>
+                }
+            }
+            
         }
 
-        @* JS Observes the page to detect when the user reaches the end of the list so it can fetch more posts *@
-        @* 1. THE ANCHOR: JS looks for this ID *@
-        <div id="infinite-scroll-anchor" style="height: 20px;"></div>
-        @if (_isFetchingData)
-        {
-            <div class="loading-window">
-                <div class="loading-layout"></div>
-                <div class="spinner-icon">
-                    <i class="bi bi-arrow-clockwise"></i>
-                </div>
-                
-            </div>
-        }
+        
+        
+
     </div>
 </div>
 
@@ -105,7 +112,7 @@
         if (_isFetchingData && UserService.HasMoreItems) return;
 
         _isFetchingData = true;
-        StateHasChanged(); 
+        StateHasChanged();
 
 
         try
@@ -121,7 +128,7 @@
         finally
         {
             _isFetchingData = false;
-            StateHasChanged(); 
+            StateHasChanged();
         }
     }
 

@@ -18,6 +18,7 @@ namespace Aichmee.Shared{
         [StringLength(20)]
         public string Title {  get; set; } = string.Empty;
         [BsonRepresentation(BsonType.ObjectId)]
+        [Required]
         public string HeaderImageId { get; set; } = string.Empty;
         [Required]
         [StringLength(60)]

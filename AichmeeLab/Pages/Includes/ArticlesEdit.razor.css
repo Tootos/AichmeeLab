@@ -2,19 +2,17 @@
     display: flex;
     gap: 15px;
     height: 100%;
+    width: 100vh;
     align-items: flex-start;
-    margin-left: 10vh;
 }
 
 /* Middle Editor */
 
-.editor-container {
-    position: relative;
-    height: 100vh;
-    max-width: 65%;
-    flex:1;
+.writer-layout {
+    height: 95vh;
+    width: 100%;
     flex-direction: column;
-    display: flex ;
+    display: flex;
 }
 
 /* 2. The Floating Manager */
@@ -28,8 +26,14 @@
 }
 
 /* 3. Toggle States */
-.is-closed { max-height: 40px; }
-.is-open { max-height: fit-content; }
+.is-closed {
+    max-height: 40px;
+}
+
+.is-open {
+    height: 100%;
+    max-height: fit-content;
+}
 
 .manager-toggle {
     height: 40px;
@@ -47,7 +51,8 @@
     display: flex;
     gap: 20px;
     padding: 15px;
-    align-items: flex-start; /* Keeps items at the top if one col is longer */
+    align-items: flex-start;
+    /* Keeps items at the top if one col is longer */
 }
 
 .meta-container {
@@ -55,12 +60,13 @@
 }
 
 .image-wrapper {
-    flex: 1; 
+    flex: 1;
     min-width: 250px;
 }
 
 /* 4. Inside the Drawer */
-.header-input-group, .header-preview-container {
+.header-input-group,
+.header-preview-container {
     padding: 15px;
     border-top: 1px solid #333;
     background: #181818;
@@ -89,8 +95,16 @@
     border-radius: var(--border-radius);
     box-shadow: var(--hover-shadow);
     padding: 10px;
-    height: 85%;
+
     overflow-y: auto;
+}
+
+.header-is-open {
+    height: 65%;
+}
+
+.header-is-closed {
+    height: 85%;
 }
 
 /* Custom Scrollbar for the Editor Wrapper */
@@ -119,6 +133,7 @@
     border-radius: 8px;
     /* Match the thumb's radius */
 }
+
 .field-group {
     display: flex;
     flex-direction: column;
@@ -132,7 +147,7 @@
     box-sizing: border-box;
 }
 
-.description-field{
+.description-field {
     width: 100%;
 }
 
@@ -143,12 +158,19 @@
     display: flex;
     gap: 20px;
     padding: 15px;
-    background: #1a1a1a; /* Matching your dark theme */
+    background: #1a1a1a;
+    /* Matching your dark theme */
     border-radius: 0 0 8px 8px;
 }
 
-.meta-container { flex: 1; }
-.image-wrapper { flex: 1; min-height: 200px; }
+.meta-container {
+    flex: 1;
+}
+
+.image-wrapper {
+    flex: 1;
+    min-height: 200px;
+}
 
 /* The "Empty" Drop Zone */
 .header-input-group {
@@ -162,7 +184,9 @@
     transition: border-color 0.3s;
 }
 
-.header-input-group:hover { border-color: #555; }
+.header-input-group:hover {
+    border-color: #555;
+}
 
 .upload-label {
     text-align: center;
@@ -173,8 +197,10 @@
 /* THE TRICK: Hide the real input but let it fill the parent */
 .file-input-hidden {
     position: absolute;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     opacity: 0;
     cursor: pointer;
 }
@@ -210,7 +236,10 @@
 }
 
 /* Description field inside the preview */
-.mb2 { margin-bottom: 0.5rem; }
+.mb2 {
+    margin-bottom: 0.5rem;
+}
+
 /**/
 
 /*Right Bar */
@@ -222,7 +251,7 @@
     padding: 20px;
 }
 
-.form-wrapper{
+.form-wrapper {
     display: flex;
     align-items: center;
     justify-content: center;
