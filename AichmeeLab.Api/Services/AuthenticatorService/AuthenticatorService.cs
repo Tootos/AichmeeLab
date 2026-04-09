@@ -29,6 +29,7 @@ namespace AichmeeLab.Api.Services.AuthenticatorService
         // Compromise
         public ServiceResponse<string> AuthorizeUser(HttpRequestData req, string keyword)
         {
+            // 1. Fetch Ip from request 
             string clientIp = GetClientIp(req);
 
             if (string.IsNullOrEmpty(clientIp))
@@ -66,7 +67,7 @@ namespace AichmeeLab.Api.Services.AuthenticatorService
                     }
                 }
             }
-            // 3. GENERATE TOKEN
+            // 3. Generate a new Session Token
             string token = Guid.NewGuid().ToString();
 
             var newAdmin = new AdminProfile
@@ -79,10 +80,13 @@ namespace AichmeeLab.Api.Services.AuthenticatorService
 
             try
             {
-                // 4. THE SYNC ANCHOR - This blocks the thread until the DB write is 100% confirmed
+                // 4. Insert new entry
+                // Q: Why is this a synchronous call?
+                // A: An issue with the isolated worker in the specific method forced me,\ 
+                //    into this compromise. In the future it must be asynchronous
                 _adminProfiles.InsertOne(newAdmin);
 
-                // Small physical sleep to ensure the socket buffer clears before return
+                
                 System.Threading.Thread.Sleep(150);
             }
             catch (Exception ex)
@@ -95,7 +99,7 @@ namespace AichmeeLab.Api.Services.AuthenticatorService
                 };
             }
 
-            // 5. BUILD COOKIE
+            // 5. Cookie baked, deliver it to the Client
             string cookieHeader = $"AdminSession={token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=2592000";
             if (_isSecure) cookieHeader += "; Secure";
 
@@ -108,9 +112,10 @@ namespace AichmeeLab.Api.Services.AuthenticatorService
         }
 
 
-        // Helper for IP extraction to keep main logic clean
+        //  IP extraction to keep main logic clean
         private string GetClientIp(HttpRequestData req)
         {
+            // X-Forwarded-For contains Ip information in Azure 
             if (req.Headers.TryGetValues("X-Forwarded-For", out var forwardedIps))
             {
                 var firstEntry = forwardedIps.FirstOrDefault()?.Split(',').FirstOrDefault()?.Trim() ?? string.Empty;
