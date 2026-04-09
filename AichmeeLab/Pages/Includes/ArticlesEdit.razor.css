@@ -1,9 +1,11 @@
 ﻿.editor-layout {
     display: flex;
     gap: 15px;
-    height: 100%;
-    width: 100vh;
+    height: 100vh;
+    width: 100%;
+    justify-content: center;
     align-items: flex-start;
+    overflow-x: hidden;
 }
 
 /* Middle Editor */
@@ -11,6 +13,7 @@
 .writer-layout {
     height: 95vh;
     width: 100%;
+    max-width: 800px;
     flex-direction: column;
     display: flex;
 }
@@ -94,8 +97,11 @@
     background: beige;
     border-radius: var(--border-radius);
     box-shadow: var(--hover-shadow);
-    padding: 10px;
-
+    width: 100%;
+    margin: 0 auto;
+    box-sizing: border-box;
+    padding: 2rem;
+    flex-shrink: 1;
     overflow-y: auto;
 }
 

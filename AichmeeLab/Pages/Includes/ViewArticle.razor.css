@@ -2,7 +2,6 @@
     border-radius: var(--border-radius);
     border: 1px solid var(--border-color);
     box-shadow: var(--hover-shadow);
-    padding: 5px;
     margin: 30px;
     z-index: 15;
     overflow: hidden;
@@ -40,11 +39,20 @@
 .article-content {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    padding: 30px;
-    width: 65vh;
+    align-items: stretch;
+    padding: 2rem;
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
     overflow-y: auto;
-    gap: 30px;
+    overflow-x: hidden;
+    gap: 1.5rem;
+    word-wrap: break-word;
+}
+
+.view-img {
+    justify-content: center;
+    display: flex;
 }
 
 .article-content::-webkit-scrollbar {
@@ -65,7 +73,7 @@
 }
 
 .header-wrapper {
-  display: flex;
+    display: flex;
     flex-direction: column;
     align-self: flex-start;
     padding-bottom: 10px;

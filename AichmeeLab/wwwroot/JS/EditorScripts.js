@@ -86,7 +86,12 @@ window.setupEditor = async (id, data) => {
         data: parsedData,
         tools: {
             header: Header,
-            list: EditorjsList
+            list: {
+            class: EditorjsList, 
+            inlineToolbar: true,
+            config: {
+                defaultStyle: 'unordered' 
+            }}
         },
         onReady: () => {
             // Attach Drag & Drop listeners only when editor is ready
