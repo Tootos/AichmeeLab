@@ -62,6 +62,7 @@
     public Article SelectedArticle { get; set; } = new Article();
     List<ContentBlock> WriterData { get; set; } = new List<ContentBlock>();
     string _activeDomId = string.Empty;
+    bool _loadContent { get; set; }
 
 
     protected async override Task OnParametersSetAsync()
@@ -80,6 +81,7 @@
                 Content = "<p><br></p>"
             });
         }
+        _loadContent = true;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -88,13 +90,18 @@
         {
             await jSRuntime.InvokeVoidAsync("writerEngine.initInlineToolbar");
 
-            //Note the bellow sequence of statements might need to be put in a different if with a flag we set onParametersSet 
+            
+        }
+
+        if (_loadContent)
+        {
             var id = string.IsNullOrEmpty(SelectedArticle.Id) ? "" : SelectedArticle.Id;
             foreach (var block in WriterData.Where(b => b.Type == "text"))
             {
                 var domId = $"text-{block.Step}-{id}";
                 await jSRuntime.InvokeVoidAsync("writerEngine.loadContent", domId, block.Content);
             }
+            _loadContent = false;
         }
     }
 
