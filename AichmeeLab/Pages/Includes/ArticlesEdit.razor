@@ -1,80 +1,40 @@
-﻿@using AichmeeLab.Pages.Includes.ImageManager
-@using AichmeeLab.Services.PhotographerService
+﻿@using AichmeeLab.Pages.Includes.Article_Inspector
+@using AichmeeLab.Services.ImageService
 @using BootstrapBlazor.Components
 @inject IJSRuntime jSRuntime;
 @inject AichmeeLab.Services.WriterService.IWriterService WriterService;
-@inject AichmeeLab.Services.PhotographerService.IPhotographerService PhotographerService;
+@inject AichmeeLab.Services.ImageService.IImageService ImageService;
 
-<div class="editor-layout">
+<div class="editor-layout @(_loading ? "is-loading" : "")">
+    <div class="loading-window">
+        <div class="loader-layout">
+            <div class="spinner"></div>
+            <p>Working with the Db, please don't exit.</p>
+        </div>
+    </div>
+
+
+    
     @if (_isPreviewMode)
     {
-        <button type="button" class="btn btn-outline-secondary" @onclick="TogglePreviewAsync">
+        <button type="button" class="btn btn-outline-secondary" @onclick="HandlePreview">
             <i class="bi bi-arrow-left me-1"></i>
         </button>
-        <ViewArticle SelectedArticle="SelectedArticle" HeaderImage="_selectedImage"/>
+        <ViewArticle SelectedArticle="SelectedArticle" HeaderImage="_selectedImage" />
     }
     else
     {
         <div class="writer-layout">
-            <div class="header-image-manager @(_isHeaderOpen ? "is-open" : "is-closed")">
-                <div class="manager-toggle" @onclick="HandleHeaderOpeningAsync">
-                    <span><i class="bi bi-image me-2"></i> ARTICLE HEADER</span>
+            <div class="inspector-window @(_isHeaderOpen ? "is-open" : "is-closed")">
+                <div class="inspector-toggle" @onclick="() => _isHeaderOpen = !_isHeaderOpen">
+                    <span><i class="bi bi-image me-2"></i> Meta Data</span>
                     <i class="bi @(_isHeaderOpen ? "bi-chevron-up" : "bi-chevron-down")"></i>
                 </div>
-
-                <div class="split-view">
-                    @if (_isHeaderOpen)
-                    {
-                        <div class="meta-container">
-
-                            <div class="field-group">
-                                <InputText @bind-Value="SelectedArticle.Title" class="inspector-field"
-                                           placeholder="Title. . ." />
-                            </div>
-
-                            <div class="field-group">
-                                <InputText @bind-Value="SelectedArticle.Author" class="inspector-field"
-                                           placeholder="Author. . ." />
-                            </div>
-
-                            <div class="field-group">
-                                <InputTextArea @bind-Value="SelectedArticle.Description" class="description-field"
-                                               placeholder="Description" />
-
-                            </div>
-
-
-                        </div>
-
-                        <div class="image-wrapper">
-                            @if (_selectedImage != null && !string.IsNullOrWhiteSpace(_selectedImage.StorageUrl) && !_isFetchingImage)
-                            {
-                                <div class="header-preview-container" @onclick="() => _showImageManager = true">
-                                    
-                                    <img src="@_selectedImage.StorageUrl" class="img-fluid rounded" />
-                                    <div class="hover-overlay">
-                                        <i class="bi bi-pencil-square"></i> Change Header
-                                    </div>
-                                    
-                                </div>
-                            }
-                            else if (_isFetchingImage)
-                            {
-                                <div class="loader-placeholder">Loading Image...</div>
-                            }
-                            else
-                            {
-                                <button type="button" class="btn-add-header" @onclick="() => _showImageManager = true">
-                                    <i class="bi bi-plus-circle-dotted"></i>
-                                    <span>Add Header Image</span>
-                                </button>
-                            }
-                        </div>
-                    }
-                </div>
+                <ArticleInspector @ref="_articleInspector" SelectedArticle="SelectedArticle" SelectedImage="_selectedImage"
+                                  OnImageChanged="@(img => _selectedImage = img)" />
             </div>
-            <div class="editor-canvas @(_isHeaderOpen ? "header-is-open" : "header-is-closed")" @key="@(SelectedArticle.Id ?? "new article")">
-                <div id="editorjs"></div>
+            <div class="writer-window " @key="@(SelectedArticle.Id ?? "new article")">
+                <ArticleWriter @ref="_articleWriter" SelectedArticle="SelectedArticle" />
             </div>
 
         </div>
@@ -87,8 +47,7 @@
                 <ValidationMessage For="@(() => SelectedArticle.Title)" />
                 <ValidationMessage For="@(() => SelectedArticle.Description)" />
                 <ValidationMessage For="@(() => SelectedArticle.Author)" />
-                <ValidationMessage For="@(() => SelectedArticle.HeaderImageId)" />
-                <button type="button" class="btn btn-primary" @onclick="TogglePreviewAsync">
+                <button type="button" class="btn btn-primary" @onclick="HandlePreview">
                     <i class="bi bi-eye"></i>Preview
                 </button>
                 <button type="button" class="btn btn-primary" @onclick="ResetEditorAsync">
@@ -121,43 +80,69 @@
             </div>
 
         }
+        
     </div>
-
-    @if (_showImageManager)
-    {
-        <ImageWindowManager OnConfirm="HandleHeaderSelected" OnCancel="() => _showImageManager = false" />
-    }
 @code {
+    ArticleWriter? _articleWriter;
+    ArticleInspector? _articleInspector;
+
+    bool _loading { get; set; } = false;
+    
     [Parameter] public Article SelectedArticle { get; set; } = new Article();
-    Image? _selectedImage { get; set; }
+    Image _selectedImage { get; set; } = new Image();
     [Parameter] public EventCallback OnReady { get; set; }
     [Parameter] public EventCallback<Article?> OnChange { get; set; }
     bool _isPreviewMode { get; set; } = false;
-    bool _showImageManager { get; set; } = false;
-    bool _jsIsReady { get; set; }
-    string? _lastId;
     bool _isHeaderOpen { get; set; } = false;
-    bool _isFetchingImage { get; set; } = false;
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+
+
+    protected override async Task OnParametersSetAsync()
     {
-        // 1. Exit if we are in preview mode
-        if (_isPreviewMode) return;
-
-        // 2. Only initialize if the ID has changed or it's the first time
-        if (_lastId != SelectedArticle.Id || (_lastId == null && !_jsIsReady))
+        if (!string.IsNullOrEmpty(SelectedArticle.HeaderImageId))
         {
-            _lastId = SelectedArticle.Id;
-            _jsIsReady = true;
 
-            await Task.Delay(50);
-            await jSRuntime.InvokeVoidAsync("setupEditor", "editorjs", SelectedArticle.Content);
+            var result = await ImageService.GetImageAsync(SelectedArticle.HeaderImageId);
+
+            if (result.Success && result.Data != null)
+                _selectedImage = result.Data;
+
         }
+        
     }
+
     public async Task SaveEntryAsync()
     {
+        if (_articleWriter == null || _articleInspector == null)
+            return;
 
-        var jsonResult = await jSRuntime.InvokeAsync<string>("saveEditorData");
-        SelectedArticle.Content = jsonResult;
+        //ALWAYS EXPORT THE CONTENT LIST FIRST OR ELSE THE CONTENT WILL BE ERASED AFTER STATEHASCHANGED()
+        SelectedArticle.ContentBlocks = _articleWriter.ExportList();
+
+        _loading = true;
+        StateHasChanged();
+        
+        if (string.IsNullOrEmpty(_selectedImage.Id))
+        {
+            var imageResponse = await _articleInspector.ImageDbUploadAsync();
+            if (!imageResponse.Success || string.IsNullOrEmpty(imageResponse?.Data?.Id))
+            {
+                await jSRuntime.InvokeVoidAsync("alert", imageResponse.Message ?? "Failed uploading image.");
+                _loading = false;
+                StateHasChanged();
+                return;
+
+            }
+            _selectedImage = imageResponse.Data;
+            SelectedArticle.HeaderImageId = imageResponse.Data.Id;
+            
+        }
+        else
+        {
+            await ImageService.UpdateImageAsync(_selectedImage);
+        }
+
+        
+  
 
         var response = await WriterService.UpdateArticleAsync(SelectedArticle);
         if (response.Success && response.Data != null)
@@ -165,69 +150,30 @@
 
 
         await jSRuntime.InvokeVoidAsync("alert", response.Message);
+        _loading = false;
+        StateHasChanged();
+
 
         await OnChange.InvokeAsync(SelectedArticle);
-
     }
 
     async Task ResetEditorAsync()
     {
-        await jSRuntime.InvokeVoidAsync("destroyEditor");
-
-    
-        _jsIsReady = false;
-        _lastId = null;
-        SelectedArticle = new Article
-        {
-            Content = "{\"blocks\":[]}"
-        };
-        _selectedImage = null;
+        SelectedArticle = new Article();
+        _selectedImage = new Image();
 
         await OnChange.InvokeAsync(SelectedArticle);
         StateHasChanged();
     }
 
-    async Task TogglePreviewAsync()
+    void HandlePreview()
     {
-        if (!_isPreviewMode)
-        {
-            SelectedArticle.Content = await jSRuntime.InvokeAsync<string>("saveEditorData");
-            await jSRuntime.InvokeVoidAsync("destroyEditor");
-        
-            _jsIsReady = false;
-            _lastId = null; // Resetting this ensures OnAfterRender runs setupEditor again
-        }
-
+        if (_articleWriter == null) return;
         _isPreviewMode = !_isPreviewMode;
-        StateHasChanged();
-    }
-
-    async Task HandleHeaderOpeningAsync()
-    {
-        _isHeaderOpen = !_isHeaderOpen;
+        if (_isPreviewMode)
         
-        if(!_isHeaderOpen || string.IsNullOrEmpty(SelectedArticle.HeaderImageId)) return;
-
-        if (_selectedImage !=null && SelectedArticle.HeaderImageId == _selectedImage?.Id) return;
-
-        _isFetchingImage = true;
-        StateHasChanged();
-
-        var result = await PhotographerService.GetImageAsync(SelectedArticle.HeaderImageId);
-
-        if (result.Success && result.Data != null)
-            _selectedImage = result.Data;
-
-        _isFetchingImage = false;
-        StateHasChanged();
-
-    }
-
-    private void HandleHeaderSelected(Image selected)
-    {
-        _selectedImage = selected;
-        SelectedArticle.HeaderImageId = selected.Id;
-        _showImageManager = false;
+            SelectedArticle.ContentBlocks = _articleWriter.ExportList();
+        
         StateHasChanged();
     }
 

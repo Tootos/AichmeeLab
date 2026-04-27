@@ -6,6 +6,43 @@
     justify-content: center;
     align-items: flex-start;
     overflow-x: hidden;
+    transition: filter 0.3s ease;
+}
+
+
+.editor-layout.is-loading {
+    pointer-events: none;
+    user-select: none;
+}
+
+.editor-layout.is-loading>*:not(.loading-overlay) {
+    filter: blur(4px);
+    opacity: 0.6;
+}
+
+.editor-layout.is-loading .loading-overlay {
+    display: flex;
+}
+
+.loading-window {
+    display: none;
+    position: fixed;
+    width: fit-content;
+    height: fit-content;
+    z-index: 9999;
+    background: rgba(var(--surface-color), 0.4);
+    backdrop-filter: blur(2px);
+
+}
+
+.loader-layout {
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    background: var(--surface-color2);
+    padding: 2rem;
+    border-radius: 15px;
+    box-shadow: var(--hover-shadow);
 }
 
 /* Middle Editor */
@@ -16,29 +53,34 @@
     max-width: 800px;
     flex-direction: column;
     display: flex;
+    overflow: hidden;
 }
 
-/* 2. The Floating Manager */
-.header-image-manager {
+.inspector-window {
     width: 100%;
-    z-index: 10;
+    z-index: 50;
     background: var(--surface-color);
     border-radius: 5px;
-    transition: max-height 0.3s ease-out;
+    border: 1px solid var(--border-color);
+    box-shadow: var(--hover-shadow);
+    transition: 0.3s ease-out;
     overflow: hidden;
+    flex-shrink: 1;
 }
 
 /* 3. Toggle States */
 .is-closed {
     max-height: 40px;
+    flex-grow: 0;
 }
 
 .is-open {
     height: 100%;
-    max-height: fit-content;
+    flex-grow: 1;
+    /* max-height: fit-content; */
 }
 
-.manager-toggle {
+.inspector-toggle {
     height: 40px;
     padding: 0 15px;
     display: flex;
@@ -47,97 +89,26 @@
     cursor: pointer;
     font-size: 0.75rem;
     font-weight: 700;
-    color: #888;
+    color: var(--font-color1);
 }
 
-.split-view {
-    display: flex;
-    gap: 20px;
-    padding: 15px;
-    align-items: flex-start;
-    /* Keeps items at the top if one col is longer */
-}
 
-.meta-container {
-    min-width: 300px;
-}
-
-.image-wrapper {
-    flex: 1;
-    min-width: 250px;
-}
-
-/* 4. Inside the Drawer */
-.header-input-group,
-.header-preview-container {
-    padding: 15px;
-    border-top: 1px solid #333;
-    background: #181818;
-}
-
-.header-preview-container {
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-}
-
-.header-preview-container img {
-    max-width: 200px;
-    height: auto;
-    object-fit: cover;
-    flex-shrink: 0;
-}
-
-/* Metadata Row */
-.preview-meta-row {
-    width: 100%;
-}
-
-.editor-canvas {
-    background: beige;
-    border-radius: var(--border-radius);
+.writer-window {
     box-shadow: var(--hover-shadow);
     width: 100%;
+    height: 90%;
     margin: 0 auto;
     box-sizing: border-box;
-    padding: 2rem;
     flex-shrink: 1;
-    overflow-y: auto;
+    z-index: 1;
+
 }
 
-.header-is-open {
-    height: 65%;
-}
-
-.header-is-closed {
-    height: 85%;
-}
-
-/* Custom Scrollbar for the Editor Wrapper */
-.editor-canvas::-webkit-scrollbar {
-    width: 14px;
-    /* Thicker scrollbar */
-}
-
-.editor-canvas::-webkit-scrollbar-thumb {
-    background-color: #555;
-    /* Much darker gray */
-    border-radius: 8px;
-    /* Slightly softer corners */
-    border: 3px solid #fff;
-    /* White border to create "padding" from the edge */
-}
-
-.editor-canvas::-webkit-scrollbar-thumb:hover {
-    background-color: #333;
-    /* Darker on hover */
-}
-
-.editor-canvas::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    /* Light gray track so the thumb stands out */
-    border-radius: 8px;
-    /* Match the thumb's radius */
+.is-open+.writer-window {
+    flex-grow: 0;
+    height: 0;
+    opacity: 0;
+    pointer-events: none;
 }
 
 .field-group {
@@ -151,78 +122,6 @@
 .inspector-field {
     width: 100%;
     box-sizing: border-box;
-}
-
-.description-field {
-    width: 100%;
-}
-
-/*Image box*/
-
-/* Container for the meta-data and image side-by-side */
-.split-view {
-    display: flex;
-    gap: 20px;
-    padding: 15px;
-    background: #1a1a1a;
-    /* Matching your dark theme */
-    border-radius: 0 0 8px 8px;
-}
-
-.meta-container {
-    flex: 1;
-}
-
-.image-wrapper {
-    flex: 1;
-    min-height: 200px;
-}
-
-/* The "Empty" Drop Zone */
-.header-input-group {
-    height: 100%;
-    border: 2px dashed #333;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    transition: border-color 0.3s;
-}
-
-.header-input-group:hover {
-    border-color: #555;
-}
-
-.upload-label {
-    text-align: center;
-    cursor: pointer;
-    color: #888;
-}
-
-/* THE TRICK: Hide the real input but let it fill the parent */
-.file-input-hidden {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    opacity: 0;
-    cursor: pointer;
-}
-
-/* The "Populated" Preview */
-.header-preview-container {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.header-preview-container img {
-    max-height: 180px;
-    width: 100%;
-    object-fit: cover;
-    border: 1px solid #333;
 }
 
 .btn-clear {

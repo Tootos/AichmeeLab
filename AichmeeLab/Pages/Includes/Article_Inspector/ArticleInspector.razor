@@ -1,0 +1,140 @@
+@using BootstrapBlazor.Components
+@using AichmeeLab.Services.ImageService
+@inject AichmeeLab.Services.ImageService.IImageService ImageService;
+
+<div class="inspector-layout">
+
+
+    <InputText @bind-Value="SelectedArticle.Title" class="title-input" placeholder="Title. . ." />
+
+
+
+    <InputText @bind-Value="SelectedArticle.Author" class="author-input" placeholder="Author. . ." />
+
+
+
+    <InputTextArea @bind-Value="SelectedArticle.Description" class="description-input" rows="3"
+                   placeholder="Description. . ." />
+    <div class="image-container">
+
+
+
+        @if (_isUploading)//Seeding
+        {
+            <span>Uploading. . .</span>
+
+        }
+        else if (string.IsNullOrEmpty(SelectedImage.HeaderUrl) && !_isUploading)//Waiting to be seeded
+        {
+            
+            <label for="file-upload" class="btn-image-action upload-mode">
+                <i class="bi bi-pc"></i> Upload from Computer
+            </label>
+
+            
+        }
+        else
+        {
+            <h3>Header Preview</h3>
+            <img class="header-preview" src="@SelectedImage.HeaderUrl" />
+            <label for="file-upload" class="btn-image-action replace-mode">
+                <i class="bi bi-arrow-repeat"></i> Replace from Computer
+            </label>
+
+            <InputText @bind-Value="SelectedImage.Description" class="image-description" placeholder="(Optional Note)" />
+        }
+
+        <InputFile id="file-upload" OnChange="CaptureStreamAsync" style="display:none" />
+
+            
+    </div>
+    
+</div>
+
+
+@code {
+    [Parameter]
+    public Image SelectedImage {get; set;} = new Image();
+    [Parameter]
+    public EventCallback<Image> OnImageChanged {get;set;}
+    bool _isUploading { get; set; } = false;
+    [Parameter]
+    public Article SelectedArticle { get; set; } = new Article();
+    MemoryStream? _fileBuffer { get; set; }
+    string _fileName { get; set; } = string.Empty;
+
+    async Task CaptureStreamAsync(InputFileChangeEventArgs e)
+    {
+        if (e.File == null) return;
+        var browserFile = e.File;
+        
+        try
+        {
+            // 1. Capture the stream immediately
+            using var browserStream = browserFile.OpenReadStream(10 * 1024 * 1024);
+            _fileName = browserFile.Name;
+        
+            // 2. Drain it into a MemoryStream right now
+            _fileBuffer = new MemoryStream();
+            _isUploading = true;
+            StateHasChanged();
+            await browserStream.CopyToAsync(_fileBuffer);
+
+            // 3. Reset the position to the beginning so the Service can read it
+            _fileBuffer.Position = 0;
+
+            var format = e.File.ContentType;
+            var buffer = _fileBuffer.ToArray();
+            
+            var newImage = new Image();//If the article already has a Db Image we replace it with new object
+            newImage.HeaderUrl = newImage.RawImageUrl = $"data:{format};base64,{Convert.ToBase64String(buffer)}";
+            newImage.Description = SelectedImage.Description;
+            
+            await OnImageChanged.InvokeAsync(newImage);
+            
+         
+        }
+        catch (Exception ex)
+        {
+
+        }
+        finally
+        {
+            _isUploading = false;
+        }
+    }
+
+
+    public async Task<ServiceResponse<Image>> ImageDbUploadAsync()
+    {
+
+        var result = new ServiceResponse<Image>
+        {
+            Data = null,
+            Success = false
+        };
+
+        if (_fileBuffer != null)
+        {
+            _fileBuffer.Position = 0;
+            try
+            {
+                result = await ImageService.UploadImageAsync(_fileBuffer, _fileName, SelectedArticle.Description);
+
+                if (result.Success && result.Data != null)
+                {
+                    return result;
+                }
+            }
+            catch (Exception ex)
+            {
+                result.Message = $"{ex.Message}";
+            }
+        }
+
+        result.Message = "Failure to upload Image";
+        return result;
+    }
+
+}
+

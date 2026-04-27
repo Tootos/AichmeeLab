@@ -18,13 +18,12 @@ namespace Aichmee.Shared{
         [StringLength(20)]
         public string Title {  get; set; } = string.Empty;
         [BsonRepresentation(BsonType.ObjectId)]
-        [Required]
         public string HeaderImageId { get; set; } = string.Empty;
         [Required]
         [StringLength(60)]
         public string Description { get; set; } = string.Empty;
-        public string Content { get; set; } = string.Empty;
-        /*Meta Information*/
+        public List<ContentBlock> ContentBlocks {get; set;} = new List<ContentBlock>();
+        
         [Required]
         [StringLength(25)]
         public string Author {get; set;} = string.Empty;

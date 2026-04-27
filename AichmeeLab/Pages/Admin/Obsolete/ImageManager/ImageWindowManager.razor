@@ -1,5 +1,5 @@
-@using BootstrapBlazor.Components
-@inject AichmeeLab.Services.PhotographerService.IPhotographerService PhotographerService;
+@* @using BootstrapBlazor.Components
+@inject AichmeeLab.Services.ImageService.IImageService ImageService;
 
 
 <div class="work-window">
@@ -51,6 +51,8 @@
 
 
 @code {
+    [Parameter]
+    public Image? SelectedImage {get; set;} = new Image();
     [Parameter] public EventCallback<Image> OnConfirm { get; set; }
     [Parameter] public EventCallback OnCancel { get; set; }
     MemoryStream? _fileBuffer { get; set; }
@@ -101,7 +103,7 @@
         if (_fileBuffer == null) return;
         try
         {
-            var result = await PhotographerService.UploadImageAsync(_fileBuffer, _fileName, "Images");
+            var result = await ImageService.UploadImageAsync(_fileBuffer, _fileName, "Images");
 
             if (result.Success && result.Data != null)
             {
@@ -125,4 +127,4 @@
     }
 
     async Task CancelAsync() => await OnCancel.InvokeAsync();
-}
+} *@

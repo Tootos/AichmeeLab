@@ -2,7 +2,7 @@
 @using AichmeeLab.Pages.Includes
 @using BootstrapBlazor.Components
 @inject AichmeeLab.Services.UserService.IUserService UserService
-@inject AichmeeLab.Services.PhotographerService.IPhotographerService PhotographerService
+@inject AichmeeLab.Services.ImageService.IImageService ImageService
 
 
 @if (SelectedArticle == null)
@@ -32,7 +32,7 @@ else
         {
             SelectedArticle = result.Data;
             if(!string.IsNullOrEmpty(SelectedArticle.HeaderImageId)){
-               var fetching = await PhotographerService.GetImageAsync(SelectedArticle.HeaderImageId);
+               var fetching = await ImageService.GetImageAsync(SelectedArticle.HeaderImageId);
                if(fetching.Success && fetching.Data !=null) HeaderImage = fetching.Data ;
             }
         }

@@ -130,8 +130,8 @@ namespace AichmeeLab.Api.Services.ContentService
                 Author = p.Contains("Author") ? p["Author"].ToString() : "Anonymous",
                 DatePublished = p.GetValue("DatePublished").ToUniversalTime(),
                 Type = type,
-                HeaderImageUrl = p["TempImageArray"].AsBsonArray.Count > 0
-                ? p["TempImageArray"][0]["StorageUrl"].ToString()
+                HeaderUrl = p["TempImageArray"].AsBsonArray.Count > 0
+                ? p["TempImageArray"][0]["HeaderUrl"].ToString()
                 : "https://aichmeelab.blob.core.windows.net/public-photos/General/Dimi.png"
             }).ToList();
 

@@ -1,73 +1,52 @@
 @using System.Text.Json
 @using Aichmee.Shared;
 @using System.Text.Json.Serialization
+@using BootstrapBlazor.Components
 
 @inject AichmeeLab.Services.UserService.IUserService UserService
 
 
 <div class="view-window">
     <div class="view-layout">
-    <div class="top-footer">
-        <a href="/" class="close-btn"><i class="bi bi-x-lg"></i></a>
-    </div>
-    <div class="article-content">
-        <div class= "header-wrapper">
-            <h1 class="view-title">@SelectedArticle.Title</h1>
-            <h3 class="view-author">by @SelectedArticle.Author</h3>
-        <span class="view-date">Date Published:@SelectedArticle.DatePublished.ToString("MMM dd, yyyy")
-            | Last Updated: @SelectedArticle.LastUpdate.ToString("MMM dd, yyyy")</span>
+        <div class="top-footer">
+            <a href="/" class="close-btn"><i class="bi bi-x-lg"></i></a>
         </div>
+        <div class="article-content">
+            <div class="header-wrapper">
+                <h1 class="view-title">@SelectedArticle.Title</h1>
+                <h3 class="view-author">by @SelectedArticle.Author</h3>
+                <span class="view-date">Date Published:@SelectedArticle.DatePublished.ToString("MMM dd, yyyy")
+                    | Last Updated: @SelectedArticle.LastUpdate.ToString("MMM dd, yyyy")</span>
+                </div>
 
-    @if (HeaderImage != null && !string.IsNullOrEmpty(HeaderImage.StorageUrl))
-        {
-            <div class="view-img">
-                <img src="@HeaderImage.StorageUrl" alt="@SelectedArticle.Title" class="img-fluid rounded shadow-sm" />
-            </div>
-        }     
-
-        <div class="media-body">
-            <p class="view-description">@SelectedArticle.Description</p>
-
-            @if (parsedContent?.Blocks != null)
-            {
-                @foreach (var block in parsedContent.Blocks)
+                @if (HeaderImage != null && !string.IsNullOrEmpty(HeaderImage.HeaderUrl))
                 {
-                    if(block.Data ==null ) return;
-                    
-                    switch (block.Type){
-                        case "header":
-                        <h3>@((MarkupString)block.Data.Text)</h3>
-                        break;
-                        case "paragraph":
-<p>@((MarkupString)block.Data.Text)</p>
-                        break;
-                        case "list":
-                        @if(block.Data.Style == "ordered"){
-                            <ol>@foreach (var item in block.Data.Items)
-                    {<li>@((MarkupString)item.Content)</li>
-                        
-                    }</ol>
-                        }else if(block.Data.Style == "unordered"){
-                            <ul>
-                    @foreach (var item in block.Data.Items)
+                    <div class="view-img">
+                        <img src="@HeaderImage.HeaderUrl" alt="@HeaderImage.RawImageUrl" class="img-fluid rounded shadow-sm" />
+                    </div>
+                }
+
+                <p class="view-description">@SelectedArticle.Description</p>
+
+                @foreach (var block in SelectedArticle.ContentBlocks.OrderBy(x => x.Step))
+                {
+                    @if (block.Type == "text")
                     {
-                        @if (!string.IsNullOrWhiteSpace(item.Content))
-                {
-                    <li>@((MarkupString)item.Content)</li>
-                }
+                        @* The 'Reader-Side' fix: ensure content is wrapped if it's raw text *@
+                        <div class="view-text-block">
+                            @((MarkupString)FormatContent(block.Content))
+                        </div>
                     }
-                </ul>
-                        }
-
-                        break;
-
+                    else if (block.Type == "collage")
+                    {
+                        @* We will build this next, but for now, it's ready for images *@
+                        <div class="view-collage-block">
+                        </div>
                     }
                 }
-            }
+            </div>
         </div>
     </div>
-    </div>
-</div>
 
 
 
@@ -77,49 +56,23 @@
     [Parameter]
     public Image HeaderImage { get; set; } = new Image();
 
-    EditorJsData? parsedContent;
-
-    public class EditorJsData { public List<EditorJsBlock> Blocks { get; set; } = new(); }
-
-    public class EditorJsBlock
+    public class ListItem
     {
-        public string Type { get; set; } = string.Empty;
-        public EditorJsDataContent Data { get; set; }
+        public string? Content { get; set; }
+        public List<ListItem>? Items { get; set; } // This allows for dots inside dots
     }
 
-    public class EditorJsDataContent { 
-        [JsonPropertyName("text")]
-    public string? Text { get; set; } = string.Empty; 
-    [JsonPropertyName("level")]
-    public int? Level {get; set;} 
-    [JsonPropertyName("style")]
-    public string? Style { get; set; }
-    [JsonPropertyName("items")] 
-    public List<ListItem>? Items { get; set; }}
-
-        public class ListItem
-{
-    public string? Content { get; set; } // This holds the "the way you are" text
-    public List<ListItem>? Items { get; set; } // This allows for dots inside dots
-}
-
-    string _message { get; set; } = "Loading. . .";
-
-
-
-    protected override async Task OnParametersSetAsync()
+    private string FormatContent(string content)
     {
-        if (!string.IsNullOrEmpty(SelectedArticle.Content))
+        if (string.IsNullOrWhiteSpace(content)) return "";
+        
+        var trimmed = content.Trim();
+        // If it doesn't start with a tag, wrap it in a <p> for safety
+        if (!trimmed.StartsWith("<"))
         {
-            try
-            {
-                parsedContent = JsonSerializer.Deserialize<EditorJsData>(SelectedArticle.Content,
-                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-            }
-            catch
-            {
-                _message = "Error parsing article content.";
-            }
+            return $"<p>{trimmed}</p>";
         }
+        return trimmed;
     }
+
 }

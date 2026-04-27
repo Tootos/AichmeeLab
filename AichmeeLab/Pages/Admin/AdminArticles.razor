@@ -1,4 +1,4 @@
-﻿@page "/admin/articles/{Action?}"
+﻿@page "/admin/articles/"
 @using AichmeeLab.Pages.Includes
 @using AichmeeLab.Layout.LayoutElements.SearchBar 
 @using System.Net.Security
@@ -18,8 +18,7 @@
                 </button>
                 <button type="button" class="btn @(selectedTab == Tab.Article ? "btn-primary" : "btn-outline-primary")"
                         @onclick="() => SwitchToTab(Tab.Article)">
-                    <i class="bi bi-pencil-square"></i> @(string.IsNullOrEmpty(articleToEdit.Title) ? "Publish New" :
-                                                                                                                                                                                    articleToEdit.Title)
+                    <i class="bi bi-pencil-square"></i> @(string.IsNullOrEmpty(SelectedArticle.Title) ? "Publish New" : SelectedArticle.Title)
                 </button>
             </div>
         </div>
@@ -36,19 +35,17 @@
                 break;
             case Tab.Article:
 
-                <ArticlesEdit SelectedArticle="@articleToEdit" OnReady="StateHasChanged" OnChange="HandleChange" />
+                <ArticlesEdit SelectedArticle="@SelectedArticle" OnReady="StateHasChanged" OnChange="HandleChange" />
                 break;
         }
 
     </div>
 </div>
 @code {
-    [Parameter]
-    public string? Action { get; set; }
     enum Tab { List, Article }
     Tab selectedTab = Tab.List;
 
-    Article articleToEdit = new Article();
+    Article SelectedArticle = new Article();
 
 
     protected override async Task OnInitializedAsync()
@@ -106,7 +103,7 @@
         var response = await WriterService.GetArticleAsync(id);
         if (response != null && response.Data != null)
         {
-            articleToEdit = response.Data;
+            SelectedArticle= response.Data;
             selectedTab = Tab.Article;
             StateHasChanged();
         }
@@ -115,7 +112,7 @@
 
     void HandleChange(Article article)
     {
-        articleToEdit = article;
+        SelectedArticle = article;
 
         StateHasChanged();
 

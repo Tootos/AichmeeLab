@@ -88,7 +88,7 @@
     color: var(--font-color2);
 }
 
-.media-body,
+.view-text-block,
 .header-wrapper h1,
 .header-wrapper h3 {
     color: var(--font-color1);
