@@ -21,10 +21,10 @@ namespace AichmeeLab.Api.Services.ArticleService
 
         public async Task<ServiceResponse<Article>> GetArticle(string? id, bool isAdmin)
         {
-            if(string.IsNullOrEmpty(id)) return new ServiceResponse<Article>
+            if (string.IsNullOrEmpty(id)) return new ServiceResponse<Article>
             {
                 Success = false,
-                Message= "No Id provided"
+                Message = "No Id provided"
             };
             var response = new ServiceResponse<Article>();
             var builder = Builders<Article>.Filter;
@@ -137,10 +137,24 @@ namespace AichmeeLab.Api.Services.ArticleService
             {
                 article.Id = ObjectId.GenerateNewId().ToString();
                 article.DatePublished = DateTime.UtcNow;
+                if (article.ContentBlocks != null)
+                {
+                    foreach (var block in article.ContentBlocks)
+                    {
+                        block.ArticleId = article.Id;
+                    }
+                }
                 await _collection.InsertOneAsync(article);
             }
             else
             {
+                if (article.ContentBlocks != null)
+                {
+                    foreach (var block in article.ContentBlocks.Where(b=>b.ArticleId != article.Id))
+                    {
+                        block.ArticleId = article.Id;
+                    }
+                }
                 var filter = Builders<Article>.Filter.Eq(a => a.Id, article.Id);
                 await _collection.ReplaceOneAsync(filter, article, new ReplaceOptions { IsUpsert = true });
             }

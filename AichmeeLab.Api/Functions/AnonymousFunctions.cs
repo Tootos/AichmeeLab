@@ -72,7 +72,7 @@ namespace AichmeeLab.Api
         [HttpTrigger(AuthorizationLevel.Anonymous, "get",Route = "anon/image/get/{id?}")]
         HttpRequestData req, string id)
         {
-            var result = await _imageService.GetHeaderImage(id);
+            var result = await _imageService.GetImage(id);
             if (result.Success)
             {
                 var successResponse = req.CreateResponse(HttpStatusCode.OK);

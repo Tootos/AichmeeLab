@@ -1,0 +1,60 @@
+.inspector-layout {
+    display: flex;
+    flex-direction: column;
+    padding: 2rem;
+    gap: 15px;
+}
+
+::deep .title-input,
+::deep .author-input,
+::deep .description-input ,
+::deep .image-description{
+    background-color: var(--surface-color2);
+    color: var(--font-color1);
+    border: none;
+    border-radius: 5px;
+    line-height: 1.2rem;
+    max-width: 65%;
+}
+
+::deep .title-input,
+::deep .author-input {
+
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+::deep .description-input ,
+::deep .image-description{
+    font-size: 1.2rem;
+}
+
+.image-container{
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap:10px
+
+}
+
+.image-container h3{
+    background: transparent;
+    font-weight: 700;
+    color: var(--font-color1)
+}
+
+.image-container label {
+    background-color: var(--select-color);
+    color: white;
+    width: fit-content;
+    border-radius: 10px;
+    border: none;
+    padding: 5px;
+}
+
+.image-container img {
+    max-width: 100%;
+    max-height: 100%;
+    max-height: 300px;
+    object-fit: contain;
+}

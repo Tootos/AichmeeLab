@@ -122,11 +122,11 @@ namespace AichmeeLab.Api
         }
         [Function("UploadImage")]
         public async Task<HttpResponseData> UploadImage(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "post",Route = "dashboard/images/post")] HttpRequestData req)
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "dashboard/images/post")] HttpRequestData req)
         {
-            _logger.LogInformation("Attempting to upload and image");
+            _logger.LogInformation("Attempting to upload an image");
 
-            var result = await _imageService.UploadeImage(req);
+            var result = await _imageService.UploadImage(req);
             if (result.Success)
             {
                 var response = req.CreateResponse(HttpStatusCode.OK);
@@ -139,6 +139,44 @@ namespace AichmeeLab.Api
             return badRequest;
 
         }
-        
+
+        [Function("UpdateImage")]
+        public async Task<HttpResponseData> UpdateImage(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "dashboard/images/put")] HttpRequestData req)
+        {
+            _logger.LogInformation("Attempting to update an image");
+
+            var result = await _imageService.UpdateImage(req);
+            if (result.Success)
+            {
+                var response = req.CreateResponse(HttpStatusCode.OK);
+                await response.WriteAsJsonAsync(result);
+                return response;
+            }
+
+            var badRequest = req.CreateResponse(HttpStatusCode.BadRequest);
+            await badRequest.WriteAsJsonAsync(result);
+            return badRequest;
+
+        }
+
+
+        [Function("DeleteImage")]
+        public async Task<HttpResponseData> DeleteImage(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "delete", "dashboard/image/delete/{id?}")] HttpRequestData req, string? id)
+        {
+            _logger.LogInformation("Attempting to delete an image");
+            var result = await _imageService.DeleteImage(id);
+            if (result.Success)
+            {
+                var response = req.CreateResponse(HttpStatusCode.OK);
+                await response.WriteAsJsonAsync(result);
+                return response;
+            }
+
+            var badRequest = req.CreateResponse(HttpStatusCode.BadRequest);
+            await badRequest.WriteAsJsonAsync(result);
+            return badRequest;
+        }
     }
 }

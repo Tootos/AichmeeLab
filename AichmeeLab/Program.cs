@@ -4,7 +4,7 @@ using AichmeeLab.Services.SecurityService;
 using AichmeeLab.Services.UserService;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
-using AichmeeLab.Services.PhotographerService;
+using AichmeeLab.Services.ImageService;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
@@ -19,7 +19,7 @@ builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(baseAddr
 
 
 builder.Services.AddScoped<IWriterService, WriterService>();
-builder.Services.AddScoped<IPhotographerService, PhotographerService>();
+builder.Services.AddScoped<IImageService, ImageService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ISecurityService, SecurityService>();
 

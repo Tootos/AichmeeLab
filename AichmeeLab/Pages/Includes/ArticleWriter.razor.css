@@ -1,0 +1,191 @@
+/* THE CANVAS */
+.writer-canvas {
+    background-color: beige;
+    padding: 40px;
+    height: 100%;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* THE WRAPPER */
+.text-block-container {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    padding-left: 60px;
+    margin-left: -60px;
+}
+
+
+
+/* THE EDITOR DIV */
+.simple-writer {
+    width: 100%;
+    min-height: 50px;
+    padding: 10px;
+    outline: none;
+    /* Removes the focus border */
+    font-family: 'Segoe UI', sans-serif;
+    font-size: 1.1rem;
+    line-height: 1.6;
+    color: #333;
+    border: 1px transparent solid;
+    transition: border 0.2s;
+}
+
+/* Give the user a hint where they are typing */
+.simple-writer:focus {
+    border-left: 1px solid #ccc;
+}
+
+/* STYLING THE INTERNAL CONTENT */
+/* Since it's contenteditable, these tags will appear as you type or use commands */
+
+.simple-writer h1 {
+    font-size: 2.2rem;
+    font-weight: 800;
+    margin: 0.5em 0;
+    color: #111;
+}
+
+.simple-writer ul {
+    padding-left: 25px;
+    margin: 1em 0;
+    list-style-type: disc;
+}
+
+.simple-writer p {
+    margin-bottom: 0.8em;
+}
+
+.simple-writer ol {
+    padding-left: 25px;
+    margin: 1em 0;
+    list-style-type: decimal;
+    /* Ensures 1, 2, 3... */
+}
+
+.simple-writer h3 {
+    font-size: 1.4rem;
+    font-weight: 600;
+    margin-top: 1rem;
+    color: #444;
+}
+
+/* Placeholder for empty blocks */
+.simple-writer:empty:before {
+    color: #999;
+    pointer-events: none;
+}
+
+
+/* Container for the trigger and the hidden menu */
+.side-menu-wrapper {
+    position: absolute;
+    left: 20px;
+    top: 0;
+    display: flex;
+    opacity: 0;
+    pointer-events: none;
+    flex-direction: column;
+    align-items: center;
+    z-index: 100;
+}
+
+.text-block-container:hover .side-menu-wrapper {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* The Plus Button */
+.options-prompt {
+    background: transparent;
+    border: none;
+    color: #aaa;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: transform 0.2s ease, color 0.2s;
+}
+
+.side-menu-wrapper:hover .options-prompt {
+    opacity: 0;
+    pointer-events: none;
+    /* Prevents the invisible button from being clickable */
+    transform: scale(0.5);
+    /* Optional: makes it look like it's shrinking away */
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+/* The Hidden Menu */
+.options-menu {
+    display: none;
+    flex-direction: column;
+    gap: 5px;
+    background: white;
+    border: 1px solid #ddd;
+    /* position: relative;
+    left:-45px; */
+    border-radius: 20px;
+    padding: 2px 10px;
+    /* margin-left: 10px; */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    z-index: 50;
+}
+
+.text-block-container:hover .options-menu {
+    opacity: 1;
+    /* Shows up when you hover the block */
+}
+
+/* THE MAGIC: Open on Hover */
+.side-menu-wrapper:hover .options-menu {
+    display: flex;
+    /* margin-left: -20px; */
+}
+
+/* Button Styles inside the menu */
+.options-menu button {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    /* transition: 0.2s; */
+}
+
+.options-menu button:hover {
+    color: #000;
+    background: #f0f0f0;
+    border-radius: 4px;
+}
+
+
+.inline-toolbar {
+    display: none;
+    position: absolute;
+    background: #222; /* Dark theme for contrast */
+    color: white;
+    border-radius: 8px;
+    padding: 5px;
+    gap: 5px;
+    z-index: 1000;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+
+.inline-toolbar button {
+    background: transparent;
+    border: none;
+    color: white;
+    padding: 5px 10px;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.inline-toolbar button:hover {
+    background: #444;
+    border-radius: 4px;
+}

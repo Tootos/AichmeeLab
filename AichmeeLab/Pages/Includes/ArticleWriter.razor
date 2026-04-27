@@ -1,0 +1,175 @@
+@using BootstrapBlazor.Components
+@using Markdig
+@using System.Runtime.CompilerServices
+@inject IJSRuntime jSRuntime;
+
+<div class="writer-canvas">
+
+    
+    @foreach (var block in WriterData.OrderBy(x => x.Step))
+    {
+        var id = string.IsNullOrEmpty(SelectedArticle.Id) ? "" : SelectedArticle.Id;
+        var domId = $"text-{block.Step}-{id}";
+        var menuId = $"menu-{block.Step}-{id}";
+
+        @if (block.Type == "text")
+        {
+            <div class="text-block-container" @onmouseover="() => _activeDomId = domId">
+                <div id="@menuId" class="side-menu-wrapper">
+                    <button class="options-prompt" type="button">
+                        <i class="bi bi-list"></i> </button>
+
+                        <div class="options-menu">
+                            <button @onclick='() => ApplyStyleAsync("h1")' title="H1">H1</button>
+                            <button @onclick='() => ApplyStyleAsync("h3")' title="H3">H3</button>
+                            <button @onclick='() => ApplyStyleAsync("p")' title="Text">P</button>
+                            <button @onclick='() => ApplyStyleAsync("ol")' title="Ordered List">1.</button>
+                            <button @onclick='() => ApplyStyleAsync("ul")' title="Bullet List">•</button>
+                            <button @onclick="AddCollage">Pic</button>
+
+                        </div>
+                    </div>
+
+                    
+
+                    <div id="@domId" contenteditable="true" class="simple-writer" @oninput='() => UpdatePosition(domId, menuId)'
+                         @onclick='() => UpdatePosition(domId, menuId)' @onkeyup='() => UpdatePosition(domId, menuId)'
+                         @onblur="() => SyncContent(block, domId)" suppressContentEditableWarning="true" spellcheck="false">
+
+                        @if (string.IsNullOrEmpty(block.Content))
+                        {
+                            <span></span>
+                        }
+                        
+                    </div>
+                </div>
+            }
+        }
+
+        <div id="inline-toolbar" class="inline-toolbar">
+            <button @onclick='() => ApplyInlineAsync("bold")' title="Bold"><b>B</b></button>
+            <button @onclick='() => ApplyInlineAsync("italic")' title="Italic">〰</button>
+            <button @onclick='() => ApplyInlineAsync("link")' title="Link"><i class="bi bi-link-45deg"></i></button>
+        </div>
+    </div>
+
+    
+
+
+@code {
+
+    [Parameter]
+    public Article SelectedArticle { get; set; } = new Article();
+    List<ContentBlock> WriterData { get; set; } = new List<ContentBlock>();
+    string _activeDomId = string.Empty;
+
+
+    protected async override Task OnParametersSetAsync()
+    {
+        if (SelectedArticle.ContentBlocks.Count > 0)
+        {
+            WriterData = SelectedArticle.ContentBlocks;
+        }
+        else
+        {
+            WriterData = new List<ContentBlock>();
+            WriterData.Add(new ContentBlock
+            {
+                Step = WriterData.Count,
+                Type = "text",
+                Content = "<p><br></p>"
+            });
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await jSRuntime.InvokeVoidAsync("writerEngine.initInlineToolbar");
+
+            //Note the bellow sequence of statements might need to be put in a different if with a flag we set onParametersSet 
+            var id = string.IsNullOrEmpty(SelectedArticle.Id) ? "" : SelectedArticle.Id;
+            foreach (var block in WriterData.Where(b => b.Type == "text"))
+            {
+                var domId = $"text-{block.Step}-{id}";
+                await jSRuntime.InvokeVoidAsync("writerEngine.loadContent", domId, block.Content);
+            }
+        }
+    }
+
+    async Task SyncContent(ContentBlock block, string domId)
+    {
+        // 1. Get the raw HTML from the contenteditable div
+        var html = await jSRuntime.InvokeAsync<string>("writerEngine.getHtml", domId);
+    
+        // 2. Save the HTML to your block (or convert to Markdown here)
+        // For now, let's store the HTML so your view doesn't break
+        block.Content = html;
+    }
+
+    async Task ApplyStyleAsync(string type)
+    {
+        if (string.IsNullOrEmpty(_activeDomId)) return;
+
+        if (type == "ol" || type == "ul")
+            await jSRuntime.InvokeVoidAsync("writerEngine.applyList", _activeDomId, type);
+        else
+            await jSRuntime.InvokeVoidAsync("writerEngine.applyBlockStyle", _activeDomId, type);
+        var block = WriterData.FirstOrDefault(x => $"text-{x.Step}-{SelectedArticle.Id}" == _activeDomId);
+        if (block != null) await SyncContent(block, _activeDomId);
+    }
+
+    async Task ApplyInlineAsync(string type)
+    {
+        if (string.IsNullOrEmpty(_activeDomId)) return;
+
+        switch (type)
+        {
+            case "bold":
+                await jSRuntime.InvokeVoidAsync("writerEngine.applyInlineStyle", _activeDomId, "bold");
+                break;
+            case "italic":
+                await jSRuntime.InvokeVoidAsync("writerEngine.applyInlineStyle", _activeDomId, "italic");
+                break;
+            case "link":
+                await jSRuntime.InvokeVoidAsync("writerEngine.applyLink", _activeDomId);
+                break;
+        }
+    }
+
+    async Task UpdatePosition(string domId, string menuId)
+    {
+        await jSRuntime.InvokeVoidAsync("writerEngine.updateMenuPosition", domId, menuId);
+    }
+
+    void AddCollage()
+    {
+
+        WriterData.Add(new ContentBlock
+        {
+            Step = WriterData.Count,
+            Type = "text",
+            Content = "<p><br></p>"
+        });
+        StateHasChanged();
+
+    }
+
+
+    public List<ContentBlock> ExportList()
+    {
+        
+        return WriterData
+            .OrderBy(x => x.Step)
+            .Select(block => new ContentBlock
+            {
+                Step = block.Step,
+                Type = block.Type,
+                Content = block.Content
+            })
+            .ToList();
+        
+    }
+    
+}

@@ -1,6 +1,11 @@
-﻿let editorInstance;
+﻿/**
+ * Editor.js Multi-Instance Interop
+ * Stores instances in a Map keyed by the DOM element ID.
+ */
+window.editorInstances = {};
 
-// --- Named Event Handlers (Prevents Memory Leaks) ---
+// --- Named Event Handlers (Modified to handle specific IDs) ---
+
 const handleDragOver = (e) => {
     e.preventDefault();
     const el = e.currentTarget;
@@ -15,7 +20,10 @@ const handleDragLeave = (e) => {
     el.style.backgroundColor = "transparent";
 };
 
-const handleDrop = (e) => {
+/**
+ * Handle .docx drop for a specific editor instance
+ */
+const handleDrop = (e, id) => {
     e.preventDefault();
     const el = e.currentTarget;
     const wrapper = el.closest('.editor-wrapper') || el.parentElement;
@@ -26,9 +34,6 @@ const handleDrop = (e) => {
 
     if (!isDocx) {
         alert("Invalid file type! Only .docx is accepted.");
-        setTimeout(() => {
-            wrapper.classList.remove('invalid-file');
-        }, 2000);
         return;
     }
 
@@ -38,113 +43,242 @@ const handleDrop = (e) => {
         mammoth.convertToHtml({ arrayBuffer: arrayBuffer })
             .then(function (result) {
                 const html = result.value;
-                if (window.editorInstance) {
-                    window.editorInstance.blocks.clear();
-                    // Note: Ensure your Editor.js version/plugins support renderFromHTML
-                    window.editorInstance.blocks.renderFromHTML(html);
+                const instance = window.editorInstances[id];
+                // Safety check for instance before rendering
+                if (instance && typeof instance.blocks?.renderFromHTML === 'function') {
+                    instance.blocks.clear();
+                    instance.blocks.renderFromHTML(html);
                 }
             })
-            .catch(function (err) {
-                console.error("Mammoth conversion error:", err);
-            });
+            .catch(err => console.error("Mammoth error:", err));
     };
     reader.readAsArrayBuffer(file);
 };
 
 // --- Window Functions ---
 
+/**
+ * Initializes a new Editor.js instance for a specific block
+ */
 window.setupEditor = async (id, data) => {
     const el = document.getElementById(id);
     if (!el) return;
 
-    // 1. If there is an old instance, kill it
-    if (window.editorInstance) {
-        await window.editorInstance.destroy();
-        window.editorInstance = null;
+    if (el.innerHTML.trim() !== "" || window.editorInstances[id]) {
+        console.warn(`Purging existing content in ${id} to prevent nesting.`);
+        
+        // 1. Destroy existing instance if it exists in memory
+        if (window.editorInstances[id]) {
+            try {
+                await window.editorInstances[id].isReady;
+                await window.editorInstances[id].destroy();
+            } catch (e) {}
+            delete window.editorInstances[id];
+        }
+        
+        // 2. Physically wipe the HTML
+        el.innerHTML = "";
     }
 
-    // 2. Ensure the element is empty before starting
-    el.innerHTML = '';
+    // const existing = window.editorInstances[id];
+    // if (existing) {
+    //     try {
+    //         if (typeof existing.destroy === 'function') {
+    //             await existing.isReady;
+    //             await existing.destroy();
+    //         }
+    //     } catch (e) {
+    //         console.warn(`Soft-cleanup for ${id}:`, e);
+    //     }
+    //     delete window.editorInstances[id];
+    // }
 
-    let parsedData = {blocks: []};
+    let parsedData = { blocks: [] };
     if (data && data !== "null" && data.trim() !== "") {
         try {
             parsedData = typeof data === 'string' ? JSON.parse(data) : data;
-            
-            if (!parsedData.blocks) {
-                parsedData.blocks = [];
-            }
         } catch (e) {
-            console.error("Failed to parse initial EditorJS data", e);
+            console.error(`Parse error for ${id}`, e);
         }
     }
 
-    // 3. Initialize Instance
-    window.editorInstance = new EditorJS({
+    // 2. Initialize
+    const newInstance = new EditorJS({
         holder: id,
         minHeight: 0,
         data: parsedData,
         tools: {
             header: Header,
             list: {
-            class: EditorjsList, 
-            inlineToolbar: true,
-            config: {
-                defaultStyle: 'unordered' 
-            }}
+                class: EditorjsList,
+                inlineToolbar: true,
+                config: { defaultStyle: 'unordered' }
+            }
         },
         onReady: () => {
-            // Attach Drag & Drop listeners only when editor is ready
             el.addEventListener('dragover', handleDragOver);
             el.addEventListener('dragleave', handleDragLeave);
-            el.addEventListener('drop', handleDrop);
+            el.addEventListener('drop', (e) => handleDrop(e, id));
         }
     });
+
+    window.editorInstances[id] = newInstance;
 };
 
-window.updateEditorData = async (content) => {
-    if (!window.editorInstance) {
-        console.warn("Editor instance not found during update.");
-        return;
-    }
+/**
+ * Saves a specific editor block and returns the JSON string
+ */
+window.saveEditorInstance = async (id) => {
+    const instance = window.editorInstances[id];
+    if (!instance) return "{\"blocks\":[]}";
 
     try {
-        await window.editorInstance.isReady;
+        await instance.isReady;
+        const data = await instance.save();
+        return JSON.stringify(data);
+    } catch (err) {
+        console.error(`Error saving instance ${id}:`, err);
+        return "{\"blocks\":[]}";
+    }
+};
+/**
+ * Save ALL editor blocks, return json strings and ids
+ */
+window.saveAllEditors = async () => {
+    const results = [];
+    const keys = Object.keys(window.editorInstances);
 
+    for (const id of keys) {
+        const instance = window.editorInstances[id];
+        if (instance && typeof instance.save === 'function') {
+            try {
+                await instance.isReady;
+                const data = await instance.save();
+                results.push({
+                    elementId: id,
+                    content: JSON.stringify(data)
+                });
+            } catch (err) {
+                console.error(`Error sweeping instance ${id}:`, err);
+            }
+        }
+    }
+    return results;
+};
+
+/**
+ * Updates data for a specific instance
+ */
+window.updateEditorData = async (id, content) => {
+    const instance = window.editorInstances[id];
+    if (!instance) return;
+
+    try {
+        await instance.isReady;
         if (content && content.trim() !== "" && content !== "null") {
             const data = JSON.parse(content);
-            await window.editorInstance.render(data);
+            await instance.render(data);
         } else {
-            await window.editorInstance.blocks.clear();
+            await instance.blocks.clear();
         }
     } catch (err) {
-        console.error("EditorJS Update Error:", err);
+        console.error(`EditorJS Update Error for ${id}:`, err);
     }
 };
 
-window.destroyEditor = async () => {
-    if (window.editorInstance) {
+/**
+ * Destroys a specific editor block
+ */
+window.destroyEditor = async (id) => {
+    const instance = window.editorInstances[id];
+    if (instance) {
         try {
-            const el = document.getElementById('editorjs');
+            const el = document.getElementById(id);
             if (el) {
                 el.removeEventListener('dragover', handleDragOver);
                 el.removeEventListener('dragleave', handleDragLeave);
                 el.removeEventListener('drop', handleDrop);
             }
-            
-            if (typeof window.editorInstance.destroy === 'function') {
-                await window.editorInstance.destroy();
-            }
-            window.editorInstance = null;
+
+            await instance.destroy();
+            delete window.editorInstances[id];
         } catch (e) {
-            console.error("Error during destroyEditor:", e);
+            console.error(`Error during destroyEditor for ${id}:`, e);
         }
     }
 };
 
-window.saveEditorData = async () => {
-    if (!window.editorInstance) return "{}";
-    await window.editorInstance.isReady;
-    const data = await window.editorInstance.save();
-    return JSON.stringify(data);
+
+/**
+ * Destroys all active editor instances and cleans up listeners
+ */
+window.destroyAllEditors = async () => {
+    if (!window.editorInstances) return;
+
+    // Get all editor IDs currently tracked
+    const ids = Object.keys(window.editorInstances);
+
+    // Map each ID to a destruction promise to run them efficiently
+    const destroyPromises = ids.map(async (id) => {
+        try {
+            const instance = window.editorInstances[id];
+            const el = document.getElementById(id);
+
+            // Clean up event listeners if the element still exists
+            if (el) {
+                el.removeEventListener('dragover', handleDragOver);
+                el.removeEventListener('dragleave', handleDragLeave);
+                el.removeEventListener('drop', handleDrop);
+                el.innerHTML = '';
+                el.className = '';
+            }
+
+            // Destroy the Editor.js instance
+            if (instance && typeof instance.destroy === 'function') {
+                await instance.destroy();
+            }
+
+            // 3. Remove from our tracking object
+            delete window.editorInstances[id];
+        } catch (e) {
+            console.error(`Failed to destroy editor instance ${id}:`, e);
+        }
+    });
+
+    // Wait for all editors to be fully cleaned up
+    await Promise.all(destroyPromises);
+
+    // Optional: Force clear the object just to be safe
+    window.editorInstances = {};
+};
+
+window.destroyAllExceptRoot = async () => {
+    const ids = Object.keys(window.editorInstances);
+    for (const id of ids) {
+        if (id !== 'editor-0') {
+            const instance = window.editorInstances[id];
+            if (instance && typeof instance.destroy === 'function') {
+                await instance.isReady;
+                await instance.destroy();
+            }
+            delete window.editorInstances[id];
+            
+            const el = document.getElementById(id);
+            if (el) el.innerHTML = ''; 
+        }
+    }
+};
+/**
+ * Checks if an Editor.js instance is currently active for a specific ID
+ */
+window.editorExists = (id) => {
+    //  Check if the dictionary itself exists
+    if (!window.editorInstances) return false;
+
+    //  Check if the key exists
+    const instance = window.editorInstances[id];
+
+    //  Ensure it's not null and has been initialized
+    // (We check for 'save' or 'destroy' to ensure it's a real Editor object)
+    return !!(instance && typeof instance.save === 'function');
 };
