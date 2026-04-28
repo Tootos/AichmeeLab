@@ -11,6 +11,7 @@ namespace AichmeeLab.Api.Services.AuthenticatorService
     class AuthenticatorService : IAuthenticatorService
     {
         readonly IMongoCollection<AdminProfile> _adminProfiles;
+        readonly IMongoCollection<AttemptTracker> _watchlist;
         readonly bool _isLocal;
         readonly string _keyword;
         readonly bool _isSecure;
@@ -20,6 +21,7 @@ namespace AichmeeLab.Api.Services.AuthenticatorService
             var settings = options.Value;
             var database = mongoClient.GetDatabase(settings.DatabaseName);
             _adminProfiles = database.GetCollection<AdminProfile>(settings.AdminsCollectionName);
+            _watchlist = database.GetCollection<AttemptTracker>(settings.WatchlistCollectionName);
 
             _keyword = config["AuthorizationKeyword"] ?? "default_key";
             _isSecure = config.GetValue<bool>("UseSecure", true);
@@ -37,12 +39,46 @@ namespace AichmeeLab.Api.Services.AuthenticatorService
                 return new ServiceResponse<string> { Success = false, Message = "Missing IP." };
             }
 
-            if (string.IsNullOrEmpty(keyword) || keyword != _keyword)
+
+            // 2. Check if the Ip has made previous attempts to gain admin access 
+            var attemptsProfile = _watchlist.Find(a => a.IpAddress == clientIp).FirstOrDefault();
+
+            if (attemptsProfile != null)
             {
-                return new ServiceResponse<string> { Success = false, Message = "Incorrect Key" };
+                if (attemptsProfile.AttemptCount >= 3 || attemptsProfile.IsBlocked)
+                {
+                    return new ServiceResponse<string> { Success = false, Message = "Client blocked" };
+                }
+            }
+            else
+            {//First time attempt 
+                attemptsProfile = new AttemptTracker()
+                {
+                    AttemptCount = 0,
+                    IpAddress = clientIp
+                };
             }
 
-            // 2. CHECK for existing session
+            // 3. Check if the keyword provided is valid, if not update tracker
+            if (string.IsNullOrEmpty(keyword) || keyword != _keyword)
+            {
+                attemptsProfile.AttemptCount++;
+                attemptsProfile.IsBlocked = attemptsProfile.AttemptCount >= 3;
+
+                //Log failed attempt
+                _watchlist.ReplaceOne(
+                    filter: a => a.IpAddress == clientIp,
+                    replacement: attemptsProfile,
+                    options: new ReplaceOptions { IsUpsert = true }
+                );
+
+                return new ServiceResponse<string> { Success = false, Message = "Incorrect Key" };
+
+            }
+
+            // 4. CHECK for existing session
+            //  First case: User already has a cookie in his client and it matches with the ip in the db 
+            //  Second case: User client has a cookie that matches a different ip, 
             var sessionCookie = req.Cookies.FirstOrDefault(c => c.Name == "AdminSession");
             if (sessionCookie != null && !string.IsNullOrWhiteSpace(sessionCookie.Value))
             {
@@ -63,11 +99,21 @@ namespace AichmeeLab.Api.Services.AuthenticatorService
                     }
                     else
                     {
-                        return new ServiceResponse<string> { Success = false, Message = "Invalid Session" };
+                        attemptsProfile.AttemptCount++;
+                        attemptsProfile.IsBlocked = attemptsProfile.AttemptCount >= 3;
+
+                        //Log failed attempt
+                        _watchlist.ReplaceOne(
+                            filter: a => a.IpAddress == clientIp,
+                            replacement: attemptsProfile,
+                            options: new ReplaceOptions { IsUpsert = true }
+                        );
+
+                        return new ServiceResponse<string> { Success = false, Message = "Client Ip and Client Token don't match, please generate a new token." };
                     }
                 }
             }
-            // 3. Generate a new Session Token
+            // 5.All checks passed, generate a new Session Token
             string token = Guid.NewGuid().ToString();
 
             var newAdmin = new AdminProfile
@@ -80,14 +126,14 @@ namespace AichmeeLab.Api.Services.AuthenticatorService
 
             try
             {
-                // 4. Insert new entry
+                // Insert new entry
                 // Q: Why is this a synchronous call?
-                // A: An issue with the isolated worker in the specific method forced me,\ 
+                // A: An issue with the isolated worker in the specific method forced me
                 //    into this compromise. In the future it must be asynchronous
                 _adminProfiles.InsertOne(newAdmin);
 
-                
-                System.Threading.Thread.Sleep(150);
+
+                Thread.Sleep(150);
             }
             catch (Exception ex)
             {
@@ -99,9 +145,12 @@ namespace AichmeeLab.Api.Services.AuthenticatorService
                 };
             }
 
-            // 5. Cookie baked, deliver it to the Client
+            // 6. Cookie baked, deliver it to the Client
             string cookieHeader = $"AdminSession={token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=2592000";
             if (_isSecure) cookieHeader += "; Secure";
+
+            // 7. If there are previous attempts to connect clear them 
+            _watchlist.DeleteOne(a => a.IpAddress == clientIp);
 
             return new ServiceResponse<string>
             {
@@ -131,18 +180,27 @@ namespace AichmeeLab.Api.Services.AuthenticatorService
             if (sessionToken == null || string.IsNullOrWhiteSpace(sessionToken.Value))
                 return new ServiceResponse<bool> { Success = false, Message = "Failed authentication" };
 
-            var result = await _adminProfiles.Find(a => a.SessionToken == sessionToken.Value).FirstOrDefaultAsync();
+            var result = await _adminProfiles
+            .Find(a => a.SessionToken == sessionToken.Value &&
+            a.ExpirationDate > DateTime.UtcNow).FirstOrDefaultAsync();
 
             if (result == null) return new ServiceResponse<bool> { Success = false, Message = "Failed authentication" };
 
+            if(result.ExpirationDate <= DateTime.UtcNow)
+            {
+                await  _adminProfiles.DeleteOneAsync(a => a.Id == result.Id);
+                return new ServiceResponse<bool> {Success = false, Message = "EXPIRED"};
+
+            }
+
             string clientIp = GetClientIp(req);
 
-            // Check if existing IPs match
-            // If the Ips don't match delete the entry with the token
+            // Check if incoming Ip matches Db Ip
+            // If the Ips don't match delete the entry with the token and inform client that he must retry 
             if (!result.Ip.Equals(clientIp))
             {
-                await _adminProfiles.DeleteOneAsync(a => a.SessionToken == sessionToken.Value);
-                return new ServiceResponse<bool> { Success = false, Message = "Failed Authentication" };
+                await _adminProfiles.DeleteManyAsync(a => a.SessionToken == sessionToken.Value);
+                return new ServiceResponse<bool> { Success = false, Message = "Client Ip and Client Token don't match, please generate a new token." };
             }
 
             return new ServiceResponse<bool> { Data = true, Success = true, Message = "Admin Access" };

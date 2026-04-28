@@ -2,11 +2,6 @@
 @inject AichmeeLab.Services.SecurityService.ISecurityService SecurityService
 @inject NavigationManager NavigationManager
 
-
-<h1>UNLOCK</h1>
-
-
-
 @code{
     [Parameter]public string Keyword{get; set;} = string.Empty;
 
@@ -15,7 +10,7 @@
     {
 
             await SecurityService.GetAdminAccessAsync(Keyword);
-            NavigationManager.NavigateTo("/admin/");
+            NavigationManager.NavigateTo("/admin/articles/");
 
          
 

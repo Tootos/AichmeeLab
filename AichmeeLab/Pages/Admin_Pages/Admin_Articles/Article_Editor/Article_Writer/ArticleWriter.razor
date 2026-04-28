@@ -65,7 +65,7 @@
     bool _loadContent { get; set; }
 
 
-    protected async override Task OnParametersSetAsync()
+    protected override void OnParametersSet()
     {
         if (SelectedArticle.ContentBlocks.Count > 0)
         {
