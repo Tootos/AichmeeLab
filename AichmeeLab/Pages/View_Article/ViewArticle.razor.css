@@ -1,4 +1,5 @@
 .view-window {
+    width:95%;
     border-radius: var(--border-radius);
     border: 1px solid var(--border-color);
     box-shadow: var(--hover-shadow);

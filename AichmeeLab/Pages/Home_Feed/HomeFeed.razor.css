@@ -1,16 +1,14 @@
 /* --- STRUCTURAL CONTAINERS --- */
 .list-window {
-    position: fixed;
+    /* position: fixed;
     top: 0;
     left: 50%;
-    transform: translateX(-50%);
+    transform: translateX(-50%); */
 
-    /* Set to 30% as requested, but keeping max-width for ultra-wide screens */
-    width: 30%;
+    padding: 2rem;
     min-width: 400px;
-    /* Prevents it from becoming too skinny on smaller screens */
     max-width: 800px;
-    height: 100vh;
+    height: 100dvh;
 
     padding-top: 80px;
     box-sizing: border-box;
@@ -23,15 +21,14 @@
     display: flex;
     flex-direction: column;
     gap: 48px;
-    /* Increased gap for better breathing room in a borderless design */
 
     width: 100%;
     height: 100%;
-
+    
+    overflow: hidden;
     overflow-y: auto;
     padding-bottom: 150px;
 
-    /* Hide scrollbar for the minimalist look */
     scrollbar-width: none;
     -ms-overflow-style: none;
 }

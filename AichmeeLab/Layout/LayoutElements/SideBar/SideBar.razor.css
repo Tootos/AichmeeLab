@@ -1,38 +1,18 @@
 .sidebar-container {
     position: relative;
-    /* position: fixed; */
-    /* top: 0; */
-    /* left: 0; */
-    width: 240px;
     height: 100vh;
     background-color: var(--surface-color);
     border-right: 1px solid var(--border-color);
     box-shadow: var(--hover-shadow);
-
-    /* The Drawer Logic */
     transform: translateX(0);
     transition: 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
 
-    z-index: 20;
+    z-index: 100;
 }
 
-.sidebar-container.collapsed {
-    /* transform: translateX(-100%); */
-    margin-left: calc(240px * -1);
-}
-
-.sidebar-layout {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    padding: 40px 10px;
-    height: 100%;
-    min-width: 240px;
-}
 
 .sidebar-footer {
-       margin-top: auto;
+    margin-top: auto;
     display: flex;
     justify-content: center;
     width: 100%;
@@ -40,18 +20,14 @@
 }
 
 .sidebar-toggle {
-    /* Position relative to the sidebar container */
     position: absolute;
     top: 50%;
     left: 100%;
-    /* This is the "Glue" */
     transform: translateY(-50%);
 
-    /* Aesthetics */
     background-color: var(--surface-color);
     border: 1px solid var(--border-color);
     border-left: none;
-    /* Merges it with the sidebar border */
     color: var(--font-color2);
 
     padding: 12px 6px;
@@ -59,9 +35,10 @@
     cursor: pointer;
     transition: color 0.2s, background-color 0.2s;
 }
-.admin-window{
+
+.admin-window {
     border-radius: 15px;
-    width:100%;
+    width: 100%;
     box-shadow: var(--resting-shadow);
     margin-top: 50px;
 }
@@ -78,13 +55,57 @@
     text-decoration: none;
 }
 
-::deep .nav-text-btn i {
-    color: var(--font-color1);
-    font-size: 0.9rem;
-    transition: color 0.2s ease;
-}
-
-::deep .nav-text-btn.active,
-::deep .nav-text-btn.active i {
+::deep .nav-text-btn.active{
     color: var(--select-color);
 }
+
+@media(min-width:641px) {
+    .sidebar-layout {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 40px 10px;
+        height: 100%;
+        min-width: 240px;
+    }
+
+    ::deep .nav-text-btn {
+        font-size: 1.3rem;
+    }
+
+    .sidebar-container {
+        width: 240px;
+    }
+
+    .sidebar-container.collapsed {
+        margin-left: calc(240px * -1);
+    }
+}
+
+@media(max-width:640px) {
+    .sidebar-layout {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 40px 20px;
+        height: 100%;
+    }
+
+    ::deep .nav-text-btn {
+        font-size: 2.2rem;
+    }
+    .sidebar-footer
+    ::deep .nav-text-btn {
+        font-size: 1.3rem;
+    }
+
+    .sidebar-container {
+        width: 100dvh;
+    }
+
+    .sidebar-container.collapsed {
+        margin-left: calc(100dvh * -1);
+    }
+}
+
