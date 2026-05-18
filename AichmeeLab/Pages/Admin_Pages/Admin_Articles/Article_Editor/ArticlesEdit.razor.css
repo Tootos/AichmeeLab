@@ -1,7 +1,6 @@
 ﻿.editor-layout {
     display: flex;
     gap: 15px;
-    height: 100vh;
     width: 100%;
     justify-content: center;
     align-items: flex-start;
@@ -15,15 +14,16 @@
     user-select: none;
 }
 
-.editor-layout.is-loading>*:not(.loading-overlay) {
+.editor-layout.is-loading>*:not(.loading-window) {
     filter: blur(4px);
     opacity: 0.6;
 }
 
-.editor-layout.is-loading .loading-overlay {
+.editor-layout.is-loading .loading-window {
     display: flex;
 }
 
+/* Loading Overlay */
 .loading-window {
     display: none;
     position: fixed;
@@ -45,16 +45,32 @@
     box-shadow: var(--hover-shadow);
 }
 
+.spinner-icon {
+    font-size: 2rem;
+color: var(--font-color1);
+    display: inline-block;
+    animation: spin 1.2s linear infinite;
+}
+.service-response{
+    display: flex;
+    flex-direction: column;
+    color: var(--font-color1);
+    align-items: flex-start;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
 /* Middle Editor */
 
-.writer-layout {
-    height: 95vh;
-    width: 100%;
-    max-width: 800px;
-    flex-direction: column;
-    display: flex;
-    overflow: hidden;
-}
+
 
 .inspector-window {
     width: 100%;
@@ -100,8 +116,13 @@
     margin: 0 auto;
     box-sizing: border-box;
     flex-shrink: 1;
-    z-index: 1;
+}
 
+.writer-layout {
+    width: 800px;
+    flex-direction: column;
+    display: flex;
+    overflow: hidden;
 }
 
 .is-open+.writer-window {

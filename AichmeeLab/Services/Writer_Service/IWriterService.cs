@@ -19,7 +19,8 @@ namespace AichmeeLab.Services.WriterService
 
         Task<ServiceResponse<Article>> GetArticleAsync(string id);
         Task GetArticlesAsync();
-        Task<ServiceResponse<Article>> UpdateArticleAsync(Article article);
+        Task<ServiceResponse<Article>> UpdateArticleInfoAsync(Article article);
+        Task<ServiceResponse<Article>> UpdateArticleParagraphsAsync(Article article);
         Task<ServiceResponse<int>>  UpdateVisibilityAsync(Dictionary<string, bool> bulkChange);
         Task<ServiceResponse<bool>> DeleteArticleAsync(string id);
         

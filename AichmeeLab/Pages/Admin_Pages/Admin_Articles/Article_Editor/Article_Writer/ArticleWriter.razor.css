@@ -2,7 +2,7 @@
 .writer-canvas {
     background-color: beige;
     padding: 40px;
-    height: 100%;
+    height: 90dvh;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
@@ -17,8 +17,6 @@
     padding-left: 60px;
     margin-left: -60px;
 }
-
-
 
 /* THE EDITOR DIV */
 .simple-writer {
@@ -83,7 +81,12 @@
 
 /* Container for the trigger and the hidden menu */
 .side-menu-wrapper {
-    position: absolute;
+
+    position: relative;
+    display: inline-block;
+    width: 30px;
+    height: 30px;
+    /* position: absolute;
     left: 20px;
     top: 0;
     display: flex;
@@ -91,7 +94,7 @@
     pointer-events: none;
     flex-direction: column;
     align-items: center;
-    z-index: 100;
+    z-index: 100; */
 }
 
 .text-block-container:hover .side-menu-wrapper {
@@ -99,7 +102,6 @@
     pointer-events: auto;
 }
 
-/* The Plus Button */
 .options-prompt {
     background: transparent;
     border: none;
@@ -107,6 +109,7 @@
     font-size: 1.2rem;
     cursor: pointer;
     transition: transform 0.2s ease, color 0.2s;
+    z-index: 250;
 }
 
 .side-menu-wrapper:hover .options-prompt {
@@ -121,17 +124,22 @@
 /* The Hidden Menu */
 .options-menu {
     display: none;
-    flex-direction: column;
+    flex-direction: row;
     gap: 5px;
     background: white;
     border: 1px solid #ddd;
-    /* position: relative;
-    left:-45px; */
+
+    /* Position it to the right of the plus button */
+    position: absolute;
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%);
+
     border-radius: 20px;
-    padding: 2px 10px;
+    padding: 4px 12px;
     /* margin-left: 10px; */
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    z-index: 50;
+    z-index: 250;
 }
 
 .text-block-container:hover .options-menu {
@@ -147,14 +155,13 @@
 
 /* Button Styles inside the menu */
 .options-menu button {
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 4px;
-    font-size: 0.8rem;
-    /* transition: 0.2s; */
+    background: none;
+    border: none;
+    color: #666;
+    font-weight: bold;
+    cursor: pointer;
+    padding: 5px;
+    transition: color 0.2s;
 }
 
 .options-menu button:hover {
@@ -167,13 +174,14 @@
 .inline-toolbar {
     display: none;
     position: absolute;
-    background: #222; /* Dark theme for contrast */
+    background: #222;
+    /* Dark theme for contrast */
     color: white;
     border-radius: 8px;
     padding: 5px;
     gap: 5px;
-    z-index: 1000;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    z-index: 250;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
 
 .inline-toolbar button {

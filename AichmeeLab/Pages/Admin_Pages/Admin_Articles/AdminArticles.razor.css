@@ -1,3 +1,7 @@
+.admin-window{
+    width: 100%;
+}
+
 .admin-layout{
     display: flex;
     flex-direction: column;

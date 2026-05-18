@@ -1,11 +1,17 @@
+using System.Text.Json.Serialization;
 
 namespace Aichmee.Shared
 {
     public class ContentBlock
     {
-        public string ArticleId {get; set;} = string.Empty;
-        public int Step {get; set;} 
+
+        [JsonPropertyName("step")]
+        public int Step { get; set; } 
+
+        [JsonPropertyName("type")]
         public string Type { get; set; } = "text";
-        public string Content { get; set; } = string.Empty;
+
+        [JsonPropertyName("content")]
+        public List<string> Content { get; set; } = new List<string>();
     }
 }

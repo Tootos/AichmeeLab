@@ -1,9 +1,11 @@
 ﻿@using System.Threading.Tasks
 @using AichmeeLab.Layout.LayoutElements.AboutModal
 @using AichmeeLab.Layout.LayoutElements.SideBar
+
 @inherits LayoutComponentBase
 
 @inject AichmeeLab.Services.UserService.IUserService UserService;
+@inject AichmeeLab.Services.ImageService.IImageService ImageService;
 @inject AichmeeLab.Services.SecurityService.ISecurityService SecurityService;
 @implements IDisposable
 @inject NavigationManager NavigationManager
@@ -36,6 +38,8 @@
     {
         _isAdmin = await SecurityService.IsAuthorizedAsync();
         NavigationManager.LocationChanged += HandleLocationChanged;
+
+        await ImageService.GetAssetsAsync();
     }
 
     protected async override Task OnAfterRenderAsync(bool firstRender)

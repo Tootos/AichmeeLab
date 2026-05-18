@@ -83,7 +83,9 @@ window.writerEngine = {
 
                 toolbar.style.display = 'flex';
                 toolbar.style.top = `${rect.top - 45 + window.scrollY}px`;
-                toolbar.style.left = `${rect.left + (rect.width / 2) - (toolbar.offsetWidth / 2)}px`;
+                toolbar.style.left = `${rect.left + (rect.width / 2) - (toolbar.offsetWidth / 2) - 100}px`;
+
+
             } else {
                 toolbar.style.display = 'none';
             }
@@ -111,6 +113,37 @@ window.writerEngine = {
                 el.dispatchEvent(new Event('input', { bubbles: true }));
             }
         }
+    },
+    // Split document content and export the latter part of the string
+    splitContent: (domId) => {
+        const el = document.getElementById(domId);
+        if (!el) return null;
+
+        const selection = window.getSelection();
+        if (!selection.rangeCount) return null;
+
+        const range = selection.getRangeAt(0);
+
+        // Create a range that spans from the cursor to the end of the block
+        const trailingRange = document.createRange();
+        trailingRange.setStart(range.endContainer, range.endOffset);
+        trailingRange.setEndAfter(el.lastChild || el);
+
+        // Extract the contents (this removes it from the current DOM element)
+        const fragment = trailingRange.extractContents();
+
+        // Convert the fragment to an HTML string
+        const tempDiv = document.createElement("div");
+        tempDiv.appendChild(fragment);
+
+        const trailingHtml = tempDiv.innerHTML;
+
+        // Clean up the current block if it's left empty
+        if (el.innerHTML.trim() === "" || el.innerHTML === "<br>") {
+            el.innerHTML = "<p><br></p>";
+        }
+
+        return trailingHtml;
     },
 
 

@@ -10,13 +10,17 @@
 <div class="editor-layout @(_loading ? "is-loading" : "")">
     <div class="loading-window">
         <div class="loader-layout">
-            <div class="spinner"></div>
-            <p>Working with the Db, please don't exit.</p>
+            <div class="spinner-icon"><i class="bi bi-arrow-clockwise"></i></div>
+            <div class="service-response">
+                <span>Service Response: </span>
+                @foreach(var message in _serviceMessages){
+                    <span>@message</span>
+                }
+            </div>
+            
         </div>
     </div>
 
-
-    
     @if (_isPreviewMode)
     {
         <button type="button" class="btn btn-outline-secondary" @onclick="HandlePreview">
@@ -89,6 +93,7 @@
     ArticleInspector? _articleInspector;
 
     bool _loading { get; set; } = false;
+    List<string> _serviceMessages = new List<string>();
     
     [Parameter] public Article SelectedArticle { get; set; } = new Article();
     Image _selectedImage { get; set; } = new Image();
@@ -96,75 +101,148 @@
     [Parameter] public EventCallback<Article?> OnChange { get; set; }
     bool _isPreviewMode { get; set; } = false;
     bool _isHeaderOpen { get; set; } = false;
-
+    
+    protected override void OnInitialized()
+    {
+        ImageService.Collages.Clear();
+    }
 
     protected override async Task OnParametersSetAsync()
     {
         if (!string.IsNullOrEmpty(SelectedArticle.HeaderImageId))
         {
-
             var result = await ImageService.GetImageAsync(SelectedArticle.HeaderImageId);
-
             if (result.Success && result.Data != null)
                 _selectedImage = result.Data;
-
         }
-        
     }
-
+    
+    //Save Article
     public async Task SaveEntryAsync()
     {
-        if (_articleWriter == null || _articleInspector == null)
-            return;
-
-        //ALWAYS EXPORT THE CONTENT LIST FIRST OR ELSE THE CONTENT WILL BE ERASED AFTER STATEHASCHANGED()
-        SelectedArticle.ContentBlocks = _articleWriter.ExportList();
-
-        _loading = true;
-        StateHasChanged();
-        
-        if (string.IsNullOrEmpty(_selectedImage.Id))
+        _serviceMessages.Clear();
+        string jsMessage = "Entry Saved.";
+        try
         {
-            var imageResponse = await _articleInspector.ImageDbUploadAsync();
-            if (!imageResponse.Success || string.IsNullOrEmpty(imageResponse?.Data?.Id))
-            {
-                await jSRuntime.InvokeVoidAsync("alert", imageResponse.Message ?? "Failed uploading image.");
-                _loading = false;
-                StateHasChanged();
+            // 1. Check if Page Elements are initialized
+            if (_articleWriter == null || _articleInspector == null)
                 return;
-
-            }
-            _selectedImage = imageResponse.Data;
-            SelectedArticle.HeaderImageId = imageResponse.Data.Id;
-            
-        }
-        else
-        {
-            await ImageService.UpdateImageAsync(_selectedImage);
-        }
-
         
-  
+            //Make a new Article class to take the new data so Parameter SelectedArticle doesn't trigger lifecycle methods.
+            var savedArticle = new Article
+            {
+                Id = SelectedArticle.Id,
+                Title = SelectedArticle.Title,
+                Description = SelectedArticle.Description,
+                Author = SelectedArticle.Author,
+                DatePublished = SelectedArticle.DatePublished,
+                Contact = SelectedArticle.Contact,
+                HeaderImageId = SelectedArticle.HeaderImageId
+            };
 
-        var response = await WriterService.UpdateArticleAsync(SelectedArticle);
-        if (response.Success && response.Data != null)
-            SelectedArticle = response.Data;
+            //ALWAYS EXPORT THE CONTENT LIST FIRST OR ELSE THE CONTENT WILL BE ERASED AFTER STATEHASCHANGED()
+            var contentBlocks = _articleWriter.ExportList();
 
+            // 2. Lock the editor for the user
+            _loading = true;
+            StateHasChanged();
+        
+            // 3. Handle Image Change
+            // Case 1: If it doesn't have an Id it's a new image and we will create an entry
+            if (string.IsNullOrEmpty(_selectedImage.Id))
+            {
+                var imageResponse = await _articleInspector.ImageDbUploadAsync();
+                if (!imageResponse.Success || string.IsNullOrEmpty(imageResponse?.Data?.Id))
+                {
+                    await jSRuntime.InvokeVoidAsync("alert", imageResponse.Message ?? "Failed uploading image.");
+                    _loading = false;
+                    StateHasChanged();
+                    return;
 
-        await jSRuntime.InvokeVoidAsync("alert", response.Message);
-        _loading = false;
-        StateHasChanged();
+                }
+                _selectedImage = imageResponse.Data;
+                _serviceMessages.Add(imageResponse.Message);
+                
+                savedArticle.HeaderImageId = imageResponse.Data.Id;
+            }
+            //Case 2: If it isn't a new image then we will just update the information like description
+            else
+            {
+                var updateImageResponse = await ImageService.UpdateImageAsync(_selectedImage);
+                _serviceMessages.Add(updateImageResponse.Message);
+            }
+            StateHasChanged();
 
+            //4. Update the Article information(Id, Title, Date, etc...)
+            var response = await WriterService.UpdateArticleInfoAsync(savedArticle);
+            if (response.Success && response.Data != null && !string.IsNullOrEmpty(response.Data.Id))
+            {
+            
+                savedArticle = response.Data;
+                _serviceMessages.Add(response.Message);
+                StateHasChanged();
+                //5. Update the text content blocks
+                var textBlocks = contentBlocks.Where(c => c.Type == "text").ToList();
+                @* textBlocks.ForEach(b=>b.ArticleId = savedArticle.Id); *@
+                savedArticle.ContentBlocks = new List<ContentBlock>();
+                savedArticle.ContentBlocks.AddRange(textBlocks);
 
-        await OnChange.InvokeAsync(SelectedArticle);
+                var paragraphResponse =
+                await WriterService.UpdateArticleParagraphsAsync(savedArticle);
+                
+                _serviceMessages.Add(paragraphResponse.Message);
+                StateHasChanged();
+
+                //6. Upload all collage photos
+                foreach (var entry in ImageService.Collages)
+                {
+
+                    var collageResponse = await ImageService.UploadImagesBulk(savedArticle.Id,entry.Key,entry.Value);
+                    if (collageResponse.Success && collageResponse.Data != null)
+                    {
+                        savedArticle.ContentBlocks.Add(new ContentBlock
+                        {
+                            Step = entry.Key,
+                            Type = "collage",
+                            Content = collageResponse.Data
+                        });
+                    }
+
+                    StateHasChanged();
+
+                }
+                //7. Closing 
+                ImageService.Collages.Clear();
+
+                savedArticle.ContentBlocks = savedArticle.ContentBlocks.OrderBy(c => c.Step).ToList();
+                ImageService.Collages.Clear();
+                await OnChange.InvokeAsync(savedArticle);
+            }
+            else
+            {
+                
+                jsMessage = string.IsNullOrEmpty(response.Message) ? "Failed Save Operation" : response.Message;
+            }
+        }
+        catch (Exception ex)
+        {
+            jsMessage = ex.Message;
+        }
+        finally
+        {
+            //COMPLETED, DELIVER MESSAGE
+            await jSRuntime.InvokeVoidAsync("alert", jsMessage);
+            _loading = false;
+        }
     }
 
     async Task ResetEditorAsync()
     {
-        SelectedArticle = new Article();
+        var article = new Article();
         _selectedImage = new Image();
+        ImageService.Collages.Clear();
 
-        await OnChange.InvokeAsync(SelectedArticle);
+        await OnChange.InvokeAsync(article);
         StateHasChanged();
     }
 

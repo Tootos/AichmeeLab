@@ -119,11 +119,11 @@ namespace AichmeeLab.Services.WriterService
             }
         }
 
-        public async Task<ServiceResponse<Article>> UpdateArticleAsync(Article article)
+        public async Task<ServiceResponse<Article>> UpdateArticleInfoAsync(Article article)
         {
             try
             {
-                var request = new HttpRequestMessage(HttpMethod.Put, "api/dashboard/articles/put");
+                var request = new HttpRequestMessage(HttpMethod.Put, "api/dashboard/articles/information/put");
 
                 request.Content = JsonContent.Create(article);
 
@@ -194,7 +194,45 @@ namespace AichmeeLab.Services.WriterService
 
         }
 
+        public async Task<ServiceResponse<Article>> UpdateArticleParagraphsAsync(Article article)
+        {
+            try
+            {
+                var request = new HttpRequestMessage(HttpMethod.Put, $"api/dashboard/articles/paragraphs/put");
 
+                // --- DEBUG START ---
+                // Manually serialize to see if the string is empty
+                // var jsonString = System.Text.Json.JsonSerializer.Serialize(contentBlocks);
+                // Console.WriteLine($"FRONTEND JSON CHECK: {jsonString}");
+
+                request.Content = JsonContent.Create(article);
+
+                request.SetBrowserRequestCredentials(BrowserRequestCredentials.Include);
+
+                var response = await _httpClient.SendAsync(request);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var result = await response.Content.ReadFromJsonAsync<ServiceResponse<Article>>();
+                    return result ?? new ServiceResponse<Article> { Message = "No results", Success = false };
+                }
+
+                return new ServiceResponse<Article>
+                {
+                    Message = "No Response",
+                    Success = false
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResponse<Article>
+                {
+                    Message = $"Connection failed: {ex.Message}",
+                    Success = false
+
+                };
+            }
+        }
 
         private string GetSearchURL()
         {
@@ -211,6 +249,7 @@ namespace AichmeeLab.Services.WriterService
 
             return url;
         }
+
 
     }
 }

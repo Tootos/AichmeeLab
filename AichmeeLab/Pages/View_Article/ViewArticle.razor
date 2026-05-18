@@ -1,6 +1,7 @@
 @using System.Text.Json
 @using Aichmee.Shared;
 @using System.Text.Json.Serialization
+@using AichmeeLab.Pages.View_Article.View_Collage
 @using BootstrapBlazor.Components
 
 @inject AichmeeLab.Services.UserService.IUserService UserService
@@ -17,6 +18,8 @@
                 <h3 class="view-author">by @SelectedArticle.Author</h3>
                 <span class="view-date">Date Published:@SelectedArticle.DatePublished.ToString("MMM dd, yyyy")
                     | Last Updated: @SelectedArticle.LastUpdate.ToString("MMM dd, yyyy")</span>
+
+
                 </div>
 
                 @if (HeaderImage != null && !string.IsNullOrEmpty(HeaderImage.HeaderUrl))
@@ -27,6 +30,10 @@
                 }
 
                 <p class="view-description">@SelectedArticle.Description</p>
+                
+                <div class="line-separator"></div>
+
+                
 
                 @foreach (var block in SelectedArticle.ContentBlocks.OrderBy(x => x.Step))
                 {
@@ -34,14 +41,13 @@
                     {
                         @* The 'Reader-Side' fix: ensure content is wrapped if it's raw text *@
                         <div class="view-text-block">
-                            @((MarkupString)FormatContent(block.Content))
+                            @((MarkupString)FormatContent(block.Content[0]))
                         </div>
                     }
                     else if (block.Type == "collage")
                     {
                         @* We will build this next, but for now, it's ready for images *@
-                        <div class="view-collage-block">
-                        </div>
+                        <Collage IncomingCollage="@block.Content" />
                     }
                 }
             </div>
@@ -56,6 +62,9 @@
     [Parameter]
     public Image HeaderImage { get; set; } = new Image();
 
+
+    
+
     public class ListItem
     {
         public string? Content { get; set; }
@@ -65,7 +74,7 @@
     private string FormatContent(string content)
     {
         if (string.IsNullOrWhiteSpace(content)) return "";
-        
+
         var trimmed = content.Trim();
         // If it doesn't start with a tag, wrap it in a <p> for safety
         if (!trimmed.StartsWith("<"))

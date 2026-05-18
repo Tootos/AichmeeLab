@@ -7,32 +7,43 @@ using System.Threading.Tasks;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using System.ComponentModel.DataAnnotations;
-namespace Aichmee.Shared{
+namespace Aichmee.Shared
+{
     public class Article
     {
+        public Article() { }
+
         [BsonId]
         [BsonRepresentation(BsonType.ObjectId)]
         [JsonPropertyName("id")]
         public string? Id { get; set; }
         [Required]
         [StringLength(20)]
-        public string Title {  get; set; } = string.Empty;
+        [JsonPropertyName("title")]
+        public string Title { get; set; } = string.Empty;
         [BsonRepresentation(BsonType.ObjectId)]
+        [JsonPropertyName("headerImageId")]
         public string HeaderImageId { get; set; } = string.Empty;
         [Required]
-        [StringLength(60)]
+        [JsonPropertyName("description")]
+
         public string Description { get; set; } = string.Empty;
-        public List<ContentBlock> ContentBlocks {get; set;} = new List<ContentBlock>();
-        
+        [JsonPropertyName("contentBlocks")]
+        public List<ContentBlock> ContentBlocks { get; set; } = new List<ContentBlock>();
+
         [Required]
         [StringLength(25)]
-        public string Author {get; set;} = string.Empty;
-        public string Contact {get; set; } = string.Empty;
+        [JsonPropertyName("author")]
+        public string Author { get; set; } = string.Empty;
+        [JsonPropertyName("contact")]
+        public string Contact { get; set; } = string.Empty;
+        [JsonPropertyName("datePublished")]
         public DateTime DatePublished { get; set; } = DateTime.UtcNow;
+        [JsonPropertyName("lastUpdate")]
         public DateTime LastUpdate { get; set; } = DateTime.UtcNow;
-        
+        [JsonPropertyName("isVisible")]
         public bool IsVisible { get; set; } = false;
-
+        [JsonPropertyName("isDeleted")]
         public bool IsDeleted { get; set; } = false;
     }
 }

@@ -1,6 +1,9 @@
-﻿using AichmeeLab.Api.LocalModels;
+﻿using Aichmee.Shared;
+using AichmeeLab.Api.LocalModels;
 using AichmeeLab.Api.Services.ArticleService;
 using AichmeeLab.Api.Services.ImageService;
+using HttpMultipartParser;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
@@ -61,11 +64,13 @@ namespace AichmeeLab.Api
             return badRequest;
         }
 
-        [Function("UpdateArticle")]
+        [Function("UpdateArticleInformation")]
         public async Task<HttpResponseData> Put(
-            [HttpTrigger(AuthorizationLevel.Function, "put", Route = "dashboard/articles/put")] HttpRequestData req)
+            [HttpTrigger(AuthorizationLevel.Function, "put", Route = "dashboard/articles/information/put")] HttpRequestData req)
         {
-            var result = await _articleService.UpdateArticle(await new StreamReader(req.Body).ReadToEndAsync());
+            string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
+            var article = JsonSerializer.Deserialize<Article>(requestBody);
+            var result = await _articleService.UpdateArticleInformation(article);
 
 
             if (result.Success)
@@ -78,11 +83,30 @@ namespace AichmeeLab.Api
             var badRequest = req.CreateResponse(HttpStatusCode.BadRequest);
             await badRequest.WriteAsJsonAsync(result);
             return badRequest;
+        }
 
+
+        [Function("UpdateArticleContent")]
+        public async Task<HttpResponseData> TryPut(
+            [HttpTrigger(AuthorizationLevel.Function, "put", Route = "dashboard/articles/paragraphs/put")] HttpRequestData req)
+        {
+            string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
+            var article = JsonSerializer.Deserialize<Article>(requestBody);
+
+            var result = await _articleService.UpdateArticleContent(article);
+            if (result.Success)
+            {
+                var response = req.CreateResponse(HttpStatusCode.OK);
+                await response.WriteAsJsonAsync(result);
+                return response;
+            }
+
+            var badRequest = req.CreateResponse(HttpStatusCode.BadRequest);
+            await badRequest.WriteAsJsonAsync(result);
+            return badRequest;
 
 
         }
-
         [Function("UpdateVisibility")]
         public async Task<HttpResponseData> UpdateVisibility(
             [HttpTrigger(AuthorizationLevel.Function, "put", Route = "dashboard/articles/visibility")] HttpRequestData req)
@@ -127,6 +151,29 @@ namespace AichmeeLab.Api
             _logger.LogInformation("Attempting to upload an image");
 
             var result = await _imageService.UploadImage(req);
+            if (result.Success)
+            {
+                var response = req.CreateResponse(HttpStatusCode.OK);
+                await response.WriteAsJsonAsync(result);
+                return response;
+            }
+
+            var badRequest = req.CreateResponse(HttpStatusCode.BadRequest);
+            await badRequest.WriteAsJsonAsync(result);
+            return badRequest;
+
+        }
+
+        [Function("UploadImagesBulk")]
+        public async Task<HttpResponseData> UploadImagesBulk(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "dashboard/images/post/bulk/{id?}")] HttpRequestData req, string id)
+        {
+            _logger.LogInformation("Attempting to upload an image");
+
+            var  parsedForm = await MultipartFormDataParser.ParseAsync(req.Body);
+            
+            var result = await _imageService.BulkUploadImage(parsedForm);
+            
             if (result.Success)
             {
                 var response = req.CreateResponse(HttpStatusCode.OK);

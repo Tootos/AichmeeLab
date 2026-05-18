@@ -119,12 +119,8 @@ namespace AichmeeLab.Api.Services.ArticleService
             }
         }
 
-        public async Task<ServiceResponse<Article>> UpdateArticle(string requestBody)
+        public async Task<ServiceResponse<Article>> UpdateArticleInformation(Article article)
         {
-            var article = JsonSerializer.Deserialize<Article>(requestBody, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            });
 
             if (article == null)
             {
@@ -137,30 +133,49 @@ namespace AichmeeLab.Api.Services.ArticleService
             {
                 article.Id = ObjectId.GenerateNewId().ToString();
                 article.DatePublished = DateTime.UtcNow;
-                if (article.ContentBlocks != null)
-                {
-                    foreach (var block in article.ContentBlocks)
-                    {
-                        block.ArticleId = article.Id;
-                    }
-                }
                 await _collection.InsertOneAsync(article);
             }
             else
             {
-                if (article.ContentBlocks != null)
-                {
-                    foreach (var block in article.ContentBlocks.Where(b=>b.ArticleId != article.Id))
-                    {
-                        block.ArticleId = article.Id;
-                    }
-                }
                 var filter = Builders<Article>.Filter.Eq(a => a.Id, article.Id);
                 await _collection.ReplaceOneAsync(filter, article, new ReplaceOptions { IsUpsert = true });
             }
 
             return new ServiceResponse<Article>
-            { Data = article, Success = true, Message = "Article saved" };
+            { Data = article, Success = true, Message = "Article Information saved." };
+        }
+
+        public async Task<ServiceResponse<Article>> UpdateArticleContent(Article article)
+        {
+
+            try
+            {
+                if (article == null || !article.ContentBlocks.Any() ||string.IsNullOrEmpty(article.Id))
+                {
+                    return new ServiceResponse<Article>
+                    { Success = false, Message = "Failed to update paragraphs, data was missing." };
+                }
+                article.ContentBlocks.OrderBy(b => b.Step);
+                article.LastUpdate = DateTime.UtcNow;
+
+                var filter = Builders<Article>.Filter.Eq(a => a.Id, article.Id);
+                await _collection.ReplaceOneAsync(filter, article);
+
+                return new ServiceResponse<Article>
+                {
+                    Data = article,
+                    Success = true,
+                    Message = $"Content changed for Article {article.Id}."
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResponse<Article>
+                {
+                    Success = false,
+                    Message = ex.Message
+                };
+            }
         }
 
         public async Task<ServiceResponse<int>> UpdateVisibility(Dictionary<string, bool>? articlesToChange)
@@ -240,6 +255,7 @@ namespace AichmeeLab.Api.Services.ArticleService
 
 
         }
+
 
     }
 }

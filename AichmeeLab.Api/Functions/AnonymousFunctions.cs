@@ -116,6 +116,25 @@ namespace AichmeeLab.Api
                 return response;
         }
 
+        [Function("GetAssets")]
+        public async Task<HttpResponseData> GetAssets(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "anon/assets")] HttpRequestData req)
+        {
+            var result = new ServiceResponse<string>
+            {
+                Data = _imageService.AboutImage,
+                Success= true
+            };
+
+            var successResponse = req.CreateResponse(HttpStatusCode.OK);
+                await successResponse.WriteAsJsonAsync(result);
+                return successResponse;
+
+        }
+        
+
+
+
 
 
     }

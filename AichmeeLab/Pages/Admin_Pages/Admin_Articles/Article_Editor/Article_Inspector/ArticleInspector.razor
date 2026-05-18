@@ -27,7 +27,7 @@
         else if (string.IsNullOrEmpty(SelectedImage.HeaderUrl) && !_isUploading)//Waiting to be seeded
         {
             
-            <label for="file-upload" class="btn-image-action upload-mode">
+            <label for="header-upload" class="btn-image-action upload-mode">
                 <i class="bi bi-pc"></i> Upload from Computer
             </label>
 
@@ -37,14 +37,14 @@
         {
             <h3>Header Preview</h3>
             <img class="header-preview" src="@SelectedImage.HeaderUrl" />
-            <label for="file-upload" class="btn-image-action replace-mode">
+            <label for="header-upload" class="btn-image-action replace-mode">
                 <i class="bi bi-arrow-repeat"></i> Replace from Computer
             </label>
 
             <InputText @bind-Value="SelectedImage.Description" class="image-description" placeholder="(Optional Note)" />
         }
 
-        <InputFile id="file-upload" OnChange="CaptureStreamAsync" style="display:none" />
+        <InputFile id="header-upload" OnChange="CaptureStreamAsync" style="display:none" />
 
             
     </div>

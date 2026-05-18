@@ -10,7 +10,9 @@ namespace AichmeeLab.Api.Services.ArticleService
         Task<ServiceResponse<Article>> GetArticle(string? id, bool isAdmin);
         
         Task<ServiceResponse<PagedResult<Article>>> GetArticles(string urlQuery, bool isAdmin);
-        Task<ServiceResponse<Article>> UpdateArticle(string requestBody);
+        Task<ServiceResponse<Article>> UpdateArticleInformation(Article article);
+
+        Task<ServiceResponse<Article>> UpdateArticleContent(Article article);
 
         Task<ServiceResponse<int>> UpdateVisibility(Dictionary<string, bool>? articlesToChange);
 

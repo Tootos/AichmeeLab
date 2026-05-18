@@ -1,87 +1,114 @@
+@using AichmeeLab.Pages.Admin_Pages.Admin_Articles.Article_Editor.Article_Writer.Images_Sidepanel
+@using AichmeeLab.Pages.Admin_Pages.Admin_Articles.Article_Editor.Photo_Collage
+@using AichmeeLab.Services.ImageService
 @using BootstrapBlazor.Components
 @using Markdig
 @using System.Runtime.CompilerServices
 @inject IJSRuntime jSRuntime;
 
 <div class="writer-canvas">
-
-    
     @foreach (var block in WriterData.OrderBy(x => x.Step))
     {
-        var id = string.IsNullOrEmpty(SelectedArticle.Id) ? "" : SelectedArticle.Id;
-        var domId = $"text-{block.Step}-{id}";
-        var menuId = $"menu-{block.Step}-{id}";
 
-        @if (block.Type == "text")
+        
+        var id = string.IsNullOrEmpty(SelectedArticle.Id) ? "new" : SelectedArticle.Id;
+        var domId = $"{block.Type}-{block.Step}-{id}";
+
+        
+
+        @switch (block.Type)
         {
-            <div class="text-block-container" @onmouseover="() => _activeDomId = domId">
-                <div id="@menuId" class="side-menu-wrapper">
-                    <button class="options-prompt" type="button">
-                        <i class="bi bi-list"></i> </button>
+            case "text":
+                var menuId = $"menu-{block.Step}-{id}";
+                <div @key="@domId" class="text-block-container" @onmouseover="() => _activeDomId = domId">
+                    <div id="@menuId" class="side-menu-wrapper">
+                        <button class="options-prompt" type="button">
+                            <i class="bi bi-list"></i> </button>
 
-                        <div class="options-menu">
-                            <button @onclick='() => ApplyStyleAsync("h1")' title="H1">H1</button>
-                            <button @onclick='() => ApplyStyleAsync("h3")' title="H3">H3</button>
-                            <button @onclick='() => ApplyStyleAsync("p")' title="Text">P</button>
-                            <button @onclick='() => ApplyStyleAsync("ol")' title="Ordered List">1.</button>
-                            <button @onclick='() => ApplyStyleAsync("ul")' title="Bullet List">•</button>
-                            <button @onclick="AddCollage">Pic</button>
+                            <div class="options-menu">
+                                <button @onclick='() => ApplyStyleAsync("h1")' title="H1">H1</button>
+                                <button @onclick='() => ApplyStyleAsync("h3")' title="H3">H3</button>
+                                <button @onclick='() => ApplyStyleAsync("p")' title="Text">P</button>
+                                <button @onclick='() => ApplyStyleAsync("ol")' title="Ordered List">1.</button>
+                                <button @onclick='() => ApplyStyleAsync("ul")' title="Bullet List">•</button>
+                                <button @onclick="AddCollage">Pic</button>
+                            </div>
+                        </div>
 
+                        <div @key="@domId" id="@domId" contenteditable="true" class="simple-writer"
+                             @oninput='() => UpdatePosition(domId, menuId)' @onclick='() => UpdatePosition(domId, menuId)'
+                             @onkeyup='() => UpdatePosition(domId, menuId)' @onblur="() => SyncContent(block, domId)"
+                             suppressContentEditableWarning="true" spellcheck="false">
+
+                            @* @if (string.IsNullOrEmpty(block.Content))
+                            {
+                                <span></span>
+                            } *@
                         </div>
                     </div>
-
-                    
-
-                    <div id="@domId" contenteditable="true" class="simple-writer" @oninput='() => UpdatePosition(domId, menuId)'
-                         @onclick='() => UpdatePosition(domId, menuId)' @onkeyup='() => UpdatePosition(domId, menuId)'
-                         @onblur="() => SyncContent(block, domId)" suppressContentEditableWarning="true" spellcheck="false">
-
-                        @if (string.IsNullOrEmpty(block.Content))
-                        {
-                            <span></span>
-                        }
-                        
-                    </div>
+                    break;
+                case "collage":
+                        <PhotoCollage DomId="@domId" IncomingStep="@block.Step"
+                                      OnCollageChange="HandleCollageUpdatedAsync" IncomingCollage="block.Content"
+                                      OpenImageSidePanel="(imgs)=>HandleCollageEditRequest(block.Step,imgs)" />
+                        break;
+                    }
+                }
+                <div id="inline-toolbar" class="inline-toolbar">
+                    <button @onclick='() => ApplyInlineAsync("bold")' title="Bold"><b>B</b></button>
+                    <button @onclick='() => ApplyInlineAsync("italic")' title="Italic">〰</button>
+                    <button @onclick='() => ApplyInlineAsync("link")' title="Link"><i class="bi bi-link-45deg"></i></button>
                 </div>
-            }
-        }
-
-        <div id="inline-toolbar" class="inline-toolbar">
-            <button @onclick='() => ApplyInlineAsync("bold")' title="Bold"><b>B</b></button>
-            <button @onclick='() => ApplyInlineAsync("italic")' title="Italic">〰</button>
-            <button @onclick='() => ApplyInlineAsync("link")' title="Link"><i class="bi bi-link-45deg"></i></button>
         </div>
-    </div>
 
-    
-
+<ImagesSidepanel @ref="_imagesSidepanel" OnClose="() => _isSidePanelOpen = false"
+                 OnImagesSelected="HandleListFetchAsync" />
 
 @code {
 
+    
+
+    ImagesSidepanel _imagesSidepanel = null;
+
+    bool _isSidePanelOpen { get; set; } = false;
     [Parameter]
     public Article SelectedArticle { get; set; } = new Article();
     List<ContentBlock> WriterData { get; set; } = new List<ContentBlock>();
     string _activeDomId = string.Empty;
     bool _loadContent { get; set; }
 
+    string _currentArticleId { get; set; } = string.Empty;
+
+    public class CollageUpdateResult
+    {
+        public int Step { get; set; }
+        public List<Image> Images { get; set; } = new();
+    }
+
 
     protected override void OnParametersSet()
     {
-        if (SelectedArticle.ContentBlocks.Count > 0)
+        if (_currentArticleId != SelectedArticle.Id)
         {
-            WriterData = SelectedArticle.ContentBlocks;
-        }
-        else
-        {
-            WriterData = new List<ContentBlock>();
-            WriterData.Add(new ContentBlock
+            _currentArticleId = SelectedArticle.Id;
+            if (SelectedArticle.ContentBlocks.Count > 0)
             {
-                Step = WriterData.Count,
-                Type = "text",
-                Content = "<p><br></p>"
-            });
+                WriterData = SelectedArticle.ContentBlocks
+                .OrderBy(w => w.Step).ToList();
+
+            }
+            else
+            {
+                WriterData = new List<ContentBlock>();
+                WriterData.Add(new ContentBlock
+                {
+                    Step = WriterData.Count,
+                    Type = "text",
+                    Content = new List<string> { "<p><br></p>" }
+                });
+            }
+            _loadContent = true;
         }
-        _loadContent = true;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -89,8 +116,6 @@
         if (firstRender)
         {
             await jSRuntime.InvokeVoidAsync("writerEngine.initInlineToolbar");
-
-            
         }
 
         if (_loadContent)
@@ -99,7 +124,8 @@
             foreach (var block in WriterData.Where(b => b.Type == "text"))
             {
                 var domId = $"text-{block.Step}-{id}";
-                await jSRuntime.InvokeVoidAsync("writerEngine.loadContent", domId, block.Content);
+                var htmlContent = block.Content.FirstOrDefault() ?? "<p><br></p>";
+                await jSRuntime.InvokeVoidAsync("writerEngine.loadContent", domId, htmlContent);
             }
             _loadContent = false;
         }
@@ -109,10 +135,10 @@
     {
         // 1. Get the raw HTML from the contenteditable div
         var html = await jSRuntime.InvokeAsync<string>("writerEngine.getHtml", domId);
-    
+
         // 2. Save the HTML to your block (or convert to Markdown here)
         // For now, let's store the HTML so your view doesn't break
-        block.Content = html;
+        block.Content = new List<string> { html };
     }
 
     async Task ApplyStyleAsync(string type)
@@ -152,31 +178,164 @@
 
     void AddCollage()
     {
+        if (string.IsNullOrEmpty(_activeDomId)) return;
 
+        var currentBlock = WriterData.FirstOrDefault(x =>
+            $"text-{x.Step}-{(string.IsNullOrEmpty(SelectedArticle.Id) ? "new" : SelectedArticle.Id)}" == _activeDomId);
+        if (currentBlock == null) return;
+
+        var nextBlock = WriterData.FirstOrDefault(x => x.Step == currentBlock.Step + 1);
+
+        int offset = nextBlock != null ? 1 : 2;
+
+        
+        foreach (var b in WriterData.Where(x => x.Step > currentBlock.Step))
+        {
+            b.Step += offset;
+        }
+
+        
         WriterData.Add(new ContentBlock
         {
-            Step = WriterData.Count,
-            Type = "text",
-            Content = "<p><br></p>"
+            Content = new List<string> { "<p><br></p>" },
+            Step = currentBlock.Step + 1,
+            Type = "collage"
         });
-        StateHasChanged();
 
+        if (offset == 2)
+        {
+            WriterData.Add(new ContentBlock
+            {
+                Step = currentBlock.Step + 2,
+                Type = "text",
+                Content = new List<string> { "<p><br></p>" }
+            });
+        }
+        _loadContent = true;
+        StateHasChanged();
+    }
+
+    void HandleCollageEditRequest(int step, List<Image> images)
+    {
+        if (_imagesSidepanel == null) return;
+        _isSidePanelOpen = true;
+        _imagesSidepanel.ChangeCollage(step, images);
+    }
+
+    async Task HandleListFetchAsync(ImagesSidepanel.CollageUpdateResult result)
+    {
+        if (result.Images == null || !result.Images.Any()) return;
+
+        // 1. Fetch the PhotoCollage Block from the list
+        var targetBlock = WriterData.FirstOrDefault(x => x.Step == result.Step);
+
+        if (targetBlock != null)
+        {
+            // 2. Filter for uniqueness based on the raw data/string
+            var uniqueBase64Strings = result.Images
+                .Select(i => !string.IsNullOrEmpty(i.Id) ? i.Id : i.RawImageUrl)
+                .Distinct()
+                .ToList();
+            
+            targetBlock.Content = uniqueBase64Strings;
+
+            // 3. Force a re-render so the specific PhotoCollage sees the new data
+            StateHasChanged();       
+        }
+    }
+
+
+    async Task AddCollageAsync()
+    {
+        if (string.IsNullOrEmpty(_activeDomId)) return;
+
+        var currentBlock = WriterData.FirstOrDefault(x =>
+            $"text-{x.Step}-{(string.IsNullOrEmpty(SelectedArticle.Id) ? "new" : SelectedArticle.Id)}" == _activeDomId);
+        if (currentBlock == null) return;
+
+        // Get the HTML after the cursor
+        var trailingHtml = await jSRuntime.InvokeAsync<string>("writerEngine.splitContent", _activeDomId);
+
+        // Sync the current block
+        await SyncContent(currentBlock, _activeDomId);
+
+        // Find the block immediately following this one, IF it exists
+        var nextBlock = WriterData.FirstOrDefault(x => x.Step == currentBlock.Step + 1);
+
+        if (nextBlock != null)
+        {
+            // Case A
+            // Push trailing HTML to the start of the existing next block
+            var existingContent = nextBlock.Content?.FirstOrDefault() ?? "";
+            nextBlock.Content = new List<string> { trailingHtml + existingContent };
+
+            foreach (var b in WriterData.Where(x => x.Step > currentBlock.Step))
+            {
+                b.Step += 1;
+            }
+
+            WriterData.Add(new ContentBlock
+            {
+                Step = currentBlock.Step + 1,
+                Type = "collage"
+            });
+        }
+        else
+        {
+            // Case B
+            // Shift by +2 to make room for Collage AND the new Text block
+            foreach (var b in WriterData.Where(x => x.Step > currentBlock.Step))
+            {
+                b.Step += 2;
+            }
+
+            WriterData.Add(new ContentBlock
+            {
+                Step = currentBlock.Step + 1,
+                Type = "collage"
+            });
+
+            WriterData.Add(new ContentBlock
+            {
+                Step = currentBlock.Step + 2,
+                Type = "text",
+                Content = new List<string> { string.IsNullOrWhiteSpace(trailingHtml) ? "<p><br></p>" : trailingHtml }
+            });
+        }
+
+        _loadContent = true;
+        StateHasChanged();
+    }
+
+    public async Task HandleCollageUpdatedAsync(ContentBlock contentBlock)
+    {
+        if (contentBlock == null) return;
+
+        var selectedBlock = WriterData.Find(c => c.Step == contentBlock.Step);
+
+        if (selectedBlock == null) return;
+
+        selectedBlock.Content = contentBlock.Content;
+
+        selectedBlock.Type = "collage";
+
+        StateHasChanged();
     }
 
 
     public List<ContentBlock> ExportList()
     {
-        
+
         return WriterData
-            .OrderBy(x => x.Step)
-            .Select(block => new ContentBlock
-            {
-                Step = block.Step,
-                Type = block.Type,
-                Content = block.Content
-            })
-            .ToList();
-        
+                    .OrderBy(x => x.Step)
+                    .Select(block => new ContentBlock
+                    {
+                        Step = block.Step,
+                        Type = block.Type,
+                        Content = block.Content
+                    })
+                    .ToList();
+
     }
-    
+
 }

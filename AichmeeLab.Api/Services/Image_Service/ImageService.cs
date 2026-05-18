@@ -11,6 +11,9 @@ using SixLabors.ImageSharp.Processing;
 using Microsoft.VisualBasic;
 using System.Reflection.Metadata;
 using Microsoft.Extensions.Configuration;
+using HttpMultipartParser;
+using AichmeeLab.Api.Services.ArticleService;
+using MongoDB.Bson;
 
 
 namespace AichmeeLab.Api.Services.ImageService
@@ -18,16 +21,23 @@ namespace AichmeeLab.Api.Services.ImageService
     class ImageService : IImageService
     {
 
+        
+        private IArticleService _articleService;
         readonly IMongoCollection<MyImage> _imagesCollection;
         readonly BlobServiceClient _blobServiceClient;
-
+        
+        public string AboutImage {get;set;} = string.Empty;
         string _targetFolder = string.Empty;
-        public ImageService(IMongoClient mongoClient, BlobServiceClient blobServiceClient, IOptions<AlexandriaDbSettings> options, IConfiguration config)
+        public ImageService(IMongoClient mongoClient, BlobServiceClient blobServiceClient,
+         IOptions<AlexandriaDbSettings> options, IConfiguration config, IArticleService articleService)
         {
             var settings = options.Value;
             var database = mongoClient.GetDatabase(settings.DatabaseName);
             _imagesCollection = database.GetCollection<MyImage>(settings.ImagesCollectionName);
             _blobServiceClient = blobServiceClient;
+            _articleService = articleService;
+
+            AboutImage = config["AboutImage"] ?? "https://aichmeelab.blob.core.windows.net/public-photos/General/Dimi.png";
 
             _targetFolder = config["BlobTargetFolder"] ?? "Images_Development";
         }
@@ -85,6 +95,7 @@ namespace AichmeeLab.Api.Services.ImageService
                 var filter = Builders<MyImage>.Filter.Eq(i => i.Id, updatedImage.Id);
 
                 await _imagesCollection.ReplaceOneAsync(filter, updatedImage, new ReplaceOptions { IsUpsert = true });
+                response.Message = "Image info updated.";
                 response.Success = true;
 
             }
@@ -132,15 +143,132 @@ namespace AichmeeLab.Api.Services.ImageService
                 dbImage.ThumbnailUrl = await UploadToTheBlobAsync(rawStream, containerClient, thumbPath, 200, blobOptions);
 
                 // 4. Save to DB
+                dbImage.Id = ObjectId.GenerateNewId().ToString();
                 dbImage.Description = imageDescription;
                 dbImage.IsDeleted = false;
                 await _imagesCollection.InsertOneAsync(dbImage);
-                return new ServiceResponse<MyImage> { Data = dbImage, Success = true };
+                return new ServiceResponse<MyImage> { Data = dbImage, Success = true, Message = $"New Image with {dbImage.Id} created!" };
             }
             catch (Exception ex)
             {
                 return new ServiceResponse<MyImage> { Success = false, Message = ex.Message };
             }
+        }
+
+        public async Task<ServiceResponse<List<string>>> BulkUploadImage(MultipartFormDataParser parsedForm)
+        {
+            // 1. Initialize Objects
+            var responseList = new List<string>();
+            var article = new Article();
+
+            string articleId = parsedForm.GetParameterValue("articleId");
+            string stepStr = parsedForm.GetParameterValue("step");
+
+            if (!int.TryParse(stepStr, out int step) || string.IsNullOrEmpty(articleId))
+            {
+                return new ServiceResponse<List<string>> { Success = false, Message = "Could't upload Photos, missing data." };
+            }
+
+            var contentBlock = new ContentBlock { Type = "collage", Step = step, Content = new List<string>() };
+
+
+            try
+            {
+                // 2. Capture the Article in which the Collage will be stored
+                var articleResponse = await _articleService.GetArticle(articleId, true);
+                if (!articleResponse.Success || articleResponse.Data == null)
+                {
+                    return new ServiceResponse<List<string>>
+                    { Success = false, Message = "Could't upload Photos, no Article found." };
+                }
+
+                article = articleResponse.Data;
+
+                var containerClient = _blobServiceClient.GetBlobContainerClient("gallery");
+                await containerClient.CreateIfNotExistsAsync();
+
+                // 3. Determine the total count based on descriptions
+                // (Since every item has a description entry, this is our anchor)
+                int totalItems = parsedForm.Parameters.Count(p => p.Name.StartsWith("descriptions["));
+
+                for (int i = 0; i < totalItems; i++)
+                {
+                    // Extract the indexed parameters
+                    string currentId = parsedForm.GetParameterValue($"existingIds[{i}]") ?? "";
+                    string currentDesc = parsedForm.GetParameterValue($"descriptions[{i}]") ?? "";
+                    Console.WriteLine(currentId);
+                    if (!string.IsNullOrEmpty(currentId))
+                    {
+                        var existingImg = await _imagesCollection.Find(x => x.Id == currentId).FirstOrDefaultAsync();
+                        if (existingImg != null)
+                        {
+                            existingImg.Description = currentDesc;
+                            await _imagesCollection.ReplaceOneAsync(x => x.Id == currentId, existingImg);
+                            responseList.Add(currentId);
+                            contentBlock.Content.Add(currentId);
+                        }
+                        continue;
+                    }
+
+                    // --- CASE B: New Image Upload ---
+                    // The parser matches the name we sent: "files"
+                    // We look for the file that has the index in its filename (image_0.jpg, image_1.jpg, etc.)
+                    var file = parsedForm.Files.FirstOrDefault(f => f.FileName.Contains($"image_{i}"));
+                    if (file == null) continue;
+
+                    using var rawStream = new MemoryStream();
+                    await file.Data.CopyToAsync(rawStream);
+
+                    var dbImage = new MyImage
+                    {
+                        Id = ObjectId.GenerateNewId().ToString(),
+                        UploadedAt = DateTime.UtcNow,
+                        Description = currentDesc,
+                        IsDeleted = false
+                    };
+
+                    var blobOptions = new BlobUploadOptions { HttpHeaders = new BlobHttpHeaders { ContentType = file.ContentType } };
+                    string ext = Path.GetExtension(file.FileName);
+
+                    // 4. Process all 3 sizes in parallel for speed
+                    var uploadTasks = new List<Task<string>>
+            {
+                UploadToTheBlobAsync(rawStream, containerClient,
+                $"/{_targetFolder}/originals/img_{Guid.NewGuid()}{ext}", 0, blobOptions),
+                UploadToTheBlobAsync(rawStream, containerClient,
+                $"/{_targetFolder}/headers/img_{Guid.NewGuid()}.webp", 500, blobOptions),
+                UploadToTheBlobAsync(rawStream, containerClient,
+                $"/{_targetFolder}/thumbnails/img_{Guid.NewGuid()}.webp", 200, blobOptions)
+            };
+
+                    var urls = await Task.WhenAll(uploadTasks);
+                    dbImage.RawImageUrl = urls[0];
+                    dbImage.HeaderUrl = urls[1];
+                    dbImage.ThumbnailUrl = urls[2];
+
+                    // 5. Save New Image Entry to DB
+                    await _imagesCollection.InsertOneAsync(dbImage);
+                    responseList.Add(dbImage.Id);
+
+                    contentBlock.Content.Add(dbImage.Id);
+
+                }
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResponse<List<string>> { Success = false, Message = ex.Message };
+            }
+
+            Console.WriteLine($"Content block count: {contentBlock.Content.Count}");
+            
+            //6. Add the Collages to the Article
+            article.ContentBlocks.Add(contentBlock);
+
+            Console.WriteLine($"Article Content block count: {article.ContentBlocks.Count}");
+            var articleResponse1 =await _articleService.UpdateArticleContent(article);
+            Console.WriteLine($"Article Response {articleResponse1.Success} {articleResponse1.Data.ToJson() }");
+
+            return new ServiceResponse<List<string>> { Data = responseList, Success = true, Message = "Bulk photo upload success." };
         }
 
         async Task<string> UploadToTheBlobAsync(MemoryStream rawStream,
