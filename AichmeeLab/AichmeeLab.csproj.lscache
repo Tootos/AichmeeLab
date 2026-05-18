@@ -334,7 +334,7 @@ Pages/Admin_Pages/
    Article_Writer/
     ArticleWriter.razor
     Images_Sidepanel/ImagesSidepanel.razor
-   Photo_Collage/PhotoCollage.razor
+    Photo_Collage/PhotoCollage.razor
   Article_List/ArticlesList.razor
  Admin_Front/AdminFront.razor
  Obsolete/
@@ -371,7 +371,7 @@ Pages/Admin_Pages/
    Article_Writer/
     ArticleWriter.razor
     Images_Sidepanel/ImagesSidepanel.razor
-   Photo_Collage/PhotoCollage.razor
+    Photo_Collage/PhotoCollage.razor
   Article_List/ArticlesList.razor
  Admin_Front/AdminFront.razor
  Obsolete/

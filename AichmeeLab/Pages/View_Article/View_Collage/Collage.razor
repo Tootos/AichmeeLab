@@ -12,14 +12,14 @@
                 </button>
             }
 
-            <div class="image-preview">
+            <div class="image-viewer">
                 @{
                     var currentImg = _viewImages[_currentIndex];
                     var displayUrl = string.IsNullOrEmpty(currentImg.HeaderUrl)
                                      ? currentImg.RawImageUrl
                                      : currentImg.HeaderUrl;
                 }
-                <img src=@displayUrl @onclick="Enlarge" class="active-collage image">
+                <img src=@displayUrl @onclick="() => _Enlarged = true">
             </div>
 
                 
@@ -34,6 +34,15 @@
             <h3>@currentImg.Description</h3>
         </div>
     </div>
+
+
+    @if (_Enlarged)
+    {
+        <div class="enlarged-overlay">
+            <img src="@currentImg.RawImageUrl" @onclick="() => _Enlarged = false" />
+        </div>
+
+    }
 }
 
 
@@ -41,6 +50,7 @@
     [Parameter]
     public List<string> IncomingCollage { get; set; } = new();
     int _currentIndex { get; set; } = 0;
+    bool _Enlarged { get; set; } = false;
 
     List<Image> _viewImages { get; set; } = new();
 

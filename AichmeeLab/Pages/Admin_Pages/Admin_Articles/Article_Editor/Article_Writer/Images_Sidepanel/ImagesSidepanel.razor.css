@@ -21,6 +21,7 @@
     flex-direction: column;
     background-color: transparent;
     padding: 15px;
+    height: 100dvh;
     overflow-y: auto;
 
 }
