@@ -1,0 +1,107 @@
+@using AichmeeLab.Services.ImageService
+@inject AichmeeLab.Services.ImageService.IImageService ImageService;
+
+@if (_viewImages != null && _viewImages.Any())
+{
+    <div class="collage-container">
+        <div class="collage-carousel">
+            @if (_viewImages.Count > 1)
+            {
+                <button class="nav-arrow left" @onclick="PreviousImage">
+                    <i class="bi bi-chevron-left"></i>
+                </button>
+            }
+
+            <div class="image-viewer">
+                @{
+                    var currentImg = _viewImages[_currentIndex];
+                    var displayUrl = string.IsNullOrEmpty(currentImg.HeaderUrl)
+                                     ? currentImg.RawImageUrl
+                                     : currentImg.HeaderUrl;
+                }
+                <img src=@displayUrl @onclick="() => _Enlarged = true">
+            </div>
+
+                
+            @if (_viewImages.Count > 1)
+            {
+                <button class="nav-arrow right" @onclick="NextImage">
+                    <i class="bi bi-chevron-right"></i>
+                </button>
+            }
+        </div>
+        <div class="image-description">
+            <h3>@currentImg.Description</h3>
+        </div>
+    </div>
+
+
+    @if (_Enlarged)
+    {
+        <div class="enlarged-overlay">
+            <img src="@currentImg.RawImageUrl" @onclick="() => _Enlarged = false" />
+        </div>
+
+    }
+}
+
+
+@code {
+    [Parameter]
+    public List<string> IncomingCollage { get; set; } = new();
+    int _currentIndex { get; set; } = 0;
+    bool _Enlarged { get; set; } = false;
+
+    List<Image> _viewImages { get; set; } = new();
+
+    protected async override Task OnParametersSetAsync()
+    {
+        if (IncomingCollage != null && IncomingCollage.Any())
+        {
+            _viewImages.Clear();
+
+
+            foreach (var imageId in IncomingCollage)
+            {
+                //Case for preview state for a new image
+                if (imageId.StartsWith("data:image"))
+                {
+                    _viewImages.Add(new()
+                    {
+                        RawImageUrl = imageId,
+                        HeaderUrl = imageId
+                    });
+                }
+                else
+                {
+                    var response = await ImageService.GetImageAsync(imageId);
+
+                    if (response.Success = true && response?.Data != null)
+                        _viewImages.Add(response.Data);
+                }
+
+                
+
+            }
+        }
+    }
+
+    
+
+    async Task Enlarge()
+    {
+
+    }
+
+    void PreviousImage()
+    {
+        if (_viewImages == null || _viewImages.Count == 0) return;
+        _currentIndex = (_currentIndex == 0) ? _viewImages.Count - 1 : _currentIndex - 1;
+    }
+
+    void NextImage()
+    {
+        if (_viewImages == null || _viewImages.Count == 0) return;
+        _currentIndex = (_currentIndex == _viewImages.Count - 1) ? 0 : _currentIndex + 1;
+    }
+}

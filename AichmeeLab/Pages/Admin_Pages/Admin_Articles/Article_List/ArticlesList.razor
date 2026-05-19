@@ -1,0 +1,135 @@
+﻿@implements IDisposable
+@using AichmeeLab.Pages.Components.Pagination
+@inject AichmeeLab.Services.WriterService.IWriterService WriterService
+@inject NavigationManager NavigationManager
+
+<div class="articles-list-layout">
+    @if (WriterService.Articles == null || WriterService.Articles.Count == 0)
+    {
+        <div class="empty-state">
+            <i class="bi bi-inbox"></i>
+            <p>@_message</p>
+        </div>
+    }
+    else
+    {
+        <div class="articles-grid">
+            @foreach (var article in WriterService.Articles)
+            {
+                <div class="article-card" @onclick="() => OnEditAsync(article.Id)">
+                    <div class="card-content">
+                        <h5 class="article-title">@article.Title</h5>
+                        <p class="author-tag">by @(string.IsNullOrEmpty(article.Author) ? "Unknown" : article.Author)</p>
+                        <div class="separator-line"></div>
+                        <div class="article-footer">
+                            <div class="metadata-group">
+                                <div class="meta-item">
+                                    <label>Updated</label>
+                                    <span class="date-value">@article.LastUpdate.ToString("MMM dd")</span>
+                                </div>
+                                <div class="meta-item border-left">
+                                    <label>Published</label>
+                                    <span class="date-value">@article.DatePublished.ToString("MMM dd, yyyy")</span>
+                                </div>
+                            </div>
+
+                            <label class="form-status" @onclick:stopPropagation="true">
+                                <span>@(article.IsVisible ? "VISIBLE" : "HIDDEN")</span>
+
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" role="switch" checked="@article.IsVisible"
+                                           @onchange="() => ToggleVisibility(article.Id, article.IsVisible)">
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+
+
+            <Pagination CurrentPage="WriterService.CurrentPage" PageCount="@WriterService.PageCount"
+                        PageSize="WriterService.PageSize" OnPageChanged="HandleChangePage" />
+
+        }
+
+
+        @if (changeVisibility.Count  > 0)
+        {
+            <div class="floating-save-container">
+                <button class="btn-bulk-save" @onclick="BulkSaveAsync" title="Save changes to @changeVisibility.Count articles">
+                    <i class="bi bi-cloud-check-fill"></i>
+                    <span class="save-counter">@changeVisibility.Count</span>
+                </button>
+            </div>
+
+        }
+
+
+    </div>
+
+@code {
+    [Parameter]
+    public EventCallback<string> OnEditRequested { get; set; }
+    string _message = "Loading...";
+    Dictionary<string, bool> changeVisibility = new();
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public int? page { get; set; }
+
+    void ToggleVisibility(string id, bool visible)
+    {
+        if(changeVisibility.ContainsKey(id)){
+            changeVisibility.Remove(id);
+        }else{
+            changeVisibility.Add(id, !visible);
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        WriterService.ServiceChanged += StateHasChanged;
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _message = "Loading...";
+
+        WriterService.CurrentPage = page ?? 1;
+        await WriterService.GetArticlesAsync();
+
+        if (WriterService.Articles == null || WriterService.Articles.Count == 0)
+        {
+            _message = "No articles found.";
+        }
+
+        StateHasChanged();
+
+    }
+    public void Dispose()
+    {
+        WriterService.ServiceChanged -= StateHasChanged;
+    }
+
+    private void HandleChangePage(int page)
+    {
+        // Use the helper to keep current search/dates but change only the page
+        var uri = NavigationManager.GetUriWithQueryParameter("page", page);
+        NavigationManager.NavigateTo(uri);
+    }
+
+    async Task BulkSaveAsync()
+    {
+        var response = await WriterService.UpdateVisibilityAsync(changeVisibility);
+        changeVisibility.Clear();
+
+        StateHasChanged();
+
+    }
+
+
+    async Task OnEditAsync(string id)
+    {
+        await OnEditRequested.InvokeAsync(id);
+    }
+}

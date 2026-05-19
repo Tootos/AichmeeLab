@@ -1,3 +1,4 @@
+// Infinite Scroll
 window.initScrollObserver = (dotNetHelper, elementId) => {
     const options = {
         root: null, // Use the browser viewport
@@ -17,4 +18,36 @@ window.initScrollObserver = (dotNetHelper, elementId) => {
     if (el) {
         observer.observe(el);
     }
+
+    
+};
+
+// Sidebar Swipe Interop
+window.initializeSwipe = (dotNetHelper) => {
+    let touchStartX = 0;
+    let touchStartY = 0;
+
+    document.addEventListener('touchstart', (e) => {
+        touchStartX = e.changedTouches[0].screenX;
+        touchStartY = e.changedTouches[0].screenY;
+    }, { passive: true });
+
+    document.addEventListener('touchend', (e) => {
+        const touchEndX = e.changedTouches[0].screenX;
+        const touchEndY = e.changedTouches[0].screenY;
+        
+        const deltaX = touchEndX - touchStartX;
+        const deltaY = Math.abs(touchEndY - touchStartY);
+
+        if (Math.abs(deltaX) > 70 && deltaY < 45) {
+            // Swipe Right from edge (Open)
+            if (deltaX > 0 && touchStartX < 220) {
+                dotNetHelper.invokeMethodAsync('SideBarToggle');
+            } 
+            // Swipe Left anywhere (Close)
+            else if (deltaX < 0) {
+                dotNetHelper.invokeMethodAsync('SideBarToggle');
+            }
+        }
+    }, { passive: true });
 };

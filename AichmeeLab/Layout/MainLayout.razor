@@ -1,37 +1,54 @@
 ﻿@using System.Threading.Tasks
-@using AichmeeLab.Layout.AboutModal
+@using AichmeeLab.Layout.LayoutElements.AboutModal
 @using AichmeeLab.Layout.LayoutElements.SideBar
-@using AichmeeLab.Pages.Admin
+
 @inherits LayoutComponentBase
 
 @inject AichmeeLab.Services.UserService.IUserService UserService;
+@inject AichmeeLab.Services.ImageService.IImageService ImageService;
 @inject AichmeeLab.Services.SecurityService.ISecurityService SecurityService;
+@implements IDisposable
 @inject NavigationManager NavigationManager
-@* <div class="page @(IsHomePage ? "no-navbar" : "has-navbar")"> *@
+@inject IJSRuntime jSRuntime
 <div class="page">
 
     <div class="page-shadow"></div>
-    <SideBar IsAdmin="_isAdmin" OpenAboutModal="OpenAboutModal" />
+    <SideBar @ref="_sidebar" IsAdmin="_isAdmin" OpenAboutModal="OpenAboutModal" />
 
     <div class="page-layout">
         @Body
     </div>
-    <AboutModal  IsVisible="_isAboutModalVisible" OnClose="CloseAboutModal"></AboutModal>
+    <AboutModal IsVisible="_isAboutModalVisible" OnClose="CloseAboutModal"></AboutModal>
 
 </div>
 
 
 
 @code {
+
+    private DotNetObjectReference<MainLayout>? _objRef;
     private bool isHomePage => NavigationManager.Uri == NavigationManager.BaseUri;
     bool _isAboutModalVisible { get; set; } = false;
     bool _isAdmin { get; set; } = false;
+
+    SideBar _sidebar;
 
 
     protected override async Task OnInitializedAsync()
     {
         _isAdmin = await SecurityService.IsAuthorizedAsync();
         NavigationManager.LocationChanged += HandleLocationChanged;
+
+        await ImageService.GetAssetsAsync();
+    }
+
+    protected async override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _objRef = DotNetObjectReference.Create(this);
+            await jSRuntime.InvokeVoidAsync("initializeSwipe", _objRef);
+        }
     }
 
     async void HandleLocationChanged(object? sender, LocationChangedEventArgs e)
@@ -67,8 +84,16 @@
 
     void CloseAboutModal() => _isAboutModalVisible = false;
 
+    [JSInvokable]
+    public void SideBarToggle()
+    {
+        if (_sidebar != null)
+        {
+            _sidebar.ToggleSidebar();
+            StateHasChanged();
+        }
+           
+    }
 
-
-    
-
+    public void Dispose() => _objRef?.Dispose();
 }

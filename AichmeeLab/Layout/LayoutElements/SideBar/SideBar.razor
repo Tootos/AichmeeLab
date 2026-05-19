@@ -1,4 +1,4 @@
-@using AichmeeLab.Pages.Admin.AdminWidget
+@using AichmeeLab.Layout.LayoutElements.Admin_Widget
 <aside class="sidebar-container @(_isCollapsed ? "collapsed" : "")">
     <div class="sidebar-layout">
 
@@ -42,7 +42,7 @@
 
 
 @code {
-    public bool _isCollapsed { get; set; } = false;
+    bool _isCollapsed { get; set; } = false;
     [Parameter]
     public bool IsAdmin { get; set; } = false;
     [Parameter]
@@ -53,7 +53,7 @@
     async Task OpenAboutAsync() => await OpenAboutModal.InvokeAsync();
 
     
-    void ToggleSidebar() => _isCollapsed = !_isCollapsed;
+    public void ToggleSidebar() => _isCollapsed = !_isCollapsed;
     string GetButtonClass(ItemType type) =>
         _activeType == type ? "active" : "";
 }

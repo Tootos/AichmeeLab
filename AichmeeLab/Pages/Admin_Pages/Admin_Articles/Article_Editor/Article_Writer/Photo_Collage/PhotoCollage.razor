@@ -1,0 +1,160 @@
+@inject AichmeeLab.Services.ImageService.IImageService ImageService;
+
+<div class="collage-container">
+    @if (DisplayImages != null && DisplayImages.Count > 0)
+    {
+
+        <div class="collage-carousel">
+            <div class="collage-preview-state">
+                @if (DisplayImages.Count > 1)
+                {
+                    <button class="nav-arrow left" @onclick="PreviousImage">
+                        <i class="bi bi-chevron-left"></i>
+                    </button>
+                }
+
+                
+                <div class="image-viewer">
+                    <div class="image-action-buttons">
+                        <button class="change-button" @onclick="OpenSidepanel">
+                            <i class="bi bi-arrow-clockwise"></i>
+                        </button>
+                        <button class="delete-button" @onclick="DestroyCollage">
+                            <i class="bi bi-dash-circle-fill"></i>
+                        </button>
+                    </div>
+
+                    @{
+                        var currentImg = DisplayImages[_currentIndex];
+                        var displayUrl = string.IsNullOrEmpty(currentImg.HeaderUrl)
+                                         ? currentImg.RawImageUrl
+                                         : currentImg.HeaderUrl;
+                    }
+                    <img src="@displayUrl" class="active-collage-img" />
+
+                    <div class="image-description">
+                        <input type="text" @bind="currentImg.Description" @bind:event="oninput"
+                               placeholder="Add a caption for this photo..." class="description-input" />
+                    </div>
+
+                    <div class="image-counter">@(_currentIndex + 1) / @( DisplayImages.Count)</div>
+                </div>
+
+                @if (DisplayImages.Count > 1)
+                {
+                    <button class="nav-arrow right" @onclick="NextImage">
+                        <i class="bi bi-chevron-right"></i>
+                    </button>
+                }
+            </div>
+        </div>
+
+    }
+    else
+    {
+        <div class="collage-empty-state" @onclick="OpenSidepanel">
+            <i class="bi bi-images"></i>
+            <span>Click to add photos to collage</span>
+        </div>
+    }
+
+</div>
+
+
+@code {
+    int _currentIndex = 0;
+    [Parameter]
+    public string DomId { get; set; } = string.Empty;
+    [Parameter]
+    public List<string> IncomingCollage { get; set; } = null;
+    List<string> _lastIncomingCollage { get; set; } = new();
+
+    List<Image> DisplayImages { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<ContentBlock> OnCollageChange { get; set; }
+    [Parameter]
+    public EventCallback<List<Image>> OpenImageSidePanel { get; set; }
+
+    [Parameter] public int IncomingStep { get; set; }
+    protected override async Task OnParametersSetAsync()
+    {
+        if (IncomingCollage == null || IncomingCollage.Count == 0) return;
+
+        if (_lastIncomingCollage.SequenceEqual(IncomingCollage)) return;
+
+        _lastIncomingCollage = new List<string>(IncomingCollage);
+
+        DisplayImages.Clear();
+        ImageService.Collages.Remove(IncomingStep);
+        foreach (var imageId in IncomingCollage)
+        {
+            //Base64 string
+            if (imageId.StartsWith("data:image"))
+            {
+                DisplayImages.Add(new Image
+                {
+                    Id = string.Empty,
+                    RawImageUrl = imageId,
+                    HeaderUrl = imageId
+                });
+            }
+            else
+            {
+                var response = await ImageService.GetImageAsync(imageId);
+                if (response.Success = true && response?.Data != null)
+                    DisplayImages.Add(response.Data);
+            }
+        }
+
+        if (DisplayImages.Any())
+            ImageService.Collages.Add(IncomingStep, DisplayImages);
+
+        if (_currentIndex >= DisplayImages.Count)
+            _currentIndex = Math.Max(0, DisplayImages.Count - 1);
+    }
+
+    async Task OpenSidepanel()
+    {
+        await OpenImageSidePanel.InvokeAsync(DisplayImages);
+    }
+
+    @* async Task HandleListFetchAsync(List<Image> newImages)
+    {
+        if (newImages == null || !newImages.Any()) return;
+
+        // 1. Filter for uniqueness based on the raw data/string
+        var uniqueBase64Strings = newImages
+            .Select(i => !string.IsNullOrEmpty(i.Id) ? i.Id : i.RawImageUrl)
+            .Distinct()
+            .ToList();
+
+        // 2. Create the ContentBlock
+        var contentBlock = new ContentBlock
+        {
+            Type = "collage",
+            Content = uniqueBase64Strings,
+            Step = IncomingStep
+        };
+
+        // 3. Notify the ArticleWriter
+        await OnCollageChange.InvokeAsync(contentBlock);
+    } *@
+    void PreviousImage()
+    {
+        if (DisplayImages == null || DisplayImages.Count == 0) return;
+        _currentIndex = (_currentIndex == 0) ? DisplayImages.Count - 1 : _currentIndex - 1;
+    }
+
+    void NextImage()
+    {
+        if (DisplayImages == null || DisplayImages.Count == 0) return;
+        _currentIndex = (_currentIndex == DisplayImages.Count - 1) ? 0 : _currentIndex + 1;
+    }
+
+    async Task DestroyCollage()
+    {
+
+    }
+}
+

@@ -7,11 +7,7 @@
 
 .page {
     display: flex;
-    width: 100vw;
-    height: 100vh;
-    background-color: transparent;
-
-    --navbar-height: 45px;
+    background-color: var(--surface-color);
 }
 
 .page-shadow {
@@ -28,81 +24,34 @@
 
 
 .page-layout {
-    /* Positioning & Spacing */
-    /* position: fixed; */
-    /* left: 0; */
     position: relative;
     flex: 1;
     z-index: 1;
-
-    /* width: 100%; */
-    height: 100%; 
-
-    /* Layout flow for children */
-    display: flex;
-    flex-direction: column;
+    height: 100%;
+    justify-content: center;
+    align-items: center;
     overflow: hidden;
 
-    background-color: var(--surface-color);
+    background-color: transparent;
 }
 
-@media (min-width: 641px) {
-    .page {
+/* Desktop*/
+
+@media(min-width:641px) {
+    .page-layout {
+        display: flex;
+        flex-direction: column;
+    }
+}
+
+/* Phones */
+@media(max-width:640px) {
+    .page-layout {
         flex-direction: row;
-    }
-
-    /* Neutralize the default Blazor padding that causes the shift */
-    .top-row,
-    article {
-        padding-left: 0 !important;
-        padding-right: 0 !important;
+        position: fixed;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100%
     }
 }
-
-
-/* Top Navbar Start */
-.top-navbar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: var(--navbar-height);
-    z-index: 9999;
-    background: linear-gradient(to bottom, #212529 45px, transparent 45px);
-
-    display: flex;
-    align-items: flex-start;
-    /* Align content to the top */
-}
-
-.nav-container {
-    max-width: 1200px;
-    margin: 0 auto;
-    width: 100%;
-    height: var(--navbar-height);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.nav-logo {
-    color: #ffffff;
-    text-decoration: none;
-    font-weight: 700;
-    font-size: 1.25rem;
-}
-
-.nav-links .nav-item {
-    color: #adb5bd;
-    text-decoration: none;
-    margin-left: 20px;
-    font-weight: 500;
-    transition: color 0.2s ease;
-}
-
-.nav-links .nav-item:hover,
-.nav-links .nav-item.active {
-    color: #ffffff;
-}
-
-/* Top NavBar End*/

@@ -1,0 +1,122 @@
+@using BootstrapBlazor.Components
+<div class="panel-window @(IsOpen ? "open" : "")">
+    <div class="panel-layout">
+
+        <div class="panel-header">
+            <button @onclick="ClosePanel" class="close-button">x</button>
+            <button @onclick="ConfirmSelection" class="confirm-button">Confirm Selection</button>
+            <span>You can select 5 pictures</span>
+        </div>
+
+        
+
+        <div class="panel-body">
+
+            @if (localCollage != null && localCollage.Any())
+            {
+                @foreach (var image in localCollage)
+                {
+                    <div class="image-preview-cell">
+                        <img src="@image.RawImageUrl" class="image-preview" />
+                        <button class="remove-img-btn" @onclick="() => localCollage.Remove(image)">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    </div>
+                }
+
+            }
+            @if (localCollage == null || localCollage.Count < 5)
+            {
+                <label for="images-upload" class="upload-button">
+                    <i class="bi bi-plus-circle-dotted"></i>
+                </label>
+            }
+
+        </div>
+        <InputFile id="images-upload" OnChange="HandleFiles" style="display: none;" multiple />
+    </div>
+</div>
+
+
+@code {
+
+    public bool IsOpen { get; set; } = false;
+    public string DomId { get; set; } = string.Empty;
+    bool _resetList { get; set; } = true;
+
+    int currentStep { get; set; }
+
+    string _inputFileId { get; set; } = string.Empty;
+    List<Image> localCollage { get; set; } = new List<Image>();
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback<CollageUpdateResult> OnImagesSelected { get; set; }
+
+    public class CollageUpdateResult
+    {
+        public int Step { get; set; }
+        public List<Image> Images { get; set; } = new();
+    }
+    @*
+    protected override async Task OnParametersSetAsync()
+    {
+        _inputFileId = $"images-upload-{DomId}";
+        if (IsOpen && _resetList)
+        {
+            _resetList = false;
+            localCollage = new List<Image>(Collage);
+        }else{
+            _resetList = true;
+        }
+    } *@
+
+    public void ChangeCollage(int incomingStep, List<Image> incomingImages)
+    {
+        localCollage = new List<Image>(incomingImages);
+        currentStep = incomingStep;
+
+        IsOpen = true;
+        StateHasChanged();
+
+        
+    }
+    async Task HandleFiles(InputFileChangeEventArgs e)
+    {
+        var remainingSlots = 5 - localCollage.Count;
+        var files = e.GetMultipleFiles(remainingSlots);
+
+        foreach (var file in files)
+        {
+            try
+            {
+                var resizedFile = await file.RequestImageFileAsync(file.ContentType, 800, 800);
+
+                using var stream = resizedFile.OpenReadStream(maxAllowedSize: 1024 * 1024 * 10); // 10MB limit
+                using var ms = new MemoryStream();
+                await stream.CopyToAsync(ms);
+
+                var base64 = Convert.ToBase64String(ms.ToArray());
+                var finalUrl = $"data:{file.ContentType};base64,{base64}";
+
+                var newImage = new Image { RawImageUrl = finalUrl };
+                localCollage.Add(newImage);
+            }
+            catch (Exception ex)
+            {
+                @* Console.WriteLine($"Upload error: {ex.Message}"); *@
+            }
+        }
+    }
+    async Task ClosePanel()
+    {
+        IsOpen = false;
+        await OnClose.InvokeAsync();
+    }
+    async Task ConfirmSelection()
+    {   
+        var response = new CollageUpdateResult{
+            Step = currentStep,Images = localCollage
+        };
+        await OnImagesSelected.InvokeAsync(response);
+        await ClosePanel();
+    }
+}

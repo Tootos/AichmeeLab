@@ -1,0 +1,24 @@
+@page "/admin/"
+@inject AichmeeLab.Services.SecurityService.ISecurityService SecurityService;
+@inject NavigationManager NavigationManager;
+
+
+<div class="admin-dashboard">
+
+
+    <div class="viewport-center">
+        <div class="options-wrapper"></div>
+    </div>
+</div>
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        if (!await SecurityService.IsAuthorizedAsync())
+        {
+            NavigationManager.NavigateTo("/unauthorized/");
+        }
+    }
+
+
+
+}
