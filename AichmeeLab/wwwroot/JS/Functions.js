@@ -22,6 +22,11 @@ window.initScrollObserver = (dotNetHelper, elementId) => {
     
 };
 
+//Detect Phone
+window.isMobileDevice = () => {
+    return window.innerWidth < 641; 
+};
+
 // Sidebar Swipe Interop
 window.initializeSwipe = (dotNetHelper) => {
     let touchStartX = 0;

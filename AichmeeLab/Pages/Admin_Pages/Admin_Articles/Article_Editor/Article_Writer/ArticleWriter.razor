@@ -5,6 +5,7 @@
 @using Markdig
 @using System.Runtime.CompilerServices
 @inject IJSRuntime jSRuntime;
+@inject AichmeeLab.Services.ImageService.IImageService ImageService;
 
 <div class="writer-canvas">
     @foreach (var block in WriterData.OrderBy(x => x.Step))
@@ -48,9 +49,9 @@
                     </div>
                     break;
                 case "collage":
-                        <PhotoCollage DomId="@domId" IncomingStep="@block.Step"
-                                      OnCollageChange="HandleCollageUpdatedAsync" IncomingCollage="block.Content"
-                                      OpenImageSidePanel="(imgs)=>HandleCollageEditRequest(block.Step,imgs)" />
+                        <PhotoCollage DomId="@domId" IncomingStep="@block.Step" OnCollageChange="HandleCollageUpdatedAsync"
+                                      IncomingCollage="block.Content" OpenImageSidePanel="(imgs)=>HandleCollageEditRequest(block.Step,imgs)"
+                                      OnCollageDestroyed="HandleCollageDestroyed" />
                         break;
                     }
                 }
@@ -236,11 +237,11 @@
                 .Select(i => !string.IsNullOrEmpty(i.Id) ? i.Id : i.RawImageUrl)
                 .Distinct()
                 .ToList();
-            
+
             targetBlock.Content = uniqueBase64Strings;
 
             // 3. Force a re-render so the specific PhotoCollage sees the new data
-            StateHasChanged();       
+            StateHasChanged();
         }
     }
 
@@ -322,6 +323,57 @@
         StateHasChanged();
     }
 
+    void HandleCollageDestroyed(int destroyedCollageStep)
+    {
+        //Remove the collage with the incoming step
+        WriterData.RemoveAll(c => c.Step == destroyedCollageStep);
+
+        //Remove the collage
+        WriterData.
+        Where(c => c.Step > destroyedCollageStep)
+        .ToList()
+        .ForEach(c => c.Step--);
+
+        var previousBlock = WriterData.FirstOrDefault(c => c.Step == destroyedCollageStep - 1);
+        var currentBlock = WriterData.FirstOrDefault(c => c.Step == destroyedCollageStep);
+
+        if (previousBlock != null && previousBlock.Type == "text" &&
+        currentBlock != null && currentBlock.Type == "text")
+        { // Combine the content lists
+            if (previousBlock.Content != null && currentBlock.Content != null)
+            {
+                string firstLine = previousBlock.Content[0];
+                string secondLine = currentBlock.Content[0];
+
+                previousBlock.Content[0] = $"{firstLine}<br>{secondLine}";
+            }
+
+            // Remove the redundant current block that we just merged into previousBlock
+            WriterData.Remove(currentBlock);
+
+            // Because we just removed another block, shift everything by 1
+            WriterData
+                .Where(c => c.Step >= destroyedCollageStep)
+                .ToList()
+                .ForEach(c => c.Step--);
+   
+            
+        }
+
+        _loadContent = true;
+
+        //Sync ImageService and SelectedArticle 
+            SelectedArticle.ContentBlocks = WriterData.OrderBy(c => c.Step).ToList();
+
+            ImageService.Collages.Remove(destroyedCollageStep);
+            ImageService.Collages = ImageService.Collages.ToDictionary(
+                kvp => kvp.Key > destroyedCollageStep ? kvp.Key - 1 : kvp.Key,
+                kvp => kvp.Value
+            );
+
+        StateHasChanged();
+    }
+
 
     public List<ContentBlock> ExportList()
     {
@@ -335,7 +387,5 @@
                         Content = block.Content
                     })
                     .ToList();
-
     }
-
 }

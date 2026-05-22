@@ -74,8 +74,11 @@
     [Parameter]
     public EventCallback<ContentBlock> OnCollageChange { get; set; }
     [Parameter]
+    public EventCallback<int> OnCollageDestroyed { get; set; }
+    [Parameter]
     public EventCallback<List<Image>> OpenImageSidePanel { get; set; }
 
+    
     [Parameter] public int IncomingStep { get; set; }
     protected override async Task OnParametersSetAsync()
     {
@@ -86,10 +89,13 @@
         _lastIncomingCollage = new List<string>(IncomingCollage);
 
         DisplayImages.Clear();
+
+        // Use an index assignment or clear safely
         ImageService.Collages.Remove(IncomingStep);
+
         foreach (var imageId in IncomingCollage)
         {
-            //Base64 string
+            // Base64 string
             if (imageId.StartsWith("data:image"))
             {
                 DisplayImages.Add(new Image
@@ -102,13 +108,18 @@
             else
             {
                 var response = await ImageService.GetImageAsync(imageId);
-                if (response.Success = true && response?.Data != null)
+
+                // FIXED TYPO: Changed assignment '=' to comparison '=='
+                if (response.Success == true && response?.Data != null)
                     DisplayImages.Add(response.Data);
             }
         }
 
         if (DisplayImages.Any())
-            ImageService.Collages.Add(IncomingStep, DisplayImages);
+        {
+            // SAFE: Overwrites the key if it exists instead of crashing the thread
+            ImageService.Collages[IncomingStep] = DisplayImages;
+        }
 
         if (_currentIndex >= DisplayImages.Count)
             _currentIndex = Math.Max(0, DisplayImages.Count - 1);
@@ -154,7 +165,7 @@
 
     async Task DestroyCollage()
     {
-
+        await OnCollageDestroyed.InvokeAsync(IncomingStep);
     }
 }
 

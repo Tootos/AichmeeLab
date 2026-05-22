@@ -18,7 +18,7 @@ namespace Aichmee.Shared
         [JsonPropertyName("id")]
         public string? Id { get; set; }
         [Required]
-        [StringLength(20)]
+        [StringLength(140)]
         [JsonPropertyName("title")]
         public string Title { get; set; } = string.Empty;
         [BsonRepresentation(BsonType.ObjectId)]
@@ -45,5 +45,17 @@ namespace Aichmee.Shared
         public bool IsVisible { get; set; } = false;
         [JsonPropertyName("isDeleted")]
         public bool IsDeleted { get; set; } = false;
+
+
+
+
+        [JsonIgnore]
+        public bool HeaderChanged {get;set;} = false;
+        [JsonIgnore]
+        public bool BodyChanged {get; set;} = false;
+        [JsonIgnore]
+        public bool VisibilityChanged {get;set;} =false;
+
+
     }
 }

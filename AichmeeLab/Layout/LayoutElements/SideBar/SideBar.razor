@@ -1,4 +1,6 @@
 @using AichmeeLab.Layout.LayoutElements.Admin_Widget
+@inject IJSRuntime JS
+
 <aside class="sidebar-container @(_isCollapsed ? "collapsed" : "")">
     <div class="sidebar-layout">
 
@@ -26,8 +28,10 @@
 
         @if (IsAdmin)
         {
-            <div class="admin-window"><AdminWidget /></div>
-            
+            <div class="admin-window">
+                <AdminWidget />
+            </div>
+
         }
 
         
@@ -47,8 +51,15 @@
     public bool IsAdmin { get; set; } = false;
     [Parameter]
     public EventCallback OpenAboutModal { get; set; }
+    
+    bool _isMobileDevice {get; set;} = false;
 
     ItemType _activeType { get; set; } = ItemType.Post;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _isMobileDevice = await JS.InvokeAsync<bool>("isMobileDevice");
+    }
 
     async Task OpenAboutAsync() => await OpenAboutModal.InvokeAsync();
 
