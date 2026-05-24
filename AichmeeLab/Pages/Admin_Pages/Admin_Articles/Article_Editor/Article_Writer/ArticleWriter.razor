@@ -41,10 +41,7 @@
                              @onkeyup='() => UpdatePosition(domId, menuId)' @onblur="() => SyncContent(block, domId)"
                              suppressContentEditableWarning="true" spellcheck="false">
 
-                            @* @if (string.IsNullOrEmpty(block.Content))
-                            {
-                                <span></span>
-                            } *@
+
                         </div>
                     </div>
                     break;
@@ -187,12 +184,10 @@
 
         var nextBlock = WriterData.FirstOrDefault(x => x.Step == currentBlock.Step + 1);
 
-        int offset = nextBlock != null ? 1 : 2;
-
         
         foreach (var b in WriterData.Where(x => x.Step > currentBlock.Step))
         {
-            b.Step += offset;
+            b.Step += 2;
         }
 
         
@@ -203,15 +198,14 @@
             Type = "collage"
         });
 
-        if (offset == 2)
+
+        WriterData.Add(new ContentBlock
         {
-            WriterData.Add(new ContentBlock
-            {
-                Step = currentBlock.Step + 2,
-                Type = "text",
-                Content = new List<string> { "<p><br></p>" }
-            });
-        }
+            Step = currentBlock.Step + 2,
+            Type = "text",
+            Content = new List<string> { "<p><br></p>" }
+        });
+
         _loadContent = true;
         StateHasChanged();
     }
@@ -326,7 +320,7 @@
     void HandleCollageDestroyed(int destroyedCollageStep)
     {
         //Remove the collage with the incoming step
-        WriterData.RemoveAll(c => c.Step == destroyedCollageStep);
+        WriterData.RemoveAll(c => c.Step == destroyedCollageStep && c.Type == "collage");
 
         //Remove the collage
         WriterData.
@@ -356,21 +350,88 @@
                 .Where(c => c.Step >= destroyedCollageStep)
                 .ToList()
                 .ForEach(c => c.Step--);
+
    
-            
         }
 
         _loadContent = true;
 
-        //Sync ImageService and SelectedArticle 
-            SelectedArticle.ContentBlocks = WriterData.OrderBy(c => c.Step).ToList();
+        //Sync ImageService and SelectedArticle
+        SelectedArticle.ContentBlocks = WriterData.OrderBy(c => c.Step).ToList();
 
-            ImageService.Collages.Remove(destroyedCollageStep);
+        ImageService.Collages.Remove(destroyedCollageStep);
+        ImageService.Collages = ImageService.Collages.ToDictionary(
+            kvp => kvp.Key > destroyedCollageStep ? kvp.Key - 1 : kvp.Key,
+            kvp => kvp.Value
+        );
+
+        StateHasChanged();
+    }
+
+
+    //Method to remove empty collages from the article during Save
+    public void RemoveEmptyCollages()
+    {
+        // Find all collage blocks that have no Images
+        var emptyCollages = WriterData
+            .Where(c => c.Type == "collage" && (c.Content == null || c.Content.FirstOrDefault() == "<p><br></p>"))
+            .OrderByDescending(c => c.Step) // Crucial: Process back-to-front!
+            .ToList();
+
+        if (!emptyCollages.Any()) return;
+
+        foreach (var emptyBlock in emptyCollages)
+        {
+            int targetStep = emptyBlock.Step;
+
+            // Remove the empty block from our local list instance
+            WriterData.Remove(emptyBlock);
+
+            // Shift every block sitting after this removed block back by 1 step
+            WriterData
+                .Where(c => c.Step > targetStep)
+                .ToList()
+                .ForEach(c => c.Step--);
+
+            // Synchronize your shared state tracking records in the ImageService
+            ImageService.Collages.Remove(targetStep);
             ImageService.Collages = ImageService.Collages.ToDictionary(
-                kvp => kvp.Key > destroyedCollageStep ? kvp.Key - 1 : kvp.Key,
+                kvp => kvp.Key > targetStep ? kvp.Key - 1 : kvp.Key,
                 kvp => kvp.Value
             );
 
+            var previousBlock = WriterData.FirstOrDefault(c => c.Step == targetStep - 1);
+            var currentBlock = WriterData.FirstOrDefault(c => c.Step == targetStep);
+
+            if (previousBlock != null && previousBlock.Type == "text" &&
+            currentBlock != null && currentBlock.Type == "text")
+            {
+                // Combine the raw HTML content strings safely
+                if (previousBlock.Content != null && currentBlock.Content != null && currentBlock.Content.Count > 0)
+                {
+                    string firstLine = previousBlock.Content.FirstOrDefault() ?? "";
+                    string secondLine = currentBlock.Content.FirstOrDefault() ?? "";
+
+                    previousBlock.Content = new List<string> { $"{firstLine}<br>{secondLine}" };
+                }
+
+                WriterData.Remove(currentBlock);
+
+                WriterData
+                    .Where(c => c.Step >= targetStep)
+                    .ToList()
+                    .ForEach(c => c.Step--);
+
+                ImageService.Collages = ImageService.Collages.ToDictionary(
+                    kvp => kvp.Key > targetStep ? kvp.Key - 1 : kvp.Key,
+                    kvp => kvp.Value
+                );
+            }
+        }
+
+
+        _loadContent = true;
+        SelectedArticle.ContentBlocks = WriterData.OrderBy(c => c.Step).ToList();
         StateHasChanged();
     }
 

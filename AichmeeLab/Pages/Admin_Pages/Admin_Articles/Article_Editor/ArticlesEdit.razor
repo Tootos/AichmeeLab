@@ -142,6 +142,7 @@
             };
 
             //ALWAYS EXPORT THE CONTENT LIST FIRST OR ELSE THE CONTENT WILL BE ERASED AFTER STATEHASCHANGED()
+            _articleWriter.RemoveEmptyCollages();
             var contentBlocks = _articleWriter.ExportList();
             var collagesToUpload = ImageService.Collages.ToList();
 
@@ -183,11 +184,12 @@
                 savedArticle = response.Data;
                 _serviceMessages.Add(response.Message);
                 StateHasChanged();
-                //5. Update the text content blocks
-                var textBlocks = contentBlocks.Where(c => c.Type == "text").ToList();
-                @* textBlocks.ForEach(b=>b.ArticleId = savedArticle.Id); *@
-                savedArticle.ContentBlocks = new List<ContentBlock>();
-                savedArticle.ContentBlocks.AddRange(textBlocks);
+                //5. Update Content blocks
+                @* var textBlocks = contentBlocks.Where(c=>c.Type == "text").ToList();
+                savedArticle.ContentBlocks = new List<ContentBlock>(); *@
+                savedArticle.ContentBlocks.AddRange(contentBlocks.ToList());
+                // Remove the collages stored in the Image service so no duplicates are made
+                savedArticle.ContentBlocks.RemoveAll(b => ImageService.Collages.ContainsKey(b.Step));
 
                 var paragraphResponse =
                 await WriterService.UpdateArticleParagraphsAsync(savedArticle);
@@ -198,21 +200,27 @@
                 //6. Upload all collage photos
                 for (int i = 0; i < collagesToUpload.Count; i++)
                 {
+                    var key = collagesToUpload[i].Key;
+                    var value = collagesToUpload[i].Value;
 
                     var collageResponse = await ImageService
-                    .UploadImagesBulk(savedArticle.Id, collagesToUpload[i].Key, collagesToUpload[i].Value);
+                    .UploadImagesBulk(savedArticle.Id, key, value);
                     if (collageResponse.Success && collageResponse.Data != null)
                     {
-                        savedArticle.ContentBlocks.Add(new ContentBlock
-                        {
-                            Step = collagesToUpload[i].Key,
-                            Type = "collage",
-                            Content = collageResponse.Data
-                        });
 
-                        _serviceMessages.Add($"Collage ({i+1}/{collagesToUpload.Count}) posted.");
-                    }else{
-                        _serviceMessages.Add($"Collage ({i+1}/{collagesToUpload.Count}) failed to post.");
+                        savedArticle.ContentBlocks.Add(new ContentBlock{Step = key,Content = collageResponse.Data,Type = "collage" });
+
+                        @* var newBlock = new ContentBlock { Step = collagesToUpload[i].Key, Type = "collage", Content = collageResponse.Data };
+
+                        savedArticle.ContentBlocks = savedArticle.ContentBlocks
+                       .Select(b => b.Step == newBlock.Step ? newBlock : b)
+                       .ToList(); *@
+
+                        _serviceMessages.Add($"Collage ({i + 1}/{collagesToUpload.Count}) posted.");
+                    }
+                    else
+                    {
+                        _serviceMessages.Add($"Collage ({i + 1}/{collagesToUpload.Count}) failed to post.");
                     }
 
                     StateHasChanged();
