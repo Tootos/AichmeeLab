@@ -18,7 +18,7 @@
                 {
                     <div class="image-preview-cell">
                         <img src="@image.RawImageUrl" class="image-preview" />
-                        <button class="remove-img-btn" @onclick="() => localCollage.Remove(image)">
+                        <button class="remove-img-btn" @onclick="() => RemoveImage(image)">
                             <i class="bi bi-x"></i>
                         </button>
                     </div>
@@ -56,18 +56,6 @@
         public int Step { get; set; }
         public List<Image> Images { get; set; } = new();
     }
-    @*
-    protected override async Task OnParametersSetAsync()
-    {
-        _inputFileId = $"images-upload-{DomId}";
-        if (IsOpen && _resetList)
-        {
-            _resetList = false;
-            localCollage = new List<Image>(Collage);
-        }else{
-            _resetList = true;
-        }
-    } *@
 
     public void ChangeCollage(int incomingStep, List<Image> incomingImages)
     {
@@ -112,11 +100,23 @@
         await OnClose.InvokeAsync();
     }
     async Task ConfirmSelection()
-    {   
-        var response = new CollageUpdateResult{
-            Step = currentStep,Images = localCollage
+    {
+        var decoupledImagesList = new List<Image>(localCollage);
+
+        var response = new CollageUpdateResult
+        {
+            Step = currentStep,
+            Images = decoupledImagesList
         };
+
         await OnImagesSelected.InvokeAsync(response);
+
         await ClosePanel();
     }
+
+    private void RemoveImage(Image image)
+{
+    localCollage.Remove(image);
+    StateHasChanged(); 
+}
 }

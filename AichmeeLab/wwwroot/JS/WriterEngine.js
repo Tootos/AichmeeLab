@@ -117,10 +117,15 @@ window.writerEngine = {
     // Split document content and export the latter part of the string
     splitContent: (domId) => {
         const el = document.getElementById(domId);
-        if (!el) return null;
+        if (!el) return "";
 
         const selection = window.getSelection();
-        if (!selection.rangeCount) return null;
+
+        // SAFE FALLBACK: If there's no selection, or the user is focused somewhere else entirely,
+        // don't try to extract anything. Just return an empty string.
+        if (!selection.rangeCount || !el.contains(selection.anchorNode)) {
+            return "";
+        }
 
         const range = selection.getRangeAt(0);
 
