@@ -44,9 +44,9 @@ window.initializeSwipe = (dotNetHelper) => {
         const deltaX = touchEndX - touchStartX;
         const deltaY = Math.abs(touchEndY - touchStartY);
 
-        if (Math.abs(deltaX) > 70 && deltaY < 45) {
+        if (Math.abs(deltaX) > 70 && Math.abs(deltaY) < 45) {
             // Swipe Right from edge (Open)
-            if (deltaX > 0 && touchStartX < 220) {
+            if (deltaX > 0 && touchStartX < 320) {
                 dotNetHelper.invokeMethodAsync('SideBarToggle');
             } 
             // Swipe Left anywhere (Close)

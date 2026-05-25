@@ -32,7 +32,7 @@
                                 <button @onclick='() => ApplyStyleAsync("p")' title="Text">P</button>
                                 <button @onclick='() => ApplyStyleAsync("ol")' title="Ordered List">1.</button>
                                 <button @onclick='() => ApplyStyleAsync("ul")' title="Bullet List">•</button>
-                                <button @onclick="AddCollage">Pic</button>
+                                <button @onclick="AddCollageAsync">Pic</button>
                             </div>
                         </div>
 
@@ -254,8 +254,8 @@
         // Sync the current block
         await SyncContent(currentBlock, _activeDomId);
 
-        // Find the block immediately following this one, IF it exists
-        var nextBlock = WriterData.FirstOrDefault(x => x.Step == currentBlock.Step + 1);
+        // Find the block immediately following this one, IF it exists AND IS text block
+        var nextBlock = WriterData.FirstOrDefault(x => x.Step == currentBlock.Step + 1 && x.Type == "text");
 
         if (nextBlock != null)
         {
@@ -321,6 +321,8 @@
     {
         //Remove the collage with the incoming step
         WriterData.RemoveAll(c => c.Step == destroyedCollageStep && c.Type == "collage");
+        ImageService.Collages.Remove(destroyedCollageStep);
+        
 
         //Remove the collage
         WriterData.
@@ -374,7 +376,10 @@
     {
         // Find all collage blocks that have no Images
         var emptyCollages = WriterData
-            .Where(c => c.Type == "collage" && (c.Content == null || c.Content.FirstOrDefault() == "<p><br></p>"))
+            .Where(c => c.Type == "collage" 
+            && (c.Content == null 
+            || c.Content.Count == 0 
+            || c.Content.FirstOrDefault() == "<p><br></p>"))
             .OrderByDescending(c => c.Step) // Crucial: Process back-to-front!
             .ToList();
 

@@ -55,6 +55,9 @@
         <div class="collage-empty-state" @onclick="OpenSidepanel">
             <i class="bi bi-images"></i>
             <span>Click to add photos to collage</span>
+            <button class="delete-button" @onclick="DestroyCollage">
+                <i class="bi bi-dash-circle-fill"></i>
+            </button>
         </div>
     }
 
@@ -130,27 +133,6 @@
         await OpenImageSidePanel.InvokeAsync(DisplayImages);
     }
 
-    @* async Task HandleListFetchAsync(List<Image> newImages)
-    {
-        if (newImages == null || !newImages.Any()) return;
-
-        // 1. Filter for uniqueness based on the raw data/string
-        var uniqueBase64Strings = newImages
-            .Select(i => !string.IsNullOrEmpty(i.Id) ? i.Id : i.RawImageUrl)
-            .Distinct()
-            .ToList();
-
-        // 2. Create the ContentBlock
-        var contentBlock = new ContentBlock
-        {
-            Type = "collage",
-            Content = uniqueBase64Strings,
-            Step = IncomingStep
-        };
-
-        // 3. Notify the ArticleWriter
-        await OnCollageChange.InvokeAsync(contentBlock);
-    } *@
     void PreviousImage()
     {
         if (DisplayImages == null || DisplayImages.Count == 0) return;
