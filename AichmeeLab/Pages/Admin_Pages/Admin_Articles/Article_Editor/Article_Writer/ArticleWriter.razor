@@ -283,58 +283,59 @@
         StateHasChanged();
     }
 
-    void HandleCollageDestroyed(int destroyedCollageStep)
+void HandleCollageDestroyed(int destroyedCollageStep)
+{
+    // 1. Instantly drop the targeted collage block out of our layout list
+    WriterData.RemoveAll(c => c.Step == destroyedCollageStep && c.Type == "collage");
+    
+    // 2. Clear out its recorded state tracking entry from the shared service
+    ImageService.Collages.Remove(destroyedCollageStep);
+
+    // 3. Shift every single block sitting below the deleted collage backward by 1
+    foreach (var b in WriterData.Where(c => c.Step > destroyedCollageStep))
     {
-        //Remove the collage with the incoming step
-        WriterData.RemoveAll(c => c.Step == destroyedCollageStep && c.Type == "collage");
-        ImageService.Collages.Remove(destroyedCollageStep);
+        b.Step--;
+    }
 
-        
-        //Remove the collage
-        WriterData.
-        Where(c => c.Step > destroyedCollageStep)
-        .ToList()
-        .ForEach(c => c.Step--);
+    // 4. Shift corresponding indices inside our image tracking system cleanly
+    ImageService.Collages = ImageService.Collages.ToDictionary(
+        kvp => kvp.Key > destroyedCollageStep ? kvp.Key - 1 : kvp.Key,
+        kvp => kvp.Value
+    );
 
-        var previousBlock = WriterData.FirstOrDefault(c => c.Step == destroyedCollageStep - 1);
-        var currentBlock = WriterData.FirstOrDefault(c => c.Step == destroyedCollageStep);
+    // 5. Look up neighboring blocks to see if we left two text fields touching
+    var previousBlock = WriterData.FirstOrDefault(c => c.Step == destroyedCollageStep - 1);
+    var currentBlock = WriterData.FirstOrDefault(c => c.Step == destroyedCollageStep);
 
-        if (previousBlock != null && previousBlock.Type == "text" &&
+    if (previousBlock != null && previousBlock.Type == "text" &&
         currentBlock != null && currentBlock.Type == "text")
-        { // Combine the content lists
-            if (previousBlock.Content != null && currentBlock.Content != null)
-            {
-                string firstLine = previousBlock.Content[0];
-                string secondLine = currentBlock.Content[0];
+    {
+        // Safely extract and concatenate strings
+        string firstLine = previousBlock.Content?.FirstOrDefault() ?? "";
+        string secondLine = currentBlock.Content?.FirstOrDefault() ?? "";
 
-                previousBlock.Content[0] = $"{firstLine}<br>{secondLine}";
-            }
+        previousBlock.Content = new List<string> { $"{firstLine}<br>{secondLine}" };
 
-            // Remove the redundant current block that we just merged into previousBlock
-            WriterData.Remove(currentBlock);
+        // Remove the redundant current block that we just merged upwards
+        WriterData.Remove(currentBlock);
 
-            // Because we just removed another block, shift everything by 1
-            WriterData
-                .Where(c => c.Step >= destroyedCollageStep)
-                .ToList()
-                .ForEach(c => c.Step--);
-
-   
+        // Since another block vanished, shift every block past this point down by 1 more step
+        foreach (var b in WriterData.Where(c => c.Step > destroyedCollageStep))
+        {
+            b.Step--;
         }
 
-        _loadContent = true;
-
-        //Sync ImageService and SelectedArticle
-        SelectedArticle.ContentBlocks = WriterData.OrderBy(c => c.Step).ToList();
-
-        ImageService.Collages.Remove(destroyedCollageStep);
+        // Keep the image service dictionary structurally synchronized with the second text shift
         ImageService.Collages = ImageService.Collages.ToDictionary(
             kvp => kvp.Key > destroyedCollageStep ? kvp.Key - 1 : kvp.Key,
             kvp => kvp.Value
         );
-
-        StateHasChanged();
     }
+
+    // 6. Signal the canvas wrapper to re-initialize layout view fields
+    _loadContent = true;
+    StateHasChanged();
+}
 
 
     //Method to remove empty collages from the article during Save

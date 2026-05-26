@@ -31,7 +31,7 @@
                     <img src="@displayUrl" class="active-collage-img" />
 
                     <div class="image-description">
-                        <input type="text" value="@currentImg.Description" 
+                        <input type="text" value="@currentImg.Description"
                                @onchange="(e) => UpdateImageDescription(currentImg, e.Value?.ToString())"
                                placeholder="Add a caption for this photo..." class="description-input" />
                     </div>
@@ -134,7 +134,7 @@
     async Task UpdateImageDescription(Image img, string? newDescription)
     {
         img.Description = newDescription ?? string.Empty;
-        
+
         // Notify parent writer canvas that structural data contents inside this block mutated
         var updatedBlock = new ContentBlock
         {
