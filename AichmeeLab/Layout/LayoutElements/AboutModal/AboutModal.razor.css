@@ -25,7 +25,7 @@
 .about-content{
     display: flex;
     gap: 30px; 
-    align-items: flex-start;
+    
     margin-top: 10px;
 }
 .close-btn {
@@ -45,7 +45,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    width: 300px; 
+    max-width: 300px; 
     gap: 12px;
 }
 
@@ -63,11 +63,38 @@
     flex-direction: column;
     padding-top: 10px;
     gap: 10px;
+    height: stretch;
+    max-width: 300px;
 }
 
 .right-row a{
     background: transparent;
     border: none;
     color: var(--select-color);
+}
+
+.quote{
+        color: var(--font-color2);
+    background: var(--surface-color3);
+    border-radius: 5%;
+    height: 100%;
+    padding: 5px;
+    font-size: 1.1rem;
+    font-style: oblique;
+}
+
+@media(min-width:641px) {
+    .about-content{
+        align-items: flex-start; 
+    }
+
+}
+
+/* Phones */
+@media(max-width:640px) {
+    .about-content{
+        flex-direction: column; 
+        align-items: center;  
+    }
 }
 

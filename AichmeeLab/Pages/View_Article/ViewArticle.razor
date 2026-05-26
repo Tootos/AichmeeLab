@@ -14,24 +14,25 @@
         </div>
         <div class="article-content">
             <div class="header-wrapper">
-                <h1 class="view-title">@SelectedArticle.Title</h1>
-                <h3 class="view-author">by @SelectedArticle.Author</h3>
-                <span class="view-date">Date Published:@SelectedArticle.DatePublished.ToString("MMM dd, yyyy")
-                    | Last Updated: @SelectedArticle.LastUpdate.ToString("MMM dd, yyyy")</span>
+                <div class="meta-info">
+                    <h1 class="view-title">@SelectedArticle.Title</h1>
+                    <h3 class="view-author">by @SelectedArticle.Author</h3>
+                    <br>
+                    <span class="view-date">Date Published:@SelectedArticle.DatePublished.ToString("MMM dd, yyyy")
+                        | Last Updated: @SelectedArticle.LastUpdate.ToString("MMM dd, yyyy")</span>
 
-
-                </div>
-
-                @if (HeaderImage != null && !string.IsNullOrEmpty(HeaderImage.HeaderUrl))
-                {
-                    <div class="view-img">
-                        <img src="@HeaderImage.HeaderUrl" alt="@HeaderImage.RawImageUrl" class="img-fluid rounded shadow-sm" />
                     </div>
-                }
 
-                <p class="view-description">@SelectedArticle.Description</p>
-                
-                <div class="line-separator"></div>
+                    @if (HeaderImage != null && !string.IsNullOrEmpty(HeaderImage.HeaderUrl))
+                    {
+                        <div class="view-img">
+                            <img src="@HeaderImage.HeaderUrl" alt="@HeaderImage.RawImageUrl"
+                                 class="img-fluid rounded shadow-sm" />
+                        </div>
+                    }
+
+                    <p class="view-description">@SelectedArticle.Description</p>
+                </div>
 
                 
 

@@ -59,6 +59,7 @@
     color: var(--select-color);
 }
 
+/* Desktop */
 @media(min-width:641px) {
     .sidebar-layout {
         display: flex;
@@ -83,6 +84,7 @@
     }
 }
 
+/* Mobile */
 @media(max-width:640px) {
     .sidebar-layout {
         display: flex;

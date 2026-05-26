@@ -1,7 +1,6 @@
 ﻿@using AichmeeLab.Pages.Admin_Pages.Admin_Articles.Article_Editor.Article_Inspector
 @using AichmeeLab.Pages.Admin_Pages.Admin_Articles.Article_Editor.Article_Writer
 @using AichmeeLab.Pages.View_Article
-@using AichmeeLab.Services.ImageService
 @using BootstrapBlazor.Components
 @inject IJSRuntime jSRuntime;
 @inject AichmeeLab.Services.WriterService.IWriterService WriterService;
@@ -13,11 +12,12 @@
             <div class="spinner-icon"><i class="bi bi-arrow-clockwise"></i></div>
             <div class="service-response">
                 <span>Service Response: </span>
-                @foreach(var message in _serviceMessages){
+                @foreach (var message in _serviceMessages)
+                {
                     <span>@message</span>
                 }
             </div>
-            
+
         </div>
     </div>
 
@@ -61,47 +61,46 @@
                 </button>
 
                 <div class="form-check form-switch visibility-control">
-                    <input type="checkbox" class="btn-check" id="vSwitch" @bind="SelectedArticle.IsVisible"
-                           autocomplete="off">
-                        <label
-                            class="btn @(SelectedArticle.IsVisible ? "btn-success" : "btn-outline-secondary") w-100 py-2 fw-bold"
-                            for="vSwitch">
-                            <i class="bi @(SelectedArticle.IsVisible ? "bi-eye-fill" : "bi-eye-slash") me-1"></i>
-                            @(SelectedArticle.IsVisible ? "VISIBLE" : "HIDDEN")
-                        </label>
-                    </div>
+                    <input type="checkbox" class="btn-check" id="vSwitch" @bind="_isVisible" autocomplete="off">
+                    <label class="btn @(_isVisible ? "btn-success" : "btn-outline-secondary") w-100 py-2 fw-bold"
+                           for="vSwitch">
+                        <i class="bi @(_isVisible ? "bi-eye-fill" : "bi-eye-slash") me-1"></i>
+                        @(_isVisible ? "VISIBLE" : "HIDDEN")
+                    </label>
+                </div>
 
-                    <button type="submit" class="btn btn-primary w-100 py-2 fw-bold mb-2">
-                        <i class="bi bi-cloud-arrow-up-fill me-1"></i> Save Article
+                <button type="submit" class="btn btn-primary w-100 py-2 fw-bold mb-2">
+                    <i class="bi bi-cloud-arrow-up-fill me-1"></i> Save Article
+                </button>
+
+                @if (!string.IsNullOrEmpty(SelectedArticle.Id))
+                {
+                    <button type="button" class="btn btn-outline-danger btn-sm w-100 border-0 mt-2"
+                            @onclick="DeleteFromDbAsync">
+                        Delete from Database
                     </button>
+                }
+            </EditForm>
+        </div>
 
-                    @if (!string.IsNullOrEmpty(SelectedArticle.Id))
-                    {
-                        <button type="button" class="btn btn-outline-danger btn-sm w-100 border-0 mt-2"
-                                @onclick="DeleteFromDbAsync">
-                            Delete from Database
-                        </button>
-                    }
-                </EditForm>
-            </div>
+    }
 
-        }
-        
-    </div>
+</div>
 @code {
     ArticleWriter? _articleWriter;
     ArticleInspector? _articleInspector;
 
     bool _loading { get; set; } = false;
     List<string> _serviceMessages = new List<string>();
-    
+
     [Parameter] public Article SelectedArticle { get; set; } = new Article();
     Image _selectedImage { get; set; } = new Image();
     [Parameter] public EventCallback OnReady { get; set; }
     [Parameter] public EventCallback<Article?> OnChange { get; set; }
     bool _isPreviewMode { get; set; } = false;
     bool _isHeaderOpen { get; set; } = false;
-    
+    bool _isVisible { get; set; }
+
     protected override void OnInitialized()
     {
         ImageService.Collages.Clear();
@@ -115,8 +114,10 @@
             if (result.Success && result.Data != null)
                 _selectedImage = result.Data;
         }
+
+        _isVisible = SelectedArticle.IsVisible;
     }
-    
+
     //Save Article
     public async Task SaveEntryAsync()
     {
@@ -127,7 +128,7 @@
             // 1. Check if Page Elements are initialized
             if (_articleWriter == null || _articleInspector == null)
                 return;
-        
+
             //Make a new Article class to take the new data so Parameter SelectedArticle doesn't trigger lifecycle methods.
             var savedArticle = new Article
             {
@@ -141,12 +142,14 @@
             };
 
             //ALWAYS EXPORT THE CONTENT LIST FIRST OR ELSE THE CONTENT WILL BE ERASED AFTER STATEHASCHANGED()
+            _articleWriter.RemoveEmptyCollages();
             var contentBlocks = _articleWriter.ExportList();
+            var collagesToUpload = ImageService.Collages.ToList();
 
             // 2. Lock the editor for the user
             _loading = true;
             StateHasChanged();
-        
+
             // 3. Handle Image Change
             // Case 1: If it doesn't have an Id it's a new image and we will create an entry
             if (string.IsNullOrEmpty(_selectedImage.Id))
@@ -162,7 +165,7 @@
                 }
                 _selectedImage = imageResponse.Data;
                 _serviceMessages.Add(imageResponse.Message);
-                
+
                 savedArticle.HeaderImageId = imageResponse.Data.Id;
             }
             //Case 2: If it isn't a new image then we will just update the information like description
@@ -177,41 +180,71 @@
             var response = await WriterService.UpdateArticleInfoAsync(savedArticle);
             if (response.Success && response.Data != null && !string.IsNullOrEmpty(response.Data.Id))
             {
-            
+
                 savedArticle = response.Data;
                 _serviceMessages.Add(response.Message);
                 StateHasChanged();
-                //5. Update the text content blocks
-                var textBlocks = contentBlocks.Where(c => c.Type == "text").ToList();
-                @* textBlocks.ForEach(b=>b.ArticleId = savedArticle.Id); *@
-                savedArticle.ContentBlocks = new List<ContentBlock>();
-                savedArticle.ContentBlocks.AddRange(textBlocks);
+                //5. Update Content blocks
+                @* var textBlocks = contentBlocks.Where(c=>c.Type == "text").ToList();
+                savedArticle.ContentBlocks = new List<ContentBlock>(); *@
+                savedArticle.ContentBlocks.AddRange(contentBlocks.ToList());
+                // Remove the collages stored in the Image service so no duplicates are made
+                savedArticle.ContentBlocks.RemoveAll(b => ImageService.Collages.ContainsKey(b.Step));
 
                 var paragraphResponse =
                 await WriterService.UpdateArticleParagraphsAsync(savedArticle);
-                
+
                 _serviceMessages.Add(paragraphResponse.Message);
                 StateHasChanged();
 
                 //6. Upload all collage photos
-                foreach (var entry in ImageService.Collages)
+                for (int i = 0; i < collagesToUpload.Count; i++)
                 {
+                    var key = collagesToUpload[i].Key;
+                    var value = collagesToUpload[i].Value;
 
-                    var collageResponse = await ImageService.UploadImagesBulk(savedArticle.Id,entry.Key,entry.Value);
+                    var collageResponse = await ImageService
+                    .UploadImagesBulk(savedArticle.Id, key, value);
                     if (collageResponse.Success && collageResponse.Data != null)
                     {
-                        savedArticle.ContentBlocks.Add(new ContentBlock
-                        {
-                            Step = entry.Key,
-                            Type = "collage",
-                            Content = collageResponse.Data
-                        });
+
+                        savedArticle.ContentBlocks.Add(new ContentBlock{Step = key,Content = collageResponse.Data,Type = "collage" });
+
+                        @* var newBlock = new ContentBlock { Step = collagesToUpload[i].Key, Type = "collage", Content = collageResponse.Data };
+
+                        savedArticle.ContentBlocks = savedArticle.ContentBlocks
+                       .Select(b => b.Step == newBlock.Step ? newBlock : b)
+                       .ToList(); *@
+
+                        _serviceMessages.Add($"Collage ({i + 1}/{collagesToUpload.Count}) posted.");
+                    }
+                    else
+                    {
+                        _serviceMessages.Add($"Collage ({i + 1}/{collagesToUpload.Count}) failed to post.");
                     }
 
                     StateHasChanged();
 
                 }
-                //7. Closing 
+
+                
+
+                var updatedVisibility = new Dictionary<string, bool>();
+                updatedVisibility.Add(savedArticle.Id, _isVisible);
+
+               
+                //7. Update Visibility
+                var visibilityResult = await WriterService.UpdateVisibilityAsync(updatedVisibility);
+
+                if (visibilityResult?.Data != null && visibilityResult.Data > 0)
+                {
+                    _serviceMessages.Add(visibilityResult.Message);
+                    savedArticle.IsVisible = _isVisible;
+                    StateHasChanged();
+
+                }
+
+                //8. Closing
                 ImageService.Collages.Clear();
 
                 savedArticle.ContentBlocks = savedArticle.ContentBlocks.OrderBy(c => c.Step).ToList();
@@ -220,7 +253,7 @@
             }
             else
             {
-                
+
                 jsMessage = string.IsNullOrEmpty(response.Message) ? "Failed Save Operation" : response.Message;
             }
         }
@@ -251,9 +284,9 @@
         if (_articleWriter == null) return;
         _isPreviewMode = !_isPreviewMode;
         if (_isPreviewMode)
-        
+
             SelectedArticle.ContentBlocks = _articleWriter.ExportList();
-        
+
         StateHasChanged();
     }
 

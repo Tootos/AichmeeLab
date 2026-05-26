@@ -3,7 +3,6 @@
 <div class="collage-container">
     @if (DisplayImages != null && DisplayImages.Count > 0)
     {
-
         <div class="collage-carousel">
             <div class="collage-preview-state">
                 @if (DisplayImages.Count > 1)
@@ -13,7 +12,6 @@
                     </button>
                 }
 
-                
                 <div class="image-viewer">
                     <div class="image-action-buttons">
                         <button class="change-button" @onclick="OpenSidepanel">
@@ -33,11 +31,12 @@
                     <img src="@displayUrl" class="active-collage-img" />
 
                     <div class="image-description">
-                        <input type="text" @bind="currentImg.Description" @bind:event="oninput"
+                        <input type="text" value="@currentImg.Description"
+                               @onchange="(e) => UpdateImageDescription(currentImg, e.Value?.ToString())"
                                placeholder="Add a caption for this photo..." class="description-input" />
                     </div>
 
-                    <div class="image-counter">@(_currentIndex + 1) / @( DisplayImages.Count)</div>
+                    <div class="image-counter">@(_currentIndex + 1) / @(DisplayImages.Count)</div>
                 </div>
 
                 @if (DisplayImages.Count > 1)
@@ -48,48 +47,59 @@
                 }
             </div>
         </div>
-
     }
     else
     {
         <div class="collage-empty-state" @onclick="OpenSidepanel">
             <i class="bi bi-images"></i>
             <span>Click to add photos to collage</span>
+            <button class="delete-button" @onclick="DestroyCollage" @onclick:stopPropagation>
+                <i class="bi bi-dash-circle-fill"></i>
+            </button>
         </div>
     }
-
 </div>
-
 
 @code {
     int _currentIndex = 0;
-    [Parameter]
-    public string DomId { get; set; } = string.Empty;
-    [Parameter]
-    public List<string> IncomingCollage { get; set; } = null;
-    List<string> _lastIncomingCollage { get; set; } = new();
+    [Parameter] public string DomId { get; set; } = string.Empty;
+    [Parameter] public List<string> IncomingCollage { get; set; } = null;
+    [Parameter] public int IncomingStep { get; set; }
 
+    List<string> _lastIncomingCollage { get; set; } = new();
     List<Image> DisplayImages { get; set; } = new();
 
-    [Parameter]
-    public EventCallback<ContentBlock> OnCollageChange { get; set; }
-    [Parameter]
-    public EventCallback<List<Image>> OpenImageSidePanel { get; set; }
+    [Parameter] public EventCallback<ContentBlock> OnCollageChange { get; set; }
+    [Parameter] public EventCallback<int> OnCollageDestroyed { get; set; }
+    [Parameter] public EventCallback<List<Image>> OpenImageSidePanel { get; set; }
 
-    [Parameter] public int IncomingStep { get; set; }
+    private int _lastProcessedStep = -1;
+
     protected override async Task OnParametersSetAsync()
     {
-        if (IncomingCollage == null || IncomingCollage.Count == 0) return;
+        bool stepHasChanged = _lastProcessedStep != IncomingStep;
+        if (stepHasChanged && _lastProcessedStep != -1)
+        {
+            ImageService.Collages.Remove(_lastProcessedStep);
+        }
+        _lastProcessedStep = IncomingStep;
 
-        if (_lastIncomingCollage.SequenceEqual(IncomingCollage)) return;
+        if (IncomingCollage == null || IncomingCollage.Count == 0)
+        {
+            DisplayImages.Clear();
+            ImageService.Collages.Remove(IncomingStep);
+            _lastIncomingCollage.Clear();
+            _currentIndex = 0;
+            return;
+        }
+
+        if (!stepHasChanged && _lastIncomingCollage.SequenceEqual(IncomingCollage)) return;
 
         _lastIncomingCollage = new List<string>(IncomingCollage);
-
         DisplayImages.Clear();
-        ImageService.Collages.Remove(IncomingStep);
+
         foreach (var imageId in IncomingCollage)
         {
-            //Base64 string
             if (imageId.StartsWith("data:image"))
             {
                 DisplayImages.Add(new Image
@@ -102,13 +112,15 @@
             else
             {
                 var response = await ImageService.GetImageAsync(imageId);
-                if (response.Success = true && response?.Data != null)
+                if (response?.Success == true && response.Data != null)
                     DisplayImages.Add(response.Data);
             }
         }
 
         if (DisplayImages.Any())
-            ImageService.Collages.Add(IncomingStep, DisplayImages);
+        {
+            ImageService.Collages[IncomingStep] = new List<Image>(DisplayImages);
+        }
 
         if (_currentIndex >= DisplayImages.Count)
             _currentIndex = Math.Max(0, DisplayImages.Count - 1);
@@ -119,27 +131,20 @@
         await OpenImageSidePanel.InvokeAsync(DisplayImages);
     }
 
-    @* async Task HandleListFetchAsync(List<Image> newImages)
+    async Task UpdateImageDescription(Image img, string? newDescription)
     {
-        if (newImages == null || !newImages.Any()) return;
+        img.Description = newDescription ?? string.Empty;
 
-        // 1. Filter for uniqueness based on the raw data/string
-        var uniqueBase64Strings = newImages
-            .Select(i => !string.IsNullOrEmpty(i.Id) ? i.Id : i.RawImageUrl)
-            .Distinct()
-            .ToList();
-
-        // 2. Create the ContentBlock
-        var contentBlock = new ContentBlock
+        // Notify parent writer canvas that structural data contents inside this block mutated
+        var updatedBlock = new ContentBlock
         {
+            Step = IncomingStep,
             Type = "collage",
-            Content = uniqueBase64Strings,
-            Step = IncomingStep
+            Content = IncomingCollage // Keeps current image references intact
         };
+        await OnCollageChange.InvokeAsync(updatedBlock);
+    }
 
-        // 3. Notify the ArticleWriter
-        await OnCollageChange.InvokeAsync(contentBlock);
-    } *@
     void PreviousImage()
     {
         if (DisplayImages == null || DisplayImages.Count == 0) return;
@@ -154,7 +159,6 @@
 
     async Task DestroyCollage()
     {
-
+        await OnCollageDestroyed.InvokeAsync(IncomingStep);
     }
 }
-

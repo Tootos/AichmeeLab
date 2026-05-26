@@ -5,14 +5,13 @@
 
     --button-shadow: 0px 0px 5px rgb(0, 0, 0, 0.9);
 
-
-
     --font-family: sans-serif;
     --font-size-title: 2rem;
     --font-size-description: 1.3rem;
 
     --surface-color: #212427;
     --surface-color2: #494d51;
+    --surface-color3: #00000087;
     --font-color1: #d0d5d9f3;
     --font-color2: #4b4c4d;
     --border-color: #383b3e96;

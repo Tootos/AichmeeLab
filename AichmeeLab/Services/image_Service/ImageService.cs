@@ -8,7 +8,7 @@ namespace AichmeeLab.Services.ImageService
 {
     class ImageService : IImageService
     {
-        public string AboutImage {get;set;} = string.Empty;
+        public string AboutImage { get; set; } = string.Empty;
         readonly HttpClient _httpClient;
 
         public Dictionary<int, List<Image>> Collages { get; set; } = new Dictionary<int, List<Image>>();
@@ -17,7 +17,7 @@ namespace AichmeeLab.Services.ImageService
         {
             _httpClient = http;
 
-            
+
         }
 
         public async Task<ServiceResponse<Image>> GetImageAsync(string id)
@@ -98,7 +98,9 @@ namespace AichmeeLab.Services.ImageService
                 }
                 else
                 {
-                    multipartContent.Add(new StringContent(image.Id ?? ""), $"existingIds[{i}]");
+                    multipartContent.Add(
+                                 new StringContent(image.Id ?? "", System.Text.Encoding.UTF8),
+                                 $"existingIds[{i}]");
                 }
 
 
@@ -144,7 +146,7 @@ namespace AichmeeLab.Services.ImageService
 
             if (response.IsSuccessStatusCode)
             {
-                
+
                 var result = await response.Content.ReadFromJsonAsync<ServiceResponse<string>>();
                 return result ?? new ServiceResponse<string>() { Message = "No Results", Success = false };
 
@@ -159,14 +161,14 @@ namespace AichmeeLab.Services.ImageService
 
         public async Task GetAssetsAsync()
         {
-            var request = new HttpRequestMessage(HttpMethod.Get,"api/anon/assets");
+            var request = new HttpRequestMessage(HttpMethod.Get, "api/anon/assets");
             request.SetBrowserRequestCredentials(BrowserRequestCredentials.Include);
 
             var response = await _httpClient.SendAsync(request);
 
             if (response.IsSuccessStatusCode)
             {
-                
+
                 var result = await response.Content.ReadFromJsonAsync<ServiceResponse<string>>();
                 AboutImage = result.Data;
             }

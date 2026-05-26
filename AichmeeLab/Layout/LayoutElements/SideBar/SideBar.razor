@@ -1,4 +1,8 @@
 @using AichmeeLab.Layout.LayoutElements.Admin_Widget
+@inject NavigationManager NavigationManager
+@implements IDisposable
+@inject IJSRuntime JS
+
 <aside class="sidebar-container @(_isCollapsed ? "collapsed" : "")">
     <div class="sidebar-layout">
 
@@ -11,26 +15,29 @@
         </div>
 
         <nav class="sidebar-nav">
-            <NavLink class="nav-text-btn" href="/" Match="NavLinkMatch.All">
+            <button class="nav-text-btn @(IsActive(null) ? "active" : "")" @onclick='() => NavigateTo("/")'>
                 <i class="bi bi-house"></i> Feed
-            </NavLink>
+            </button>
 
-            <NavLink class="nav-text-btn" href="/?type=article">
+            <button class="nav-text-btn @(IsActive("article") ? "active" : "")"
+                    @onclick='() => NavigateTo("/?type=article")'>
                 <i class="bi bi-newspaper"></i> Articles
-            </NavLink>
+            </button>
 
-            <NavLink class="nav-text-btn" href="?type=album">
+            <button class="nav-text-btn @(IsActive("album") ? "active" : "")"
+                    @onclick='() => NavigateTo("/?type=album")'>
                 <i class="bi bi-camera2"></i> Albums
-            </NavLink>
+            </button>
         </nav>
 
         @if (IsAdmin)
         {
-            <div class="admin-window"><AdminWidget /></div>
-            
+            <div class="admin-window">
+                <AdminWidget />
+            </div>
+
         }
 
-        
         <div class="sidebar-footer">
             <button class="nav-text-btn" @onclick="OpenAboutAsync">
                 <i class="bi bi-person-raised-hand"></i> About
@@ -42,13 +49,30 @@
 
 
 @code {
+    bool _isActive { get; set; }
     bool _isCollapsed { get; set; } = false;
     [Parameter]
     public bool IsAdmin { get; set; } = false;
     [Parameter]
     public EventCallback OpenAboutModal { get; set; }
 
+    bool _isMobileDevice { get; set; } = false;
+
     ItemType _activeType { get; set; } = ItemType.Post;
+
+    protected override async Task OnInitializedAsync()
+    {
+        NavigationManager.LocationChanged += OnLocationChanged;
+        _isMobileDevice = await JS.InvokeAsync<bool>("isMobileDevice");
+    }
+
+    private void NavigateTo(string targetUrl)
+    {
+
+        NavigationManager.NavigateTo(targetUrl);
+        if (_isMobileDevice)
+            ToggleSidebar();
+    }
 
     async Task OpenAboutAsync() => await OpenAboutModal.InvokeAsync();
 
@@ -56,4 +80,29 @@
     public void ToggleSidebar() => _isCollapsed = !_isCollapsed;
     string GetButtonClass(ItemType type) =>
         _activeType == type ? "active" : "";
+
+
+
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        StateHasChanged();
+    }
+
+    private bool IsActive(string? incomingType)
+    {
+        var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+
+        var queryStrings = QueryHelpers.ParseQuery(uri.Query);
+
+        if (queryStrings.TryGetValue("type", out var actualType))
+        {
+            return string.Equals(actualType, incomingType, StringComparison.OrdinalIgnoreCase);
+        }
+        return incomingType == null;
+    }
+
+    public void Dispose()
+    {
+        NavigationManager.LocationChanged -= OnLocationChanged;
+    }
 }
