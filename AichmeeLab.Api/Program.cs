@@ -10,6 +10,7 @@ using AichmeeLab.Api.Services.AuthenticatorService;
 using AichmeeLab.Api.Services.ImageService;
 using Azure.Storage.Blobs;
 using AichmeeLab.Api.Services.ContentService;
+using AichmeeLab.Api.Services.TagService;
 
 var builder = FunctionsApplication.CreateBuilder(args);
 
@@ -41,5 +42,6 @@ builder.Services.AddScoped<IArticleService, ArticleService>();
 builder.Services.AddSingleton<IAuthenticatorService, AuthenticatorService>();
 builder.Services.AddScoped<IImageService,ImageService>();
 builder.Services.AddScoped<IContentService, ContentService>();
+builder.Services.AddScoped<ITagService, TagService>();
 
 builder.Build().Run();

@@ -7,6 +7,9 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Configuration;
 using System.Net;
+using AichmeeLab.Api.Utilities;
+using System.Text.Json;
+using AichmeeLab.Api.Services.TagService;
 
 namespace AichmeeLab.Api
 {
@@ -15,19 +18,20 @@ namespace AichmeeLab.Api
 
         readonly IArticleService _articleService;
         readonly IImageService _imageService;
+        readonly ITagService _tagService;
         readonly IContentService _contentService;
         readonly IConfiguration _config;
 
 
-        public AnonymousFunctions(IArticleService articleService, IImageService imageService, IContentService contentService,
+        public AnonymousFunctions(IArticleService articleService, IImageService imageService,ITagService tagService, IContentService contentService,
         IConfiguration config)
         {
             _articleService = articleService;
             _imageService = imageService;
+            _tagService = tagService;
             _contentService = contentService;
             _config = config;
         }
-
         [Function("GetUserArticle")]
         public async Task<HttpResponseData> Get(
             [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "anon/article/get/{id?}")]
@@ -35,17 +39,7 @@ namespace AichmeeLab.Api
         {
 
             var result = await _articleService.GetArticle(id, false);
-            if (result.Success)
-            {
-                var successResponse = req.CreateResponse(HttpStatusCode.OK);
-                await successResponse.WriteAsJsonAsync(result);
-                return successResponse;
-            }
-
-            var notFoundResponse = req.CreateResponse(HttpStatusCode.NotFound);
-            await notFoundResponse.WriteAsJsonAsync(result);
-            return notFoundResponse;
-
+            return await MyMethods.FindResponseAsync(req, result);
         }
 
         [Function("GetUserArticles")]
@@ -55,16 +49,7 @@ namespace AichmeeLab.Api
         {
 
             var result = await _articleService.GetArticles(req.Url.Query, false);
-            if (result.Success)
-            {
-                var successResponse = req.CreateResponse(HttpStatusCode.OK);
-                await successResponse.WriteAsJsonAsync(result);
-                return successResponse;
-            }
-
-            var badResponse = req.CreateResponse(HttpStatusCode.BadRequest);
-            await badResponse.WriteAsJsonAsync(result);
-            return badResponse;
+            return await MyMethods.FindResponseAsync(req, result);
         }
 
         [Function("GetImage")]
@@ -73,16 +58,7 @@ namespace AichmeeLab.Api
         HttpRequestData req, string id)
         {
             var result = await _imageService.GetImage(id);
-            if (result.Success)
-            {
-                var successResponse = req.CreateResponse(HttpStatusCode.OK);
-                await successResponse.WriteAsJsonAsync(result);
-                return successResponse;
-            }
-
-            var badResponse = req.CreateResponse(HttpStatusCode.BadRequest);
-            await badResponse.WriteAsJsonAsync(result);
-            return badResponse;
+            return await MyMethods.FindResponseAsync(req, result);
         }
 
 
@@ -99,21 +75,9 @@ namespace AichmeeLab.Api
             int skip = int.TryParse(queryParams["skip"], out var s) ? s : 0;
             int take = int.TryParse(queryParams["take"], out var t) ? t : 10;
             if (take > 10) take = 10;//Safety cap
+            var result = await _contentService.GetFeedList(_contentService.GetSearchFilter(query), skip, take, false);
 
-            var response = req.CreateResponse(HttpStatusCode.OK);
-            try
-            {
-                var result = await _contentService.GetFeedList(_contentService.GetSearchFilter(query),skip, take, false);
-                await response.WriteAsJsonAsync(result);
-                
-            }
-            catch (Exception ex)
-            {
-
-                var errorBody = new ServiceResponse<List<Post>> { Success = false, Message = ex.Message };
-                await response.WriteAsJsonAsync(errorBody);
-            }
-                return response;
+            return await MyMethods.FindResponseAsync(req, result);
         }
 
         [Function("GetAssets")]
@@ -123,16 +87,34 @@ namespace AichmeeLab.Api
             var result = new ServiceResponse<string>
             {
                 Data = _imageService.AboutImage,
-                Success= true
+                Success = true
             };
 
-            var successResponse = req.CreateResponse(HttpStatusCode.OK);
-                await successResponse.WriteAsJsonAsync(result);
-                return successResponse;
-
+            return await MyMethods.ReturnResponseAsync(req, result);
         }
-        
 
+        [Function("GetRecommendedTags")]
+        public async Task<HttpResponseData> GetRandomTags(
+            [HttpTrigger(AuthorizationLevel.Anonymous,"post",Route = "anon/tags/recommendations/post")] HttpRequestData req){
+
+            Console.WriteLine("Get Recommended");                                   
+            var usedTags = new List<string>();
+            usedTags = await JsonSerializer.DeserializeAsync<List<string>>(req.Body);
+
+            var result = await _tagService.GetTagRecommendations(usedTags);
+            return await MyMethods.FindResponseAsync(req, result);
+        }
+
+        [Function("GetArticleTags")]
+        public async Task<HttpResponseData> GetArticleTags(
+                    [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "anon/article/tag/post")] HttpRequestData req)
+        {
+
+            var ids = await JsonSerializer.DeserializeAsync<List<string>>(req.Body);
+
+            var result = await _tagService.GetShortTagList(ids);
+            return await MyMethods.FindResponseAsync(req, result);
+        }
 
 
 

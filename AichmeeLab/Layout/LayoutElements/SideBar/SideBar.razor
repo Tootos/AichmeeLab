@@ -1,5 +1,6 @@
 @using AichmeeLab.Layout.LayoutElements.Admin_Widget
 @inject NavigationManager NavigationManager
+@inject AichmeeLab.Services.TagService.ITagService TagService
 @implements IDisposable
 @inject IJSRuntime JS
 
@@ -19,16 +20,21 @@
                 <i class="bi bi-house"></i> Feed
             </button>
 
-            <button class="nav-text-btn @(IsActive("article") ? "active" : "")"
-                    @onclick='() => NavigateTo("/?type=article")'>
-                <i class="bi bi-newspaper"></i> Articles
-            </button>
-
-            <button class="nav-text-btn @(IsActive("album") ? "active" : "")"
-                    @onclick='() => NavigateTo("/?type=album")'>
-                <i class="bi bi-camera2"></i> Albums
-            </button>
+            @if(_selectionTags == null || _selectionTags.Count == 0){
+                <span>Loading tags. . .</span>
+            }else{
+                foreach(var tag in _selectionTags){
+                <button class="nav-text-btn @(IsActive(tag.Name) ? "active" : "")" @onclick='() => NavigateTo($"/?tag={tag.Name}")'>
+                    <i class="@tag.Icon">@tag.Name</i>
+                </button>
+                }
+                
+            }
         </nav>
+
+                    <button class="btn btn-refresh" @onclick="RefreshTags">
+                <i class="bi bi-arrow-clockwise spin-icon"></i>
+            </button>
 
         @if (IsAdmin)
         {
@@ -49,7 +55,9 @@
 
 
 @code {
-    bool _isActive { get; set; }
+    #region "[ Properties ]"
+
+    List<Tag> _selectionTags = new();
     bool _isCollapsed { get; set; } = false;
     [Parameter]
     public bool IsAdmin { get; set; } = false;
@@ -58,14 +66,28 @@
 
     bool _isMobileDevice { get; set; } = false;
 
-    ItemType _activeType { get; set; } = ItemType.Post;
+    SelectedTag _activeType { get; set; } = SelectedTag.Post;
+    #endregion
 
+    #region "[ Lifecycle Methods ]"
     protected override async Task OnInitializedAsync()
-    {
+    {  
+        if(_selectionTags == null || _selectionTags.Count == 0 ){
+                await GetTagRecommendations();
+        }
+        
         NavigationManager.LocationChanged += OnLocationChanged;
-        _isMobileDevice = await JS.InvokeAsync<bool>("isMobileDevice");
+        
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        _isMobileDevice = await JS.InvokeAsync<bool>("isMobileDevice");
+    }  
+
+   #endregion
+
+   #region "[ Helper Methods ]"
     private void NavigateTo(string targetUrl)
     {
 
@@ -75,10 +97,8 @@
     }
 
     async Task OpenAboutAsync() => await OpenAboutModal.InvokeAsync();
-
-    
     public void ToggleSidebar() => _isCollapsed = !_isCollapsed;
-    string GetButtonClass(ItemType type) =>
+    string GetButtonClass(SelectedTag type) =>
         _activeType == type ? "active" : "";
 
 
@@ -88,21 +108,36 @@
         StateHasChanged();
     }
 
-    private bool IsActive(string? incomingType)
+    private bool IsActive(string? incomingTag)
     {
         var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
 
         var queryStrings = QueryHelpers.ParseQuery(uri.Query);
 
-        if (queryStrings.TryGetValue("type", out var actualType))
+        if (queryStrings.TryGetValue("tag", out var actualTag))
         {
-            return string.Equals(actualType, incomingType, StringComparison.OrdinalIgnoreCase);
+            return string.Equals(actualTag, incomingTag, StringComparison.OrdinalIgnoreCase);
         }
-        return incomingType == null;
+        return incomingTag== null;
+    }
+
+    async Task RefreshTags(){
+        await GetTagRecommendations();
+    }
+
+    async Task GetTagRecommendations(){
+var result = await TagService.GetRecommendedTags(_selectionTags);
+if(result.Success && result?.Data != null && result.Data.Any()){
+    _selectionTags = result.Data;
+    
+}
+
+StateHasChanged();
     }
 
     public void Dispose()
     {
         NavigationManager.LocationChanged -= OnLocationChanged;
     }
+    #endregion
 }

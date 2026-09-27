@@ -1,0 +1,55 @@
+.inspector-window {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+
+    background: var(--surface-color);
+    border-radius: var(--border-radius);
+    box-shadow: var(--resting-shadow);
+    max-height: 400px;
+    z-index: 100;
+}
+
+.inspector-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 40px 10px;
+}
+
+.edit-row {
+    display: flex;
+    flex-direction: row;
+    gap: 5px;
+}
+
+.suggestions-row{
+    display:flex;
+    flex-wrap:wrap;
+    align-items: flex-start;
+    gap: 5px;
+    width:100%;
+}
+
+.preview-row{
+    display: flex;
+    flex-direction: row;
+    color: var(--font-color1);
+    justify-content: flex-start;
+    gap: 5px;
+}
+
+
+.btn-exit {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    background: transparent;
+    border: none;
+    color: var(--select-color);
+}
+
+.exit-button:hover {
+    color: var(--exit-button);
+}

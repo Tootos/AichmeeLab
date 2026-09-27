@@ -5,6 +5,7 @@ using AichmeeLab.Services.UserService;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using AichmeeLab.Services.ImageService;
+using AichmeeLab.Services.TagService;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
@@ -22,6 +23,7 @@ builder.Services.AddScoped<IWriterService, WriterService>();
 builder.Services.AddScoped<IImageService, ImageService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ISecurityService, SecurityService>();
+builder.Services.AddScoped<ITagService, TagService>();
 
 
 await builder.Build().RunAsync();

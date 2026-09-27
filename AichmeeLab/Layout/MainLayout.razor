@@ -66,7 +66,7 @@
         var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
 
         UserService.SearchTerm = query.TryGetValue("q", out var q) ? q.ToString() : string.Empty;
-        UserService.ItemType = query.TryGetValue("type", out var t) ? t.ToString() : string.Empty;
+        UserService.SelectedTag = query.TryGetValue("type", out var t) ? t.ToString() : string.Empty;
         
         if (query.TryGetValue("from", out var f) && DateTime.TryParse(f, out var df))
             UserService.DateFrom = df;

@@ -63,13 +63,13 @@
     background: var(--surface-color2);
     display: flex;
     width: 100%;
+    opacity: 40%;
     justify-content: center;
     border-radius: 0px 0px var(--border-radius) var(--border-radius);
     /* align-items: center; */
+    font-style: italic;
     color: var(--font-color1);
 }
-
-
 
 .enlarged-overlay {
     position: absolute;

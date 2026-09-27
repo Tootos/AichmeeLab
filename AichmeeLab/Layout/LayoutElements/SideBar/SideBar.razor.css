@@ -59,6 +59,22 @@
     color: var(--select-color);
 }
 
+
+.btn-refresh{
+    display: inline-block;
+    background: transparent;
+    border: none;
+}
+.spin-icon {
+    color: var(--select-color);
+    transition: spin 0.8s ease-in-out;
+}
+
+.btn-refresh:active .spin-icon {
+    transform: rotate(360deg);
+    /* transition: transform 0s;  */
+}
+
 /* Desktop */
 @media(min-width:641px) {
     .sidebar-layout {

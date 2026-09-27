@@ -83,6 +83,11 @@
 
 }
 
+.meta-info{
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
 
 .header-wrapper span,
 .view-description {

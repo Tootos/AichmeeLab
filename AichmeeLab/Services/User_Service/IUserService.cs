@@ -9,7 +9,7 @@ public interface IUserService
         // short PageSize  {get; set;}
         // long PageCount { get; set; }
         string SearchTerm {get; set;}
-        string ItemType{get; set;}
+        string SelectedTag{get; set;}
         bool HasMoreItems {get; set;}
 
         DateTime? DateFrom{get; set;}

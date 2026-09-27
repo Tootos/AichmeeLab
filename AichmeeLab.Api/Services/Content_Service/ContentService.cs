@@ -4,7 +4,7 @@ using AichmeeLab.Api.LocalModels;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using MongoDB.Bson;
-using MongoDB.Driver.Search;
+using MyTag = Aichmee.Shared.Tag;
 
 namespace AichmeeLab.Api.Services.ContentService
 {
@@ -12,6 +12,7 @@ namespace AichmeeLab.Api.Services.ContentService
     class ContentService : IContentService
     {
         readonly IMongoCollection<Article> _articleCollection;
+        readonly IMongoCollection<MyTag> _tagCollection;
         //readonly IMongoCollection<Album> _albumCollection;
         readonly IMongoCollection<Image> _imageCollection;
 
@@ -21,136 +22,142 @@ namespace AichmeeLab.Api.Services.ContentService
             var database = mongoClient.GetDatabase(settings.DatabaseName);
             _articleCollection = database.GetCollection<Article>(settings.ArticlesCollectionName);
             _imageCollection = database.GetCollection<Image>(settings.ImagesCollectionName);
+            _tagCollection = database.GetCollection<MyTag>(settings.TagsCollectionName);
         }
 
-        public async Task<ServiceResponse<List<Post>>> GetFeedList(SearchFilter searchFilter, int skip, int take, bool isAdmin)
+public async Task<ServiceResponse<List<Post>>> GetFeedList(SearchFilter searchFilter, int skip, int take, bool isAdmin)
+{
+    try
+    {
+        // Type switching is gone. We route all dynamic filtering (including tags) 
+        // straight into the primary articles collection pipeline.
+        List<Post> results = await ExecutePipeline(_articleCollection, searchFilter, skip, take, isAdmin);
+
+        if (results.Count == 0)
         {
-            // Note to self
-            // To collect the data we must take advantage of MongoDB's Aggregation Pipeline
-            // An Aggregation Pipeline is a series of stages that process documents.
-            // Each stage can perform a different operation on the input documents. 
-            // For example we can filter a collection of documents in one stage, 
-            // the output of that stage can be further processed in the next stage. 
-
-            // Pipelines can return results and update collections.
-            // We are using the Pipeline here to move the workload to the MongoDB server,
-            //  which is more efficient for this operation 
-            // In the case that we have 10.000 documents to process, this makes our code future proof.
-
-            try
-            {
-
-                if (!Enum.TryParse<ItemType>(searchFilter?.Type, true, out var selectedType))
-                {
-                    // If it fails to parse (or is null), default to "Post"
-                    selectedType = ItemType.Post;
-                }
-                List<Post> results = new();
-
-                switch (selectedType)
-                {
-                    case ItemType.Article:
-                        results = await ExecutePipeline(_articleCollection, searchFilter, ItemType.Article, skip, take, isAdmin);
-                        break;
-
-                    case ItemType.Album:
-                        results = new List<Post>();
-                        break;
-
-                    default:
-                        // For "All", we start with Articles and Union the others
-                        //results = await ExecuteAllPipeline(skip, take, isAdmin);
-                        // As of 05.04.2026 we don't have other collections,
-                        // when we do we will implement a pipeline that joins collections
-                        results = await ExecutePipeline(_articleCollection, searchFilter, ItemType.Article, skip, take, isAdmin);
-                        break;
-                }
-
-                if (results.Count == 0)
-                {
-                    return new ServiceResponse<List<Post>> { Success = true, Message = "No items found." };
-                }
-
-                return new ServiceResponse<List<Post>> { Data = results, Success = true };
-            }
-            catch (Exception ex)
-            {
-                return new ServiceResponse<List<Post>> { Success = false, Message = ex.Message };
-            }
+            return new ServiceResponse<List<Post>> { Success = true, Message = "No items found." };
         }
 
-        private async Task<List<Post>>
-        ExecutePipeline<T>(IMongoCollection<T> collection, SearchFilter? searchFilter,
-         ItemType type, int skip, int take,
-          bool isAdmin) where T : class
-        {
-            //Construct Filter
-            var filterBuilder = Builders<T>.Filter;
-            var filter = filterBuilder.Eq("IsDeleted", false);
-            if (!isAdmin) filter &= filterBuilder.Eq("IsVisible", true);
+        return new ServiceResponse<List<Post>> { Data = results, Success = true };
+    }
+    catch (Exception ex)
+    {
+        return new ServiceResponse<List<Post>> { Success = false, Message = ex.Message };
+    }
+}
 
-            if (!string.IsNullOrEmpty(searchFilter?.SearchTerm))
-            {
-                // Searches across both Title and Description
-                var searchRegex = new BsonRegularExpression(searchFilter.SearchTerm, "i");
-                filter &= filterBuilder.Or(
-                    filterBuilder.Regex("Title", searchRegex),
-                    filterBuilder.Regex("Description", searchRegex),
-                    filterBuilder.Regex("Author",searchRegex)
-                );
-            }
+private async Task<List<Post>> ExecutePipeline<T>(
+    IMongoCollection<T> collection, 
+    SearchFilter? searchFilter, 
+    int skip, 
+    int take, 
+    bool isAdmin) where T : class
+{
+    // 1. Construct initial match filters
+    var filterBuilder = Builders<T>.Filter;
+    var filter = filterBuilder.Eq("IsDeleted", false);
+    if (!isAdmin) filter &= filterBuilder.Eq("IsVisible", true);
 
-            if (DateTime.TryParse(searchFilter?.DateFrom, out var fromDate))
-            {
-                filter &= filterBuilder.Gte("DatePublished", fromDate);
-            }
-            if (DateTime.TryParse(searchFilter?.DateTo, out var toDate))
-            {
-                filter &= filterBuilder.Lte("DatePublished", toDate);
-            }
+    // FIX 1 & 2: Resolve searchFilter.Tag string
+    if (!string.IsNullOrEmpty(searchFilter?.Tag))
+    {
+        // 1a. Attempt to find the tag by Name or Id in the Tags collection
+        var tagFilter = Builders<MyTag>.Filter.Or(
+            Builders<MyTag>.Filter.Eq(t => t.Name, searchFilter.Tag)
+        );
 
-            // Build Pipeline
-            var aggregateList = await collection.Aggregate()
-                .Match(filter)
-                .Sort(Builders<T>.Sort.Descending("DatePublished"))
-                .Skip(skip)
-                .Limit(take)
-                .Lookup(
-                    foreignCollectionName: "Images",
-                    localField: "HeaderImageId",
-                    foreignField: "_id",
-                    @as: "TempImageArray"
-                ).ToListAsync();
+        var matchedTag = await _tagCollection.Find(tagFilter).FirstOrDefaultAsync();
 
-            var result = aggregateList.Select(p => new Post
-            {
-                Id = p.GetValue("_id").ToString(),
-                Title = p.Contains("Title") ? p["Title"].ToString() : "Untitled",
-                Description = p.Contains("Description") ? p["Description"].ToString() : "",
-                Author = p.Contains("Author") ? p["Author"].ToString() : "Anonymous",
-                DatePublished = p.GetValue("DatePublished").ToUniversalTime(),
-                Type = type,
-                HeaderUrl = p["TempImageArray"].AsBsonArray.Count > 0
-                ? p["TempImageArray"][0]["HeaderUrl"].ToString()
-                : "https://aichmeelab.blob.core.windows.net/public-photos/General/Dimi.png"
-            }).ToList();
+        // If matchedTag is found, filter by its Id; otherwise fallback to searchFilter.Tag
+        var targetTagId = matchedTag != null ? matchedTag.Id : searchFilter.Tag;
 
-            return result ?? new List<Post>();
-        }
+        // 1b. Query the flat array "Tags" directly (NOT "Tags.Id")
+        filter &= filterBuilder.AnyEq("Tags", targetTagId);
+    }
 
-        public SearchFilter GetSearchFilter(string? query)
-        {
-            if (string.IsNullOrEmpty(query)) return new SearchFilter();
-            var queryParams = System.Web.HttpUtility.ParseQueryString(query);
+    if (!string.IsNullOrEmpty(searchFilter?.SearchTerm))
+    {
+        var searchRegex = new BsonRegularExpression(searchFilter.SearchTerm, "i");
+        filter &= filterBuilder.Or(
+            filterBuilder.Regex("Title", searchRegex),
+            filterBuilder.Regex("Description", searchRegex),
+            filterBuilder.Regex("Author", searchRegex)
+        );
+    }
 
-            return new SearchFilter
-            {
-                SearchTerm = queryParams["search"],
-                DateFrom = queryParams["dateFrom"],
-                DateTo = queryParams["dateTo"],
-                Type = queryParams["type"]
-            };
+    if (DateTime.TryParse(searchFilter?.DateFrom, out var fromDate))
+    {
+        filter &= filterBuilder.Gte("DatePublished", fromDate);
+    }
+    if (DateTime.TryParse(searchFilter?.DateTo, out var toDate))
+    {
+        filter &= filterBuilder.Lte("DatePublished", toDate);
+    }
 
-        }
+    // 2. Execute Aggregation Pipeline
+    var aggregateList = await collection.Aggregate()
+        .Match(filter)
+        .Sort(Builders<T>.Sort.Descending("DatePublished"))
+        .Skip(skip)
+        .Limit(take)
+        // Stage A: Hydrate Header Images
+        .Lookup(
+            foreignCollectionName: "Images",
+            localField: "HeaderImageId",
+            foreignField: "_id",
+            @as: "TempImageArray"
+        )
+        // Stage B: Hydrate Tags from flat ID array
+        .Lookup(
+            foreignCollectionName: "Tags", 
+            localField: "Tags",          
+            foreignField: "_id",            
+            @as: "HydratedTagsArray"        
+        )
+        .As<BsonDocument>()
+        .ToListAsync();
+
+    // 3. Project to strongly-typed Post objects
+    var result = aggregateList.Select(p => new Post
+    {
+        Id = p.GetValue("_id").ToString(),
+        Title = p.Contains("Title") ? p["Title"].ToString() : "Untitled",
+        Description = p.Contains("Description") ? p["Description"].ToString() : "",
+        Author = p.Contains("Author") ? p["Author"].ToString() : "Anonymous",
+        DatePublished = p.GetValue("DatePublished").ToUniversalTime(),
+        
+        // Map into full instantiated objects of List<MyTag>
+        Tags = p.Contains("HydratedTagsArray") && p["HydratedTagsArray"].IsBsonArray
+            ? p["HydratedTagsArray"].AsBsonArray.Select(t => new MyTag
+              {
+                  Id = t.AsBsonDocument.Contains("_id") ? t.AsBsonDocument["_id"].ToString() : "",
+                  Name = t.AsBsonDocument.Contains("Name") ? t.AsBsonDocument["Name"].ToString() : "Uncategorized",
+                  PrimaryColor = t.AsBsonDocument.Contains("PrimaryColor") ? t.AsBsonDocument["PrimaryColor"].ToString() : "#000000",
+                  Icon = t.AsBsonDocument.Contains("Icon") ? t.AsBsonDocument["Icon"].ToString() : ""
+              }).ToList()
+            : new List<MyTag>(),
+
+        HeaderUrl = p.Contains("TempImageArray") && p["TempImageArray"].AsBsonArray.Count > 0
+            ? p["TempImageArray"][0]["HeaderUrl"].ToString()
+            : "https://aichmeelab.blob.core.windows.net/public-photos/General/Dimi.png"
+    }).ToList();
+
+    return result ?? new List<Post>();
+}
+
+public SearchFilter GetSearchFilter(string? query)
+{
+    if (string.IsNullOrEmpty(query)) return new SearchFilter();
+    var queryParams = System.Web.HttpUtility.ParseQueryString(query);
+
+    return new SearchFilter
+    {
+        SearchTerm = queryParams["search"],
+        DateFrom = queryParams["dateFrom"],
+        DateTo = queryParams["dateTo"],
+        Tag = queryParams["tag"] 
+    };
+}
+
     }
 }

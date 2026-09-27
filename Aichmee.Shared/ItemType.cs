@@ -1,4 +1,4 @@
-public enum ItemType
+public enum SelectedTag
 {
     Post = 0,
     Article = 1,

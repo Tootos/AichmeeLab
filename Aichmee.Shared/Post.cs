@@ -14,7 +14,7 @@ namespace Aichmee.Shared
         public string HeaderUrl { get; init; } = string.Empty;
         public DateTime DatePublished { get; init; } 
 
-        public ItemType Type {get; init;}
+        public List<Tag> Tags {get;set;} =new();
 
     }
 

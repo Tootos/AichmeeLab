@@ -7,8 +7,8 @@
 
 ::deep .title-input,
 ::deep .author-input,
-::deep .description-input ,
-::deep .image-description{
+::deep .description-input,
+::deep .image-description {
     background-color: var(--surface-color2);
     color: var(--font-color1);
     border: none;
@@ -24,20 +24,47 @@
     font-weight: 700;
 }
 
-::deep .description-input ,
-::deep .image-description{
+::deep .description-input,
+::deep .image-description {
     font-size: 1.2rem;
 }
 
-.image-container{
+.tags-container {
+    display: flex;
+    flex-direction: row;
+    gap: 5px;
+}
+
+.tags-container span {
+    color: var(--font-color1);
+    font-weight: 700;
+}
+
+.add-tag{
+    display: flex;
+    background: white;
+
+    border-radius: 60px;
+    border: 2px solid darkgray;
+    padding: 0 10px;
+}
+
+.add-tag i,
+.article-tag i {
+    font-size: 1rem;
+    align-self: center;
+    line-height: 1;
+    font-size: 0.9rem;
+}
+
+.image-container {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap:10px
-
+    gap: 10px
 }
 
-.image-container h3{
+.image-container h3 {
     background: transparent;
     font-weight: 700;
     color: var(--font-color1)

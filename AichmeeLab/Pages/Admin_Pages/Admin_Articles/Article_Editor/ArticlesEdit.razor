@@ -1,6 +1,7 @@
 ﻿@using AichmeeLab.Pages.Admin_Pages.Admin_Articles.Article_Editor.Article_Inspector
 @using AichmeeLab.Pages.Admin_Pages.Admin_Articles.Article_Editor.Article_Writer
 @using AichmeeLab.Pages.View_Article
+@using MyTag = Aichmee.Shared.Tag
 @using BootstrapBlazor.Components
 @inject IJSRuntime jSRuntime;
 @inject AichmeeLab.Services.WriterService.IWriterService WriterService;
@@ -26,7 +27,7 @@
         <button type="button" class="btn btn-outline-secondary" @onclick="HandlePreview">
             <i class="bi bi-arrow-left me-1"></i>
         </button>
-        <ViewArticle SelectedArticle="SelectedArticle" HeaderImage="_selectedImage" />
+        <ViewArticle SelectedArticle="SelectedArticle" HeaderImage="_selectedImage" ArticleTags="_articleTags"/>
     }
     else
     {
@@ -95,6 +96,7 @@
 
     [Parameter] public Article SelectedArticle { get; set; } = new Article();
     Image _selectedImage { get; set; } = new Image();
+    List<MyTag> _articleTags { get; set; } = new();
     [Parameter] public EventCallback OnReady { get; set; }
     [Parameter] public EventCallback<Article?> OnChange { get; set; }
     bool _isPreviewMode { get; set; } = false;
@@ -138,7 +140,8 @@
                 Author = SelectedArticle.Author,
                 DatePublished = SelectedArticle.DatePublished,
                 Contact = SelectedArticle.Contact,
-                HeaderImageId = SelectedArticle.HeaderImageId
+                HeaderImageId = SelectedArticle.HeaderImageId,
+                Tags = SelectedArticle.Tags
             };
 
             //ALWAYS EXPORT THE CONTENT LIST FIRST OR ELSE THE CONTENT WILL BE ERASED AFTER STATEHASCHANGED()
@@ -208,7 +211,7 @@
                     if (collageResponse.Success && collageResponse.Data != null)
                     {
 
-                        savedArticle.ContentBlocks.Add(new ContentBlock{Step = key,Content = collageResponse.Data,Type = "collage" });
+                        savedArticle.ContentBlocks.Add(new ContentBlock { Step = key, Content = collageResponse.Data, Type = "collage" });
 
                         @* var newBlock = new ContentBlock { Step = collagesToUpload[i].Key, Type = "collage", Content = collageResponse.Data };
 
@@ -284,9 +287,12 @@
         if (_articleWriter == null) return;
         _isPreviewMode = !_isPreviewMode;
         if (_isPreviewMode)
-
+        {
+            _articleTags = _articleInspector.ArticleTags;
             SelectedArticle.ContentBlocks = _articleWriter.ExportList();
+        }
 
+            
         StateHasChanged();
     }
 

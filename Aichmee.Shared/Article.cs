@@ -17,6 +17,7 @@ namespace Aichmee.Shared
         [BsonRepresentation(BsonType.ObjectId)]
         [JsonPropertyName("id")]
         public string? Id { get; set; }
+        
         [Required]
         [StringLength(140)]
         [JsonPropertyName("title")]
@@ -28,8 +29,10 @@ namespace Aichmee.Shared
         [JsonPropertyName("description")]
 
         public string Description { get; set; } = string.Empty;
+        [JsonPropertyName("tags")]
+        public List<string> Tags {get; set;} = new();
         [JsonPropertyName("contentBlocks")]
-        public List<ContentBlock> ContentBlocks { get; set; } = new List<ContentBlock>();
+        public List<ContentBlock> ContentBlocks { get; set; } = new();
 
         [Required]
         [StringLength(25)]

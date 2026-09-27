@@ -2,6 +2,8 @@
 using AichmeeLab.Api.LocalModels;
 using AichmeeLab.Api.Services.ArticleService;
 using AichmeeLab.Api.Services.ImageService;
+using AichmeeLab.Api.Services.TagService;
+using AichmeeLab.Api.Utilities;
 using HttpMultipartParser;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Mvc;
@@ -18,50 +20,37 @@ namespace AichmeeLab.Api
     {
         private readonly IArticleService _articleService;
         readonly IImageService _imageService;
+        readonly ITagService _tagService;
         private readonly ILogger<DashboardFunctions> _logger;
 
         public DashboardFunctions(
             IArticleService articleService,
             IImageService imageService,
+            ITagService tagService,
             ILogger<DashboardFunctions> logger)
         {
             _articleService = articleService;
             _imageService = imageService;
+            _tagService = tagService;
             _logger = logger;
 
         }
+
+        /* Article Functions  */
 
         [Function("GetAdminArticle")]
         public async Task<HttpResponseData> Get(
             [HttpTrigger(AuthorizationLevel.Function, "get", Route = "dashboard/article/get/{id?}")] HttpRequestData req, string? id)
         {
             var result = await _articleService.GetArticle(id, true);
-            if (result.Success)
-            {
-                var successResponse = req.CreateResponse(HttpStatusCode.OK);
-                await successResponse.WriteAsJsonAsync(result);
-                return successResponse;
-            }
-
-            var notFoundResponse = req.CreateResponse(HttpStatusCode.NotFound);
-            await notFoundResponse.WriteAsJsonAsync(result);
-            return notFoundResponse;
+            return await MyMethods.FindResponseAsync(req, result);
         }
 
         [Function("GetAdminArticles")]
         public async Task<HttpResponseData> GetList([HttpTrigger(AuthorizationLevel.Function, "get", Route = "dashboard/articles/get")] HttpRequestData req)
         {
             var result = await _articleService.GetArticles(req.Url.Query, true);
-            if (result.Success)
-            {
-                var response = req.CreateResponse(HttpStatusCode.OK);
-                await response.WriteAsJsonAsync(result);
-                return response;
-            }
-
-            var badRequest = req.CreateResponse(HttpStatusCode.BadRequest);
-            await badRequest.WriteAsJsonAsync(result);
-            return badRequest;
+            return await MyMethods.FindResponseAsync(req, result);
         }
 
         [Function("UpdateArticleInformation")]
@@ -73,16 +62,7 @@ namespace AichmeeLab.Api
             var result = await _articleService.UpdateArticleInformation(article);
 
 
-            if (result.Success)
-            {
-                var response = req.CreateResponse(HttpStatusCode.OK);
-                await response.WriteAsJsonAsync(result);
-                return response;
-            }
-
-            var badRequest = req.CreateResponse(HttpStatusCode.BadRequest);
-            await badRequest.WriteAsJsonAsync(result);
-            return badRequest;
+            return await MyMethods.ReturnResponseAsync(req, result);
         }
 
 
@@ -94,35 +74,17 @@ namespace AichmeeLab.Api
             var article = JsonSerializer.Deserialize<Article>(requestBody);
 
             var result = await _articleService.UpdateArticleContent(article);
-            if (result.Success)
-            {
-                var response = req.CreateResponse(HttpStatusCode.OK);
-                await response.WriteAsJsonAsync(result);
-                return response;
-            }
-
-            var badRequest = req.CreateResponse(HttpStatusCode.BadRequest);
-            await badRequest.WriteAsJsonAsync(result);
-            return badRequest;
-
-
+            return await MyMethods.ReturnResponseAsync(req, result);
         }
+
+
         [Function("UpdateVisibility")]
         public async Task<HttpResponseData> UpdateVisibility(
             [HttpTrigger(AuthorizationLevel.Function, "put", Route = "dashboard/articles/visibility")] HttpRequestData req)
         {
             var result = await _articleService.UpdateVisibility(await JsonSerializer.DeserializeAsync<Dictionary<string, bool>>(req.Body));
 
-            if (result.Success)
-            {
-                var response = req.CreateResponse(HttpStatusCode.OK);
-                await response.WriteAsJsonAsync(result);
-                return response;
-            }
-
-            var badRequest = req.CreateResponse(HttpStatusCode.BadRequest);
-            await badRequest.WriteAsJsonAsync(result);
-            return badRequest;
+            return await MyMethods.ReturnResponseAsync(req, result);
         }
 
         [Function("DeleteArticle")]
@@ -132,18 +94,11 @@ namespace AichmeeLab.Api
             _logger.LogInformation("Attempting delete");
             var result = await _articleService.DeleteArticle(id);
 
-            if (result.Success)
-            {
-                var response = req.CreateResponse(HttpStatusCode.OK);
-                await response.WriteAsJsonAsync(result);
-                return response;
-            }
-
-            var badRequest = req.CreateResponse(HttpStatusCode.BadRequest);
-            await badRequest.WriteAsJsonAsync(result);
-            return badRequest;
+            return await MyMethods.ReturnResponseAsync(req, result);
 
         }
+
+        /* Image Functions  */
         [Function("UploadImage")]
         public async Task<HttpResponseData> UploadImage(
             [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "dashboard/images/post")] HttpRequestData req)
@@ -151,16 +106,7 @@ namespace AichmeeLab.Api
             _logger.LogInformation("Attempting to upload an image");
 
             var result = await _imageService.UploadImage(req);
-            if (result.Success)
-            {
-                var response = req.CreateResponse(HttpStatusCode.OK);
-                await response.WriteAsJsonAsync(result);
-                return response;
-            }
-
-            var badRequest = req.CreateResponse(HttpStatusCode.BadRequest);
-            await badRequest.WriteAsJsonAsync(result);
-            return badRequest;
+            return await MyMethods.ReturnResponseAsync(req, result);
 
         }
 
@@ -170,20 +116,11 @@ namespace AichmeeLab.Api
         {
             _logger.LogInformation("Attempting to upload an image");
 
-            var  parsedForm = await MultipartFormDataParser.ParseAsync(req.Body);
-            
-            var result = await _imageService.BulkUploadImage(parsedForm);
-            
-            if (result.Success)
-            {
-                var response = req.CreateResponse(HttpStatusCode.OK);
-                await response.WriteAsJsonAsync(result);
-                return response;
-            }
+            var parsedForm = await MultipartFormDataParser.ParseAsync(req.Body);
 
-            var badRequest = req.CreateResponse(HttpStatusCode.BadRequest);
-            await badRequest.WriteAsJsonAsync(result);
-            return badRequest;
+            var result = await _imageService.BulkUploadImage(parsedForm);
+
+            return await MyMethods.ReturnResponseAsync(req, result);
 
         }
 
@@ -194,36 +131,49 @@ namespace AichmeeLab.Api
             _logger.LogInformation("Attempting to update an image");
 
             var result = await _imageService.UpdateImage(req);
-            if (result.Success)
-            {
-                var response = req.CreateResponse(HttpStatusCode.OK);
-                await response.WriteAsJsonAsync(result);
-                return response;
-            }
-
-            var badRequest = req.CreateResponse(HttpStatusCode.BadRequest);
-            await badRequest.WriteAsJsonAsync(result);
-            return badRequest;
+            return await MyMethods.ReturnResponseAsync(req, result);
 
         }
 
 
         [Function("DeleteImage")]
         public async Task<HttpResponseData> DeleteImage(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "delete", "dashboard/image/delete/{id?}")] HttpRequestData req, string? id)
+            [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "dashboard/image/delete/{id?}")] HttpRequestData req, string? id)
         {
             _logger.LogInformation("Attempting to delete an image");
             var result = await _imageService.DeleteImage(id);
-            if (result.Success)
-            {
-                var response = req.CreateResponse(HttpStatusCode.OK);
-                await response.WriteAsJsonAsync(result);
-                return response;
-            }
-
-            var badRequest = req.CreateResponse(HttpStatusCode.BadRequest);
-            await badRequest.WriteAsJsonAsync(result);
-            return badRequest;
+            return await MyMethods.ReturnResponseAsync(req, result);
         }
+
+
+        /* Tag Functions */
+        [Function("UpdateTags")]
+        public async Task<HttpResponseData> UpdateTags(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "dashboard/tag/update/put")] HttpRequestData req)
+        {
+            _logger.LogInformation("Updating Tags");
+
+            var newTags = await JsonSerializer.DeserializeAsync<List<Tag>>(req.Body);
+
+            var result = await _tagService.UpdateTags(newTags);
+            return await MyMethods.ReturnResponseAsync(req, result);
+
+        }
+
+        [Function("GetTags")]
+        public async Task<HttpResponseData> GetTags(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "dashboard/tag/get/{searchTerm?}")] HttpRequestData req,string? searchTerm)
+        {
+            _logger.LogInformation("Getting Tags");
+
+            var result = await _tagService.GetTagsList(searchTerm);
+
+            return await MyMethods.FindResponseAsync(req,result);
+
+        }
+
+        
+
+
     }
 }

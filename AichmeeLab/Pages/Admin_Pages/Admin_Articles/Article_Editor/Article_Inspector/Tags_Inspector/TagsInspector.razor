@@ -1,0 +1,122 @@
+@using System.Runtime.InteropServices
+@inject AichmeeLab.Services.TagService.ITagService TagService
+@implements IDisposable
+
+    <div class="inspector-window">
+        <div class="inspector-layout">
+            <button class="btn-exit" @onclick="CloseWindow">
+                <span>x</span>
+            </button>
+            <div class="edit-row">
+                <input type="text" id="tagName" maxlength="16" @bind="_newTag.Name" placeholder="..."
+                       @bind:event="oninput" class="form-control tag-text-input" />
+
+                <input type="color" id="tagColor1" @bind="_newTag.PrimaryColor"
+                       @bind:event="oninput" class="form-control-color tag-color-input" />
+
+                <input type="color" id="tagColor2" @bind="_newTag.SecondaryColor"
+                       @bind:event="oninput" class="form-control-color tag-color-input" />
+
+                @* <input type="text" id="iconName" @bind="_newTag.Icon" placeholder="bootstrap 5 icon"
+                       class="form-control tag-text-input" /> *@
+                <button class="btn-add btn-primary" @onclick="() => AddTag(_newTag)">
+                        +
+                </button>
+
+            </div>
+            <div class="preview-row">
+                <p>Article Tags: </p>
+
+                @if(_articleTags.Count<3){
+                    <label class="article-tag" style="border-color: @_newTag.PrimaryColor; color:@_newTag.PrimaryColor;" placeholder="preview">
+                       @(string.IsNullOrWhiteSpace(_newTag.Name) ? "preview" : _newTag.Name)
+                    </label>
+                }
+
+                @if (_articleTags.Any())
+                {
+                    foreach (var tag in _articleTags)
+                    {
+                        <button class="article-tag" style="border-color: @tag.PrimaryColor; color:@tag.PrimaryColor;" @onclick="() => RemoveTag(tag)">
+                            @tag.Name
+                        </button>
+                    }
+                }
+
+                <button class="btn-post btn-primary" @onclick="PostTags">
+                    Post 
+                </button>
+            </div>
+            <div class="suggestions-row">
+                @if (TagService.Tags != null && TagService.Tags.Any())
+                {
+                    foreach (var tag in TagService.Tags)
+                    {
+                        <button class="article-tag" style="border-color: @tag.PrimaryColor; color:@tag.PrimaryColor;" @onclick="() => AddTag(tag)">
+                            @tag.Name
+                        </button>
+                    }
+                }
+                else
+                {
+                    <span>@_message</span>
+                }
+            </div>
+        </div>
+    </div>
+
+
+@code {
+    string _message = "Loading Tags. . .";
+    string _defaultPrimaryColour = "#8297b8";
+    Tag _newTag = new();
+
+    string _searchTerm = string.Empty;
+    List<Tag> _articleTags { get; set; } = new();
+    [Parameter]
+    public List<Tag> IncomingTags { get; set; } = new();
+    [Parameter]
+    public EventCallback<List<Tag>> OnChange { get; set; }
+    [Parameter]
+    public EventCallback OnClose {get; set;}    
+
+    protected async override Task OnInitializedAsync()
+    {
+        TagService.TagsChanged += StateHasChanged;
+    }
+
+    protected async override Task OnParametersSetAsync()
+    {
+        _articleTags = new(IncomingTags);
+        await TagService.GetTags(_searchTerm);
+    }
+
+    async Task PostTags()
+    {
+        var response = await TagService.UpdateTags(_articleTags);
+
+        if (response.Success && response.Data != null && response.Data.Any())
+        {
+            await OnChange.InvokeAsync(response.Data);
+            await OnClose.InvokeAsync();    
+        }
+
+    }
+
+    void AddTag(Tag tag)
+    {
+        if (string.IsNullOrEmpty(tag.Name)) return;
+        if(_articleTags.Count == 3) return;
+
+        if(string.IsNullOrEmpty(tag.PrimaryColor)) tag.PrimaryColor= _defaultPrimaryColour;
+        _articleTags.Add(tag);
+        _newTag = new();
+        StateHasChanged();
+    }
+    void RemoveTag(Tag tag) { _articleTags.Remove(tag); StateHasChanged(); }
+
+    async Task CloseWindow()=> await OnClose.InvokeAsync();
+
+
+    public void Dispose() => TagService.TagsChanged -= StateHasChanged;
+}

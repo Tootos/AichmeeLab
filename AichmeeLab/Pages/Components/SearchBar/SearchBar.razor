@@ -70,7 +70,7 @@
     {
         var parameters = new Dictionary<string, object?>
         {
-            ["type"] = string.IsNullOrWhiteSpace(UserService.ItemType) ? null : UserService.ItemType,
+            ["type"] = string.IsNullOrWhiteSpace(UserService.SelectedTag) ? null : UserService.SelectedTag,
             ["q"] = string.IsNullOrWhiteSpace(UserService.SearchTerm) ? null : UserService.SearchTerm,
             ["from"] = UserService.DateFrom?.ToString("yyyy-MM-dd"),
             ["to"] = UserService.DateTo?.ToString("yyyy-MM-dd"),

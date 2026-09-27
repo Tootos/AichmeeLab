@@ -2,13 +2,15 @@
 @using Aichmee.Shared;
 @using System.Text.Json.Serialization
 @using AichmeeLab.Pages.View_Article.View_Collage
-@using BootstrapBlazor.Components
-
-@inject AichmeeLab.Services.UserService.IUserService UserService
 
 
 <div class="view-window">
     <div class="view-layout">
+        @if(SelectedArticle == null){
+<span>Loading . . .</span>
+        }else{
+
+        
         <div class="top-footer">
             <a href="/" class="close-btn"><i class="bi bi-x-lg"></i></a>
         </div>
@@ -18,6 +20,13 @@
                     <h1 class="view-title">@SelectedArticle.Title</h1>
                     <h3 class="view-author">by @SelectedArticle.Author</h3>
                     <br>
+                    <div class="tags-container">
+                        @if(ArticleTags.Any() && ArticleTags !=null){
+                            foreach(var tag in ArticleTags){
+                                <div class="article-tag" style="border-color: @tag.PrimaryColor; color:@tag.PrimaryColor;" >@tag.Name</div>
+                            }
+                        }
+                    </div>
                     <span class="view-date">Date Published:@SelectedArticle.DatePublished.ToString("MMM dd, yyyy")
                         | Last Updated: @SelectedArticle.LastUpdate.ToString("MMM dd, yyyy")</span>
 
@@ -33,9 +42,6 @@
 
                     <p class="view-description">@SelectedArticle.Description</p>
                 </div>
-
-                
-
                 @foreach (var block in SelectedArticle.ContentBlocks.OrderBy(x => x.Step))
                 {
                     @if (block.Type == "text")
@@ -52,6 +58,7 @@
                     }
                 }
             </div>
+            }
         </div>
     </div>
 
@@ -59,12 +66,12 @@
 
 @code {
     [Parameter]
-    public Article SelectedArticle { get; set; } = new Article();
+    public Article SelectedArticle { get; set; } = new ();
     [Parameter]
-    public Image HeaderImage { get; set; } = new Image();
+    public Image HeaderImage { get; set; } = new();
+    [Parameter]
+    public List<Tag> ArticleTags {get;set;} = new();
 
-
-    
 
     public class ListItem
     {

@@ -1,18 +1,13 @@
 @page "/article/{Id}"
 @using AichmeeLab.Pages.View_Article
 @using BootstrapBlazor.Components
+@using MyTag = Aichmee.Shared.Tag
 @inject AichmeeLab.Services.UserService.IUserService UserService
 @inject AichmeeLab.Services.ImageService.IImageService ImageService
+@inject AichmeeLab.Services.TagService.ITagService TagService
 
 
-@if (SelectedArticle == null)
-{
-    <span style="color: var(--light-grey)">@_message</span>
-}
-else
-{
-    <ViewArticle SelectedArticle="SelectedArticle" HeaderImage="HeaderImage"/>
-}
+<ViewArticle SelectedArticle="SelectedArticle" HeaderImage="HeaderImage" ArticleTags="ArticleTags" />
 
 
 @code {
@@ -22,7 +17,8 @@ else
     string _message { get; set; } = "Loading. . .";
 
     Article SelectedArticle { get; set; } = new Article();
-    Image HeaderImage {get; set; } = new Image();
+    Image HeaderImage { get; set; } = new Image();
+    List<MyTag> ArticleTags { get; set; } = new();
 
 
     protected async override Task OnParametersSetAsync()
@@ -31,9 +27,15 @@ else
         if (result.Success && result.Data != null)
         {
             SelectedArticle = result.Data;
-            if(!string.IsNullOrEmpty(SelectedArticle.HeaderImageId)){
-               var fetching = await ImageService.GetImageAsync(SelectedArticle.HeaderImageId);
-               if(fetching.Success && fetching.Data !=null) HeaderImage = fetching.Data ;
+            if (!string.IsNullOrEmpty(SelectedArticle.HeaderImageId))
+            {
+                var fetching = await ImageService.GetImageAsync(SelectedArticle.HeaderImageId);
+                if (fetching.Success && fetching.Data != null) HeaderImage = fetching.Data;
+            }
+            if (SelectedArticle.Tags.Any())
+            {
+                var tags = await TagService.GetArticleTags(SelectedArticle.Tags);
+                if (tags.Success && tags.Data != null && tags.Data.Any()) ArticleTags = tags.Data;
             }
         }
         else

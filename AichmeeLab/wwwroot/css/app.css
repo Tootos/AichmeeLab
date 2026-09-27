@@ -11,6 +11,7 @@
 
     --surface-color: #212427;
     --surface-color2: #494d51;
+    --exit-action: #ff4d4d;
     --surface-color3: #00000087;
     --font-color1: #d0d5d9f3;
     --font-color2: #4b4c4d;
@@ -40,7 +41,19 @@ body {
     overflow: hidden;
 }
 
+.tags-container{
+    display: flex;
+    flex-direction: row;
+    gap: 5px;
+}
 
+.article-tag{
+    display: flex;
+    background: transparent;
+    border-radius: 60px;
+    border: 2px solid;
+    padding: 5px 10px;
+}
 
 a,
 .btn-link {

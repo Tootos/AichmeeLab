@@ -1,3 +1,4 @@
+
 @using BootstrapBlazor.Components
 <div class="panel-window @(IsOpen ? "open" : "")">
     <div class="panel-layout">
@@ -35,7 +36,12 @@
         </div>
         <InputFile id="images-upload" OnChange="HandleFiles" style="display: none;" multiple />
     </div>
+
+
+
 </div>
+
+
 
 
 @code {
@@ -45,6 +51,8 @@
     bool _resetList { get; set; } = true;
 
     int currentStep { get; set; }
+
+  
 
     string _inputFileId { get; set; } = string.Empty;
     List<Image> localCollage { get; set; } = new List<Image>();
@@ -114,9 +122,11 @@
         await ClosePanel();
     }
 
+
+
     private void RemoveImage(Image image)
-{
-    localCollage.Remove(image);
-    StateHasChanged(); 
-}
+    {
+        localCollage.Remove(image);
+        StateHasChanged();
+    }
 }

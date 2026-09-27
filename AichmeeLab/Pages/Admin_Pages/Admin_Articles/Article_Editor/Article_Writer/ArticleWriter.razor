@@ -2,87 +2,110 @@
 @using AichmeeLab.Pages.Admin_Pages.Admin_Articles.Article_Editor.Article_Writer.Photo_Collage
 @using AichmeeLab.Services.ImageService
 @using BootstrapBlazor.Components
-@using Markdig
-@using System.Runtime.CompilerServices
 @inject IJSRuntime jSRuntime;
 @inject AichmeeLab.Services.ImageService.IImageService ImageService;
 
-<div class="writer-canvas">
-    @foreach (var block in WriterData.OrderBy(x => x.Step))
-    {
 
+<div class="writer-toolbar">
+
+    <div class="toolbar-group">
+        <button @onclick='() => ApplyStyleAsync("h1")' title="H1">H1</button>
+        <button @onclick='() => ApplyStyleAsync("h3")' title="H3">H3</button>
+        <button @onclick='() => ApplyStyleAsync("p")' title="Text">P</button>
+    </div>
+
+    <div class="toolbar-group">
+        <button @onclick='() => ApplyStyleAsync("ol")' title="Ordered List">1.</button>
+        <button @onclick='() => ApplyStyleAsync("ul")' title="Bullet List">•</button>
+        <button @onclick="AddCollageAsync" title="Photos Collage"><i class="bi bi-camera2"></i></button>
+    </div>
+    
+    <div class="toolbar-group">
+        <button @onclick='() => ApplyInlineAsync("bold")' title="Bold"><b>B</b></button>
+                    
+        <button @onclick='() => ApplyInlineAsync("italic")' title="Curved Text">〰</button>
+        <label class="color-picker-btn" title="Text Color">
+            <i class="bi bi-pencil" style="color: @_selectedTextColor;"></i>
+            <input type="color" value="@_selectedTextColor" @onchange="HandleTextColorChange" />
+        </label>
+        <label class="color-picker-btn" title="Highlight Color">
+            <i class="bi bi-paint-bucket" style="background-color: @_selectedBgColor;"></i>
+            <input type="color" value="@_selectedBgColor" @onchange="HandleBgColorChange" />
+        </label>
+                    
+        <button @onclick='() => ApplyInlineAsync("link")' title="Link"><i class="bi bi-link-45deg"></i></button>
         
-        var id = string.IsNullOrEmpty(SelectedArticle.Id) ? "new" : SelectedArticle.Id;
-        var domId = $"{block.Type}-{block.Step}-{id}";
+    </div>
 
-        
-
-        @switch (block.Type)
-        {
-            case "text":
-                var menuId = $"menu-{block.Step}-{id}";
-                <div @key="@domId" class="text-block-container" @onmouseover="() => _activeDomId = domId">
-                    <div id="@menuId" class="side-menu-wrapper">
-                        <button class="options-prompt" type="button">
-                            <i class="bi bi-list"></i> </button>
-
-                            <div class="options-menu">
-                                <button @onclick='() => ApplyStyleAsync("h1")' title="H1">H1</button>
-                                <button @onclick='() => ApplyStyleAsync("h3")' title="H3">H3</button>
-                                <button @onclick='() => ApplyStyleAsync("p")' title="Text">P</button>
-                                <button @onclick='() => ApplyStyleAsync("ol")' title="Ordered List">1.</button>
-                                <button @onclick='() => ApplyStyleAsync("ul")' title="Bullet List">•</button>
-                                <button @onclick="AddCollageAsync">Pic</button>
-                            </div>
-                        </div>
-
-                        <div @key="@domId" id="@domId" contenteditable="true" class="simple-writer"
-                             @oninput='() => UpdatePosition(domId, menuId)' @onclick='() => UpdatePosition(domId, menuId)'
-                             @onkeyup='() => UpdatePosition(domId, menuId)' @onblur="() => SyncContent(block, domId)"
-                             suppressContentEditableWarning="true" spellcheck="false">
-
-
-                        </div>
-                    </div>
-                    break;
-                case "collage":
-                        <PhotoCollage @key="domId" DomId="@domId" IncomingStep="@block.Step" OnCollageChange="HandleCollageUpdatedAsync"
-                                      IncomingCollage="block.Content" OpenImageSidePanel="(imgs)=>HandleCollageEditRequest(block.Step,imgs)"
-                                      OnCollageDestroyed="HandleCollageDestroyed" />
-                        break;
-                    }
-                }
-                <div id="inline-toolbar" class="inline-toolbar">
-                    <button @onclick='() => ApplyInlineAsync("bold")' title="Bold"><b>B</b></button>
-                    <button @onclick='() => ApplyInlineAsync("italic")' title="Italic">〰</button>
-                    <button @onclick='() => ApplyInlineAsync("link")' title="Link"><i class="bi bi-link-45deg"></i></button>
+    <div class="toolbar-group">
+        <button @onclick='() => ApplyAlignmentAsync("left")' title="Text Left"><i class="bi bi-text-left"></i></button>
+        <button @onclick='() => ApplyAlignmentAsync("right")' title="Text Right"><i
+            class="bi bi-text-right"></i></button>
+            <button @onclick='() => ApplyAlignmentAsync("center")' title="Text Center"><i
+                class="bi bi-text-center"></i></button>
+                <button @onclick='() => ApplyAlignmentAsync("justify")' title="Justify Center"><i
+                    class="bi bi-justify"></i></button>
                 </div>
-        </div>
+                <div class="toolbar-group">
+                    <button id="emoji-picker-btn" @onclick='() => OpenPicmoPickerAsync("emoji-picker-btn")' title="Emojis"><i
+                        class="bi bi-emoji-kiss-fill"></i></button>
+                        <button @onclick="AddCollageAsync" title="Photos Collage"><i class="bi bi-camera2"></i></button>
+                    </div>
+                </div>
+           
+                <div class="writer-canvas">
+                    @foreach (var block in WriterData.OrderBy(x => x.Step))
+                    {
+                        var id = string.IsNullOrEmpty(SelectedArticle.Id) ? "new" : SelectedArticle.Id;
+                        var domId = $"{block.Type}-{block.Step}-{id}";
+                        @switch (block.Type)
+                        {
+                            case "text":
+                                var menuId = $"menu-{block.Step}-{id}";
+                                <div @key="@domId" class="text-block-container" @onmouseover="() => _activeDomId = domId">
+
+                                    <div @key="@domId" id="@domId" contenteditable="true" class="simple-writer"
+                                         @oninput='() => UpdatePosition(domId, menuId)' @onclick='() => UpdatePosition(domId, menuId)'
+                                         @onkeyup='() => UpdatePosition(domId, menuId)' @onblur="() => SyncContent(block, domId)"
+                                         suppressContentEditableWarning="true" spellcheck="false">
+
+
+                                    </div>
+                                </div>
+                                break;
+                            case "collage":
+                                <PhotoCollage @key="domId" DomId="@domId" IncomingStep="@block.Step" OnCollageChange="HandleCollageUpdatedAsync"
+                                              IncomingCollage="block.Content" OpenImageSidePanel="(imgs)=>HandleCollageEditRequest(block.Step,imgs)"
+                                              OnCollageDestroyed="HandleCollageDestroyed" />
+                                break;
+                        }
+                    }
+                </div>
 
 <ImagesSidepanel @ref="_imagesSidepanel" OnClose="() => _isSidePanelOpen = false"
                  OnImagesSelected="HandleListFetchAsync" />
 
 @code {
 
+    [Parameter]
+    public Article SelectedArticle { get; set; } = new Article();
     
 
+    #region[ 'Private properties' ]
     ImagesSidepanel _imagesSidepanel = null;
 
     bool _isSidePanelOpen { get; set; } = false;
-    [Parameter]
-    public Article SelectedArticle { get; set; } = new Article();
+
     List<ContentBlock> WriterData { get; set; } = new List<ContentBlock>();
     string _activeDomId = string.Empty;
     bool _loadContent { get; set; }
 
     string _currentArticleId { get; set; } = string.Empty;
 
-    public class CollageUpdateResult
-    {
-        public int Step { get; set; }
-        public List<Image> Images { get; set; } = new();
-    }
+    string _selectedTextColor = "#4b4c4d";//Font-color2
+    string _selectedBgColor = "#212427";//Surface-color1
 
+    #endregion
 
     protected override void OnParametersSet()
     {
@@ -139,6 +162,7 @@
         block.Content = new List<string> { html };
     }
 
+    #region [ 'JS Writer engine' ]
     async Task ApplyStyleAsync(string type)
     {
         if (string.IsNullOrEmpty(_activeDomId)) return;
@@ -173,6 +197,64 @@
     {
         await jSRuntime.InvokeVoidAsync("writerEngine.updateMenuPosition", domId, menuId);
     }
+
+    async Task ApplyAlignmentAsync(string alignType)
+    {
+        if (string.IsNullOrEmpty(_activeDomId)) return;
+
+
+        await jSRuntime.InvokeVoidAsync("writerEngine.applyAlignment", _activeDomId, alignType);
+
+        var id = string.IsNullOrEmpty(SelectedArticle.Id) ? "new" : SelectedArticle.Id;
+        var block = WriterData.FirstOrDefault(x => $"text-{x.Step}-{id}" == _activeDomId);
+        if (block != null)
+        {
+            await SyncContent(block, _activeDomId);
+        }
+    }
+
+    private async Task HandleTextColorChange(ChangeEventArgs e)
+    {
+        if (string.IsNullOrEmpty(_activeDomId) || e.Value == null) return;
+
+        _selectedTextColor = e.Value.ToString() ?? "#000000";
+
+        await jSRuntime.InvokeVoidAsync("writerEngine.applyTextColor", _activeDomId, _selectedTextColor);
+
+        var id = string.IsNullOrEmpty(SelectedArticle.Id) ? "new" : SelectedArticle.Id;
+        var block = WriterData.FirstOrDefault(x => $"text-{x.Step}-{id}" == _activeDomId);
+        if (block != null)
+        {
+            await SyncContent(block, _activeDomId);
+        }
+    }
+
+    private async Task HandleBgColorChange(ChangeEventArgs e)
+    {
+        if (string.IsNullOrEmpty(_activeDomId) || e.Value == null) return;
+
+        _selectedBgColor = e.Value.ToString() ?? "#ffff00";
+
+        await jSRuntime.InvokeVoidAsync("writerEngine.applyBackgroundColor", _activeDomId, _selectedBgColor);
+
+        var id = string.IsNullOrEmpty(SelectedArticle.Id) ? "new" : SelectedArticle.Id;
+        var block = WriterData.FirstOrDefault(x => $"text-{x.Step}-{id}" == _activeDomId);
+        if (block != null)
+        {
+            await SyncContent(block, _activeDomId);
+        }
+    }
+
+    async Task OpenPicmoPickerAsync(string btnId)
+    {
+        if (string.IsNullOrEmpty(_activeDomId)) return;
+
+        // Directly pass _activeDomId and btnId to JavaScript
+        await jSRuntime.InvokeVoidAsync("writerEngine.openPicmoPicker", _activeDomId, btnId);
+    }
+
+    #endregion
+
 
 
     void HandleCollageEditRequest(int step, List<Image> images)
@@ -268,6 +350,10 @@
         StateHasChanged();
     }
 
+
+
+
+
     public async Task HandleCollageUpdatedAsync(ContentBlock contentBlock)
     {
         if (contentBlock == null) return;
@@ -283,59 +369,59 @@
         StateHasChanged();
     }
 
-void HandleCollageDestroyed(int destroyedCollageStep)
-{
-    // 1. Instantly drop the targeted collage block out of our layout list
-    WriterData.RemoveAll(c => c.Step == destroyedCollageStep && c.Type == "collage");
+    void HandleCollageDestroyed(int destroyedCollageStep)
+    {
+        // 1. Instantly drop the targeted collage block out of our layout list
+        WriterData.RemoveAll(c => c.Step == destroyedCollageStep && c.Type == "collage");
     
-    // 2. Clear out its recorded state tracking entry from the shared service
-    ImageService.Collages.Remove(destroyedCollageStep);
+        // 2. Clear out its recorded state tracking entry from the shared service
+        ImageService.Collages.Remove(destroyedCollageStep);
 
-    // 3. Shift every single block sitting below the deleted collage backward by 1
-    foreach (var b in WriterData.Where(c => c.Step > destroyedCollageStep))
-    {
-        b.Step--;
-    }
-
-    // 4. Shift corresponding indices inside our image tracking system cleanly
-    ImageService.Collages = ImageService.Collages.ToDictionary(
-        kvp => kvp.Key > destroyedCollageStep ? kvp.Key - 1 : kvp.Key,
-        kvp => kvp.Value
-    );
-
-    // 5. Look up neighboring blocks to see if we left two text fields touching
-    var previousBlock = WriterData.FirstOrDefault(c => c.Step == destroyedCollageStep - 1);
-    var currentBlock = WriterData.FirstOrDefault(c => c.Step == destroyedCollageStep);
-
-    if (previousBlock != null && previousBlock.Type == "text" &&
-        currentBlock != null && currentBlock.Type == "text")
-    {
-        // Safely extract and concatenate strings
-        string firstLine = previousBlock.Content?.FirstOrDefault() ?? "";
-        string secondLine = currentBlock.Content?.FirstOrDefault() ?? "";
-
-        previousBlock.Content = new List<string> { $"{firstLine}<br>{secondLine}" };
-
-        // Remove the redundant current block that we just merged upwards
-        WriterData.Remove(currentBlock);
-
-        // Since another block vanished, shift every block past this point down by 1 more step
+        // 3. Shift every single block sitting below the deleted collage backward by 1
         foreach (var b in WriterData.Where(c => c.Step > destroyedCollageStep))
         {
             b.Step--;
         }
 
-        // Keep the image service dictionary structurally synchronized with the second text shift
+        // 4. Shift corresponding indices inside our image tracking system cleanly
         ImageService.Collages = ImageService.Collages.ToDictionary(
             kvp => kvp.Key > destroyedCollageStep ? kvp.Key - 1 : kvp.Key,
             kvp => kvp.Value
         );
-    }
 
-    // 6. Signal the canvas wrapper to re-initialize layout view fields
-    _loadContent = true;
-    StateHasChanged();
-}
+        // 5. Look up neighboring blocks to see if we left two text fields touching
+        var previousBlock = WriterData.FirstOrDefault(c => c.Step == destroyedCollageStep - 1);
+        var currentBlock = WriterData.FirstOrDefault(c => c.Step == destroyedCollageStep);
+
+        if (previousBlock != null && previousBlock.Type == "text" &&
+            currentBlock != null && currentBlock.Type == "text")
+        {
+            // Safely extract and concatenate strings
+            string firstLine = previousBlock.Content?.FirstOrDefault() ?? "";
+            string secondLine = currentBlock.Content?.FirstOrDefault() ?? "";
+
+            previousBlock.Content = new List<string> { $"{firstLine}<br>{secondLine}" };
+
+            // Remove the redundant current block that we just merged upwards
+            WriterData.Remove(currentBlock);
+
+            // Since another block vanished, shift every block past this point down by 1 more step
+            foreach (var b in WriterData.Where(c => c.Step > destroyedCollageStep))
+            {
+                b.Step--;
+            }
+
+            // Keep the image service dictionary structurally synchronized with the second text shift
+            ImageService.Collages = ImageService.Collages.ToDictionary(
+                kvp => kvp.Key > destroyedCollageStep ? kvp.Key - 1 : kvp.Key,
+                kvp => kvp.Value
+            );
+        }
+
+        // 6. Signal the canvas wrapper to re-initialize layout view fields
+        _loadContent = true;
+        StateHasChanged();
+    }
 
 
     //Method to remove empty collages from the article during Save

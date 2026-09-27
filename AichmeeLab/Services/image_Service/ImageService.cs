@@ -16,8 +16,6 @@ namespace AichmeeLab.Services.ImageService
         public ImageService(HttpClient http)
         {
             _httpClient = http;
-
-
         }
 
         public async Task<ServiceResponse<Image>> GetImageAsync(string id)

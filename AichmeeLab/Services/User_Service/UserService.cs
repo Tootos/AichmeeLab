@@ -7,7 +7,7 @@ namespace AichmeeLab.Services.UserService
     {
         public event Action? ListChanged;
         public string SearchTerm { get; set; } = string.Empty;
-        public string ItemType { get; set; } = string.Empty;
+        public string SelectedTag { get; set; } = string.Empty;
         public DateTime? DateFrom { get; set; }
         public DateTime? DateTo { get; set; }
         public List<Post> Posts { get; set; } = new List<Post>();
@@ -70,7 +70,7 @@ namespace AichmeeLab.Services.UserService
             if (!HasMoreItems) return;
             try
             {
-                var url = $"api/anon/feed/get?type={(!string.IsNullOrEmpty(ItemType) ? ItemType : string.Empty)}";
+                var url = $"api/anon/feed/get?tag={(!string.IsNullOrEmpty(SelectedTag) ? SelectedTag : string.Empty)}";
 
 
                 if (!string.IsNullOrEmpty(SearchTerm))
