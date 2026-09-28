@@ -94,45 +94,128 @@ window.writerEngine = {
     },
 
     // Safe inline toolbar listener with null checking on route changes
-    initInlineToolbar: () => {
-        document.addEventListener('selectionchange', () => {
-            // Continuously track selection inside editable blocks
-            window.writerEngine.saveSelection();
+    // initInlineToolbar: (dotNetRef) => {
+    //     document.addEventListener('selectionchange', () => {
+    //         // Continuously track selection inside editable blocks
+    //         window.writerEngine.saveSelection();
 
-            const toolbar = document.getElementById('inline-toolbar');
+    //         const toolbar = document.getElementById('inline-toolbar');
             
-            // Safe guard against unmounted DOM toolbar
-            if (!toolbar) return;
+    //         // Safe guard against unmounted DOM toolbar
+    //         if (!toolbar) return;
 
-            const selection = window.getSelection();
-            if (selection.rangeCount > 0 && !selection.isCollapsed) {
-                const range = selection.getRangeAt(0);
-                const rect = range.getBoundingClientRect();
+    //         const selection = window.getSelection();
+    //         if (selection.rangeCount > 0 && !selection.isCollapsed) {
+    //             const range = selection.getRangeAt(0);
+    //             const rect = range.getBoundingClientRect();
 
-                toolbar.style.display = 'flex';
-                toolbar.style.top = `${rect.top - 45 + window.scrollY}px`;
-                toolbar.style.left = `${rect.left + (rect.width / 2) - (toolbar.offsetWidth / 2) - 100}px`;
-            } else {
-                toolbar.style.display = 'none';
-            }
-        });
-    },
+    //             toolbar.style.display = 'flex';
+    //             toolbar.style.top = `${rect.top - 45 + window.scrollY}px`;
+    //             toolbar.style.left = `${rect.left + (rect.width / 2) - (toolbar.offsetWidth / 2) - 100}px`;
+    //         } else {
+    //             toolbar.style.display = 'none';
+    //         }
 
-    // Clean incoming HTML by stripping style/color attributes
-    cleanPastedHtml: (html) => {
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, 'text/html');
+    //         if (dotNetRef && selection && selection.rangeCount > 0) {
+    //         const activeEl = document.activeElement;
+    //         if (activeEl && activeEl.isContentEditable) {
+    //             const colors = window.writerEngine.getSelectionColors();
+    //             dotNetRef.invokeMethodAsync('UpdateToolbarColors', colors.textColor, colors.bgColor);
+    //         }
+    //     }
+    //     });
+    // },
 
-        const allElements = doc.body.querySelectorAll('*');
-        allElements.forEach(el => {
-            el.removeAttribute('style');
-            el.removeAttribute('color');
-            el.removeAttribute('face');
-            el.removeAttribute('class');
-        });
+    // getSelectionColors: () => {
+    //     const selection = window.getSelection();
+    // if (!selection || selection.rangeCount === 0) return { textColor: '#000000', bgColor: '#ffffff' };
 
-        return doc.body.innerHTML;
-    },
+    // let node = selection.anchorNode;
+    // if (!node) return { textColor: '#000000', bgColor: '#ffffff' };
+
+    // if (node.nodeType === Node.TEXT_NODE) {
+    //     node = node.parentElement;
+    // }
+
+    // const computed = window.getComputedStyle(node);
+
+    // // Reads exact computed style under cursor (falling back to parent/CSS defaults)
+    // const textColor = window.writerEngine.rgbToHex(computed.color) || '#000000';
+    // const bgColor = window.writerEngine.rgbToHex(computed.backgroundColor) || '#ffffff';
+
+    // return { textColor, bgColor };
+    // },
+
+    // rgbToHex: (rgb) => {
+    //     if (!rgb || rgb === 'transparent' || rgb === 'rgba(0, 0, 0, 0)') return null;
+    //     const matches = rgb.match(/\d+/g);
+    //     if (!matches || matches.length < 3) return null;
+    //     return "#" + matches.slice(0, 3).map(x => parseInt(x).toString(16).padStart(2, '0')).join('');
+    // },
+
+    cleanPastedHandler: () => {
+    document.addEventListener('paste', (e) => {
+        const target = e.target;
+        // Only sanitize if pasting inside a contenteditable block
+        if (!target || !target.isContentEditable) return;
+
+        e.preventDefault();
+
+        const clipboard = e.clipboardData || window.clipboardData;
+        const html = clipboard.getData('text/html');
+        const text = clipboard.getData('text/plain');
+
+        const cleanContent = (html && html.trim()) 
+            ? window.writerEngine.cleanPastedHtml(html) 
+            : text;
+
+        document.execCommand('insertHTML', false, cleanContent);
+        target.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+},
+
+
+cleanPastedHtml: (html) => {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+
+    // 1. Strip background & dark-mode styles injected directly on doc.body
+    doc.body.removeAttribute('style');
+    doc.body.removeAttribute('color');
+    doc.body.removeAttribute('class');
+    doc.body.removeAttribute('bgcolor');
+
+    // 2. Strip attributes from all child elements inside body
+    const allElements = doc.body.querySelectorAll('*');
+    allElements.forEach(el => {
+        el.removeAttribute('style');
+        el.removeAttribute('color');
+        el.removeAttribute('face');
+        el.removeAttribute('class');
+        el.removeAttribute('bgcolor');
+    });
+
+    return doc.body.innerHTML;
+},
+
+// Reset formatting when pressing Enter
+ initEnterKeyReset:() => {
+    if (window.writerEngine._enterHandlerInitialized) return;
+    window.writerEngine._enterHandlerInitialized = true;
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            const target = e.target;
+            if (!target || !target.isContentEditable) return;
+
+            // Allow normal paragraph break creation, then strip lingering inline color styles
+            setTimeout(() => {
+                document.execCommand('removeFormat', false, null);
+                target.dispatchEvent(new Event('input', { bubbles: true }));
+            }, 0);
+        }
+    });
+},
 
     // Change Inline Style
     applyInlineStyle: (id, command) => {
@@ -146,15 +229,29 @@ window.writerEngine = {
 
     // Apply Hyperlink
     applyLink: (id) => {
-        const el = document.getElementById(id);
-        if (el) {
-            el.focus();
-            const url = prompt("Enter the URL:");
-            if (url) {
-                document.execCommand('createLink', false, url);
-                el.dispatchEvent(new Event('input', { bubbles: true }));
+        const el = document.getElementById(domId);
+    if (!el) return;
+
+    el.focus();
+    const url = prompt("Enter the URL:");
+    if (url) {
+        document.execCommand('createLink', false, url);
+
+        const selection = window.getSelection();
+        if (selection.rangeCount > 0) {
+            let node = selection.anchorNode;
+            if (node.nodeType === Node.TEXT_NODE) {
+                node = node.parentElement;
+            }
+            const anchor = node.closest('a');
+            if (anchor) {
+                anchor.setAttribute('target', '_blank');
+                anchor.setAttribute('rel', 'noopener noreferrer');
             }
         }
+
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+    }
     },
 
     // Applies alignment (left, center, right, justify)

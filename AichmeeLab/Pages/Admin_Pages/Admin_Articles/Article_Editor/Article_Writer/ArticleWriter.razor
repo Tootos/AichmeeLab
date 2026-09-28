@@ -17,21 +17,20 @@
     <div class="toolbar-group">
         <button @onclick='() => ApplyStyleAsync("ol")' title="Ordered List">1.</button>
         <button @onclick='() => ApplyStyleAsync("ul")' title="Bullet List">•</button>
-        <button @onclick="AddCollageAsync" title="Photos Collage"><i class="bi bi-camera2"></i></button>
     </div>
     
     <div class="toolbar-group">
         <button @onclick='() => ApplyInlineAsync("bold")' title="Bold"><b>B</b></button>
                     
         <button @onclick='() => ApplyInlineAsync("italic")' title="Curved Text">〰</button>
-        <label class="color-picker-btn" title="Text Color">
+        @* <label class="color-picker-btn" title="Text Color">
             <i class="bi bi-pencil" style="color: @_selectedTextColor;"></i>
-            <input type="color" value="@_selectedTextColor" @onchange="HandleTextColorChange" />
+            <input type="color" value="@_selectedTextColor" @onchange="HandleTextColorChange"/>
         </label>
         <label class="color-picker-btn" title="Highlight Color">
             <i class="bi bi-paint-bucket" style="background-color: @_selectedBgColor;"></i>
-            <input type="color" value="@_selectedBgColor" @onchange="HandleBgColorChange" />
-        </label>
+            <input type="color" value="@_selectedBgColor" @onchange="HandleBgColorChange"/>
+        </label> *@
                     
         <button @onclick='() => ApplyInlineAsync("link")' title="Link"><i class="bi bi-link-45deg"></i></button>
         
@@ -40,15 +39,19 @@
     <div class="toolbar-group">
         <button @onclick='() => ApplyAlignmentAsync("left")' title="Text Left"><i class="bi bi-text-left"></i></button>
         <button @onclick='() => ApplyAlignmentAsync("right")' title="Text Right"><i
-            class="bi bi-text-right"></i></button>
+            class="bi bi-text-right"
+            ></i></button>
             <button @onclick='() => ApplyAlignmentAsync("center")' title="Text Center"><i
-                class="bi bi-text-center"></i></button>
+                class="bi bi-text-center"
+                ></i></button>
                 <button @onclick='() => ApplyAlignmentAsync("justify")' title="Justify Center"><i
-                    class="bi bi-justify"></i></button>
+                    class="bi bi-justify"
+                    ></i></button>
                 </div>
                 <div class="toolbar-group">
                     <button id="emoji-picker-btn" @onclick='() => OpenPicmoPickerAsync("emoji-picker-btn")' title="Emojis"><i
-                        class="bi bi-emoji-kiss-fill"></i></button>
+                        class="bi bi-emoji-kiss-fill"
+                        ></i></button>
                         <button @onclick="AddCollageAsync" title="Photos Collage"><i class="bi bi-camera2"></i></button>
                     </div>
                 </div>
@@ -64,26 +67,43 @@
                                 var menuId = $"menu-{block.Step}-{id}";
                                 <div @key="@domId" class="text-block-container" @onmouseover="() => _activeDomId = domId">
 
-                                    <div @key="@domId" id="@domId" contenteditable="true" class="simple-writer"
-                                         @oninput='() => UpdatePosition(domId, menuId)' @onclick='() => UpdatePosition(domId, menuId)'
-                                         @onkeyup='() => UpdatePosition(domId, menuId)' @onblur="() => SyncContent(block, domId)"
-                                         suppressContentEditableWarning="true" spellcheck="false">
+                                    <div
+                                        @key="@domId"
+                                        id="@domId"
+                                        contenteditable="true"
+                                        class="simple-writer"
+                                        @oninput='() => UpdatePosition(domId, menuId)'
+                                        @onclick='() => UpdatePosition(domId, menuId)'
+                                        @onkeyup='() => UpdatePosition(domId, menuId)'
+                                        @onblur="() => SyncContent(block, domId)"
+                                        suppressContentEditableWarning="true"
+                                        spellcheck="false"
+                                        >
 
 
+                                        </div>
                                     </div>
-                                </div>
-                                break;
+                                    break;
                             case "collage":
-                                <PhotoCollage @key="domId" DomId="@domId" IncomingStep="@block.Step" OnCollageChange="HandleCollageUpdatedAsync"
-                                              IncomingCollage="block.Content" OpenImageSidePanel="(imgs)=>HandleCollageEditRequest(block.Step,imgs)"
-                                              OnCollageDestroyed="HandleCollageDestroyed" />
-                                break;
-                        }
-                    }
-                </div>
+                                        <PhotoCollage
+                                        @key="domId"
+                                        DomId="@domId"
+                                        IncomingStep="@block.Step"
+                                        OnCollageChange="HandleCollageUpdatedAsync"
+                                        IncomingCollage="block.Content"
+                                        OpenImageSidePanel="(imgs)=>HandleCollageEditRequest(block.Step,imgs)"
+                                        OnCollageDestroyed="HandleCollageDestroyed"
+                                        />
+                                        break;
+                                    }
+                                }
+                        </div>
 
-<ImagesSidepanel @ref="_imagesSidepanel" OnClose="() => _isSidePanelOpen = false"
-                 OnImagesSelected="HandleListFetchAsync" />
+<ImagesSidepanel
+@ref="_imagesSidepanel"
+OnClose="() => _isSidePanelOpen = false"
+OnImagesSelected="HandleListFetchAsync"
+/>
 
 @code {
 
@@ -102,8 +122,8 @@
 
     string _currentArticleId { get; set; } = string.Empty;
 
-    string _selectedTextColor = "#4b4c4d";//Font-color2
-    string _selectedBgColor = "#212427";//Surface-color1
+    @* string _selectedTextColor = "#4b4c4d";//Font-color2
+    string _selectedBgColor = "#212427";//Surface-color1 *@
 
     #endregion
 
@@ -136,7 +156,9 @@
     {
         if (firstRender)
         {
-            await jSRuntime.InvokeVoidAsync("writerEngine.initInlineToolbar");
+            var dotNetRef = DotNetObjectReference.Create(this);
+            @* await jSRuntime.InvokeVoidAsync("writerEngine.initInlineToolbar", dotNetRef); *@
+            await jSRuntime.InvokeVoidAsync("writerEngine.cleanPastedHandler");
         }
 
         if (_loadContent)
@@ -147,6 +169,7 @@
                 var domId = $"text-{block.Step}-{id}";
                 var htmlContent = block.Content.FirstOrDefault() ?? "<p><br></p>";
                 await jSRuntime.InvokeVoidAsync("writerEngine.loadContent", domId, htmlContent);
+                
             }
             _loadContent = false;
         }
@@ -174,6 +197,14 @@
         var block = WriterData.FirstOrDefault(x => $"text-{x.Step}-{SelectedArticle.Id}" == _activeDomId);
         if (block != null) await SyncContent(block, _activeDomId);
     }
+
+    @* [JSInvokable]
+    public void UpdateToolbarColors(string textColor, string bgColor)
+    {
+        _selectedTextColor = textColor;
+        _selectedBgColor = bgColor;
+        StateHasChanged();
+    } *@
 
     async Task ApplyInlineAsync(string type)
     {
@@ -213,7 +244,7 @@
         }
     }
 
-    private async Task HandleTextColorChange(ChangeEventArgs e)
+    @* private async Task HandleTextColorChange(ChangeEventArgs e)
     {
         if (string.IsNullOrEmpty(_activeDomId) || e.Value == null) return;
 
@@ -243,7 +274,7 @@
         {
             await SyncContent(block, _activeDomId);
         }
-    }
+    } *@
 
     async Task OpenPicmoPickerAsync(string btnId)
     {
