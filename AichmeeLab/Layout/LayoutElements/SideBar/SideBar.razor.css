@@ -59,6 +59,15 @@
     color: var(--select-color);
 }
 
+::deep .nav-text-hint{
+    color: var(--font-color1);
+    margin: 2rem 1rem;
+    font-size: 23p;
+    font-weight: 600;
+    padding: 10px;
+    border-bottom: solid 1px var(--border-color);
+}
+
 
 .btn-refresh{
     display: inline-block;

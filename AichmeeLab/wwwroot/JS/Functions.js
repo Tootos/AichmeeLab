@@ -22,6 +22,18 @@ window.initScrollObserver = (dotNetHelper, elementId) => {
     
 };
 
+window._beforeUnloadHandler = (e) => {
+    e.preventDefault();
+};
+
+window.setUnsavedChangesPrompt = (isDirty) => {
+    if (isDirty) {
+        window.addEventListener('beforeunload', window._beforeUnloadHandler);
+    } else {
+        window.removeEventListener('beforeunload', window._beforeUnloadHandler);
+    }
+};
+
 //Detect Phone
 window.isMobileDevice = () => {
     return window.innerWidth < 641; 

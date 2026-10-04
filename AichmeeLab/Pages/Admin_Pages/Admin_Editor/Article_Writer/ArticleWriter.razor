@@ -1,5 +1,5 @@
-@using AichmeeLab.Pages.Admin_Pages.Admin_Articles.Article_Editor.Article_Writer.Images_Sidepanel
-@using AichmeeLab.Pages.Admin_Pages.Admin_Articles.Article_Editor.Article_Writer.Photo_Collage
+@using AichmeeLab.Pages.Admin_Pages.Admin_Editor.Article_Writer.Images_Sidepanel
+@using AichmeeLab.Pages.Admin_Pages.Admin_Editor.Article_Writer.Photo_Collage
 @using AichmeeLab.Services.ImageService
 @using BootstrapBlazor.Components
 @inject IJSRuntime jSRuntime;
@@ -60,12 +60,12 @@
                     @foreach (var block in WriterData.OrderBy(x => x.Step))
                     {
                         var id = string.IsNullOrEmpty(SelectedArticle.Id) ? "new" : SelectedArticle.Id;
-                        var domId = $"{block.Type}-{block.Step}-{id}";
+                        var domId = GetDomId(block.Type, block.Step);
                         @switch (block.Type)
                         {
                             case "text":
-                                var menuId = $"menu-{block.Step}-{id}";
-                                <div @key="@domId" class="text-block-container" @onmouseover="() => _activeDomId = domId">
+                                var menuId = $"menu-{block.Step}-{GetArticleSuffix()}";
+                                <div @key="@domId" class="text-block-container">
 
                                     <div
                                         @key="@domId"
@@ -79,8 +79,6 @@
                                         suppressContentEditableWarning="true"
                                         spellcheck="false"
                                         >
-
-
                                         </div>
                                     </div>
                                     break;
@@ -92,12 +90,12 @@
                                         OnCollageChange="HandleCollageUpdatedAsync"
                                         IncomingCollage="block.Content"
                                         OpenImageSidePanel="(imgs)=>HandleCollageEditRequest(block.Step,imgs)"
-                                        OnCollageDestroyed="HandleCollageDestroyed"
+                                        OnCollageDestroyed="HandleCollageDestroyedAsync"
                                         />
                                         break;
                                     }
                                 }
-                        </div>
+                        </div>\>
 
 <ImagesSidepanel
 @ref="_imagesSidepanel"
@@ -109,9 +107,10 @@ OnImagesSelected="HandleListFetchAsync"
 
     [Parameter]
     public Article SelectedArticle { get; set; } = new Article();
-    
+    [Parameter]
+    public Action? ContentChanged { get; set; }
 
-    #region[ 'Private properties' ]
+    #region['Private properties']
     ImagesSidepanel _imagesSidepanel = null;
 
     bool _isSidePanelOpen { get; set; } = false;
@@ -119,61 +118,73 @@ OnImagesSelected="HandleListFetchAsync"
     List<ContentBlock> WriterData { get; set; } = new List<ContentBlock>();
     string _activeDomId = string.Empty;
     bool _loadContent { get; set; }
+    bool _contentChanged { get; set; } = false;
 
     string _currentArticleId { get; set; } = string.Empty;
+
+    private string GetArticleSuffix() => string.IsNullOrEmpty(SelectedArticle.Id) ? "new" : SelectedArticle.Id;
+    private string GetDomId(string type, int step) => $"{type}-{step}-{GetArticleSuffix()}";
 
     @* string _selectedTextColor = "#4b4c4d";//Font-color2
     string _selectedBgColor = "#212427";//Surface-color1 *@
 
     #endregion
 
+    #region ['DOM Lifecycle']
     protected override void OnParametersSet()
     {
-        if (_currentArticleId != SelectedArticle.Id)
+        _currentArticleId = SelectedArticle.Id;
+        if (SelectedArticle.ContentBlocks.Count > 0)
         {
-            _currentArticleId = SelectedArticle.Id;
-            if (SelectedArticle.ContentBlocks.Count > 0)
-            {
-                WriterData = SelectedArticle.ContentBlocks
-                .OrderBy(w => w.Step).ToList();
+            WriterData = SelectedArticle.ContentBlocks
+            .OrderBy(w => w.Step).ToList();
 
-            }
-            else
-            {
-                WriterData = new List<ContentBlock>();
-                WriterData.Add(new ContentBlock
-                {
-                    Step = WriterData.Count,
-                    Type = "text",
-                    Content = new List<string> { "<p><br></p>" }
-                });
-            }
-            _loadContent = true;
         }
+        else
+        {
+            WriterData = new List<ContentBlock>();
+            WriterData.Add(new ContentBlock
+            {
+                Step = WriterData.Count,
+                Type = "text",
+                Content = new List<string> { "<p><br></p>" }
+            });
+        }
+        _loadContent = true;
+
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            var dotNetRef = DotNetObjectReference.Create(this);
-            @* await jSRuntime.InvokeVoidAsync("writerEngine.initInlineToolbar", dotNetRef); *@
+            await jSRuntime.InvokeVoidAsync("writerEngine.initSelectionTracker");
             await jSRuntime.InvokeVoidAsync("writerEngine.cleanPastedHandler");
+            await jSRuntime.InvokeVoidAsync("writerEngine.initEnterKeyReset");
         }
 
         if (_loadContent)
         {
-            var id = string.IsNullOrEmpty(SelectedArticle.Id) ? "" : SelectedArticle.Id;
             foreach (var block in WriterData.Where(b => b.Type == "text"))
             {
-                var domId = $"text-{block.Step}-{id}";
+                var domId = GetDomId("text", block.Step);
                 var htmlContent = block.Content.FirstOrDefault() ?? "<p><br></p>";
                 await jSRuntime.InvokeVoidAsync("writerEngine.loadContent", domId, htmlContent);
-                
+
             }
             _loadContent = false;
         }
+
+        if (_contentChanged)
+        {
+            _contentChanged = false;
+            ContentChanged?.Invoke();
+        }
     }
+
+    #endregion
+
+    #region [ 'JS Writer engine' ]
 
     async Task SyncContent(ContentBlock block, string domId)
     {
@@ -185,7 +196,6 @@ OnImagesSelected="HandleListFetchAsync"
         block.Content = new List<string> { html };
     }
 
-    #region [ 'JS Writer engine' ]
     async Task ApplyStyleAsync(string type)
     {
         if (string.IsNullOrEmpty(_activeDomId)) return;
@@ -194,8 +204,10 @@ OnImagesSelected="HandleListFetchAsync"
             await jSRuntime.InvokeVoidAsync("writerEngine.applyList", _activeDomId, type);
         else
             await jSRuntime.InvokeVoidAsync("writerEngine.applyBlockStyle", _activeDomId, type);
-        var block = WriterData.FirstOrDefault(x => $"text-{x.Step}-{SelectedArticle.Id}" == _activeDomId);
+        var block = WriterData.FirstOrDefault(x => GetDomId(x.Type, x.Step) == _activeDomId);
         if (block != null) await SyncContent(block, _activeDomId);
+
+        _contentChanged = true;
     }
 
     @* [JSInvokable]
@@ -222,11 +234,16 @@ OnImagesSelected="HandleListFetchAsync"
                 await jSRuntime.InvokeVoidAsync("writerEngine.applyLink", _activeDomId);
                 break;
         }
+
+        _contentChanged = true;
     }
 
     async Task UpdatePosition(string domId, string menuId)
     {
+        //Lock active dom to the current block we are interracting with
+        _activeDomId = domId;
         await jSRuntime.InvokeVoidAsync("writerEngine.updateMenuPosition", domId, menuId);
+        _contentChanged = true;
     }
 
     async Task ApplyAlignmentAsync(string alignType)
@@ -236,12 +253,12 @@ OnImagesSelected="HandleListFetchAsync"
 
         await jSRuntime.InvokeVoidAsync("writerEngine.applyAlignment", _activeDomId, alignType);
 
-        var id = string.IsNullOrEmpty(SelectedArticle.Id) ? "new" : SelectedArticle.Id;
-        var block = WriterData.FirstOrDefault(x => $"text-{x.Step}-{id}" == _activeDomId);
+        var block = WriterData.FirstOrDefault(x => GetDomId(x.Type, x.Step) == _activeDomId);
         if (block != null)
         {
             await SyncContent(block, _activeDomId);
         }
+        _contentChanged = true;
     }
 
     @* private async Task HandleTextColorChange(ChangeEventArgs e)
@@ -286,7 +303,7 @@ OnImagesSelected="HandleListFetchAsync"
 
     #endregion
 
-
+    #region ['Private Helpers']
 
     void HandleCollageEditRequest(int step, List<Image> images)
     {
@@ -312,7 +329,8 @@ OnImagesSelected="HandleListFetchAsync"
 
             // 3. Assign the decoupled image string list to the local content block
             targetBlock.Content = uniqueBase64Strings;
-
+            
+            _contentChanged = true;
             StateHasChanged();
         }
     }
@@ -323,7 +341,7 @@ OnImagesSelected="HandleListFetchAsync"
         if (string.IsNullOrEmpty(_activeDomId)) return;
 
         var currentBlock = WriterData.FirstOrDefault(x =>
-            $"text-{x.Step}-{(string.IsNullOrEmpty(SelectedArticle.Id) ? "new" : SelectedArticle.Id)}" == _activeDomId);
+            GetDomId(x.Type, x.Step) == _activeDomId);
         if (currentBlock == null) return;
 
         // Get the HTML after the cursor
@@ -377,34 +395,15 @@ OnImagesSelected="HandleListFetchAsync"
             });
         }
 
-        _loadContent = true;
+        _loadContent = _contentChanged = true;
         StateHasChanged();
     }
 
-
-
-
-
-    public async Task HandleCollageUpdatedAsync(ContentBlock contentBlock)
-    {
-        if (contentBlock == null) return;
-
-        var selectedBlock = WriterData.Find(c => c.Step == contentBlock.Step);
-
-        if (selectedBlock == null) return;
-
-        selectedBlock.Content = contentBlock.Content;
-
-        selectedBlock.Type = "collage";
-
-        StateHasChanged();
-    }
-
-    void HandleCollageDestroyed(int destroyedCollageStep)
+    async Task HandleCollageDestroyedAsync(int destroyedCollageStep)
     {
         // 1. Instantly drop the targeted collage block out of our layout list
         WriterData.RemoveAll(c => c.Step == destroyedCollageStep && c.Type == "collage");
-    
+
         // 2. Clear out its recorded state tracking entry from the shared service
         ImageService.Collages.Remove(destroyedCollageStep);
 
@@ -450,11 +449,30 @@ OnImagesSelected="HandleListFetchAsync"
         }
 
         // 6. Signal the canvas wrapper to re-initialize layout view fields
-        _loadContent = true;
+        _loadContent = _contentChanged = true;
+        
         StateHasChanged();
     }
 
+    #endregion
+    
+    #region ['Public Methods']
+    public async Task HandleCollageUpdatedAsync(ContentBlock contentBlock)
+    {
+        if (contentBlock == null) return;
 
+        var selectedBlock = WriterData.Find(c => c.Step == contentBlock.Step);
+
+        if (selectedBlock == null) return;
+
+        selectedBlock.Content = contentBlock.Content;
+
+        selectedBlock.Type = "collage";
+
+        StateHasChanged();
+    }
+
+    
     //Method to remove empty collages from the article during Save
     public void RemoveEmptyCollages()
     {
@@ -519,9 +537,8 @@ OnImagesSelected="HandleListFetchAsync"
             }
         }
 
-
-        _loadContent = true;
         SelectedArticle.ContentBlocks = WriterData.OrderBy(c => c.Step).ToList();
+        _loadContent = _contentChanged = true;
         StateHasChanged();
     }
 
@@ -539,4 +556,5 @@ OnImagesSelected="HandleListFetchAsync"
                     })
                     .ToList();
     }
+    #endregion
 }

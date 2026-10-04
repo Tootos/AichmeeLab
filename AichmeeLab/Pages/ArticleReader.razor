@@ -1,13 +1,13 @@
 @page "/article/{Id}"
 @using AichmeeLab.Pages.View_Article
-@using BootstrapBlazor.Components
 @using MyTag = Aichmee.Shared.Tag
 @inject AichmeeLab.Services.UserService.IUserService UserService
 @inject AichmeeLab.Services.ImageService.IImageService ImageService
 @inject AichmeeLab.Services.TagService.ITagService TagService
+@inject NavigationManager NavigationManager
 
 
-<ViewArticle SelectedArticle="SelectedArticle" HeaderImage="HeaderImage" ArticleTags="ArticleTags" />
+<ViewArticle SelectedArticle="SelectedArticle" HeaderImage="HeaderImage" ArticleTags="ArticleTags" OnExit="HandleExit"/>
 
 
 @code {
@@ -43,5 +43,7 @@
             _message = string.IsNullOrEmpty(result.Message) ? result.Message : "Article not found.";
         }
     }
+
+    void HandleExit() => NavigationManager.NavigateTo($"/");
 
 }

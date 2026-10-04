@@ -2,15 +2,15 @@
 @inject AichmeeLab.Services.SecurityService.ISecurityService SecurityService
 @inject NavigationManager NavigationManager
 
-@code{
-    [Parameter]public string Keyword{get; set;} = string.Empty;
+@code {
+    [Parameter] public string Keyword { get; set; } = string.Empty;
 
 
     protected override async Task OnInitializedAsync()
     {
 
-            await SecurityService.GetAdminAccessAsync(Keyword);
-            NavigationManager.NavigateTo("/admin/articles/");
+        await SecurityService.GetAdminAccessAsync(Keyword);
+        NavigationManager.NavigateTo("/admin/profile/");
 
          
 

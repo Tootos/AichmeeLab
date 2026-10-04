@@ -1,8 +1,6 @@
 ﻿@page "/admin/articles/"
 @using AichmeeLab.Pages.Admin_Pages.Admin_Articles.Article_List
-@using AichmeeLab.Pages.Admin_Pages.Admin_Articles.Article_Editor
 @using AichmeeLab.Pages.Components.SearchBar
-@using System.Net.Security
 @implements IDisposable
 @inject NavigationManager NavigationManager;
 @inject AichmeeLab.Services.WriterService.IWriterService WriterService;
@@ -11,34 +9,10 @@
 <div class="admin-window">
 
     <div class="admin-layout">
-        <div class="view-switcher-header">
-            <div class="btn-group w-100" role="group">
-                <button type="button" class="btn @(selectedTab == Tab.List ? "btn-primary" : "btn-outline-primary")"
-                        @onclick="() => SwitchToTab(Tab.List)">
-                    <i class="bi bi-grid-3x3-gap"></i> Article List
-                </button>
-                <button type="button" class="btn @(selectedTab == Tab.Article ? "btn-primary" : "btn-outline-primary")"
-                        @onclick="() => SwitchToTab(Tab.Article)">
-                    <i class="bi bi-pencil-square"></i> @(string.IsNullOrEmpty(SelectedArticle.Title) ? "Publish New" : SelectedArticle.Title)
-                </button>
-            </div>
+        <div class="search-container">
+            <SearchBar OnSearchPerformed="LoadList"/>
         </div>
-
-
-        @switch (selectedTab)
-        {
-            case Tab.List:
-                <div class="search-container">
-                    <SearchBar OnSearchPerformed="LoadList" />
-                </div>
-                <ArticlesList OnEditRequested="HandleEditRequestAsync" />
-
-                break;
-            case Tab.Article:
-
-                <ArticlesEdit SelectedArticle="@SelectedArticle" OnReady="StateHasChanged" OnChange="HandleChange" />
-                break;
-        }
+        <ArticlesList/>
 
     </div>
 </div>
@@ -97,28 +71,5 @@
     {
         NavigationManager.LocationChanged -= HandleLocationChanged;
     }
-
-    //Switching to Editor
-    private async Task HandleEditRequestAsync(string id)
-    {
-        var response = await WriterService.GetArticleAsync(id);
-        if (response != null && response.Data != null)
-        {
-            SelectedArticle= response.Data;
-            selectedTab = Tab.Article;
-            StateHasChanged();
-        }
-
-    }
-
-    void HandleChange(Article article)
-    {
-        SelectedArticle = article;
-
-        StateHasChanged();
-
-    }
-    //Switch Tab
-    void SwitchToTab(Tab tab) => selectedTab = tab;
 
 }

@@ -16,7 +16,7 @@
         <div class="articles-grid">
             @foreach (var article in WriterService.Articles)
             {
-                <div class="article-card" @onclick="() => OnEditAsync(article.Id)">
+                <div class="article-card" @onclick="() => OnEdit(article.Id)">
                     <div class="card-content">
                         <h5 class="article-title">@article.Title</h5>
                         <p class="author-tag">by @(string.IsNullOrEmpty(article.Author) ? "Unknown" : article.Author)</p>
@@ -37,38 +37,45 @@
                                 <span>@(article.IsVisible ? "VISIBLE" : "HIDDEN")</span>
 
                                 <div class="form-check form-switch">
-                                    <input class="form-check-input" type="checkbox" role="switch" checked="@article.IsVisible"
-                                           @onchange="() => ToggleVisibility(article.Id, article.IsVisible)">
-                                    </div>
-                                </label>
-                            </div>
+                                    <input
+                                    class="form-check-input"
+                                    type="checkbox"
+                                    role="switch"
+                                    checked="@article.IsVisible"
+                                    @onchange="() => ToggleVisibility(article.Id, article.IsVisible)"
+                                    >
+                                </div>
+                            </label>
                         </div>
                     </div>
-                }
-            </div>
+                </div>
+            }
+        </div>
 
 
-            <Pagination CurrentPage="WriterService.CurrentPage" PageCount="@WriterService.PageCount"
-                        PageSize="WriterService.PageSize" OnPageChanged="HandleChangePage" />
+        <Pagination
+        CurrentPage="WriterService.CurrentPage"
+        PageCount="@WriterService.PageCount"
+        PageSize="WriterService.PageSize"
+        OnPageChanged="HandleChangePage"
+        />
 
-        }
+    }
 
 
-        @if (changeVisibility.Count  > 0)
-        {
-            <div class="floating-save-container">
-                <button class="btn-bulk-save" @onclick="BulkSaveAsync" title="Save changes to @changeVisibility.Count articles">
-                    <i class="bi bi-cloud-check-fill"></i>
-                    <span class="save-counter">@changeVisibility.Count</span>
-                </button>
-            </div>
+    @if (changeVisibility.Count > 0)
+    {
+        <div class="floating-save-container">
+            <button class="btn-bulk-save" @onclick="BulkSaveAsync" title="Save changes to @changeVisibility.Count articles">
+                <i class="bi bi-cloud-check-fill"></i>
+                <span class="save-counter">@changeVisibility.Count</span>
+            </button>
+        </div>
 
-        }
-    </div>
+    }
+</div>
 
 @code {
-    [Parameter]
-    public EventCallback<string> OnEditRequested { get; set; }
     string _message = "Loading...";
     Dictionary<string, bool> changeVisibility = new();
     [Parameter]
@@ -77,9 +84,12 @@
 
     void ToggleVisibility(string id, bool visible)
     {
-        if(changeVisibility.ContainsKey(id)){
+        if (changeVisibility.ContainsKey(id))
+        {
             changeVisibility.Remove(id);
-        }else{
+        }
+        else
+        {
             changeVisibility.Add(id, !visible);
         }
     }
@@ -126,8 +136,6 @@
     }
 
 
-    async Task OnEditAsync(string id)
-    {
-        await OnEditRequested.InvokeAsync(id);
-    }
+    void OnEdit(string id) => NavigationManager.NavigateTo($"/admin/writer/{id}");
+
 }

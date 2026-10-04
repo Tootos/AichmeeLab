@@ -1,10 +1,16 @@
-﻿.editor-layout {
-    display: flex;
-    gap: 15px;
+﻿
+.editor-window{
+    padding-top: 1.5rem;
     width: 100%;
+}
+
+.editor-layout {
+    display: flex;
+    flex-direction: row;
     justify-content: center;
     align-items: flex-start;
-    overflow-x: hidden;
+    overflow: hidden;
+    gap: 15px;
     transition: filter 0.3s ease;
 }
 
@@ -70,7 +76,10 @@ color: var(--font-color1);
 
 /* Middle Editor */
 
-
+.writer-wrapper{
+    max-width: 800px;
+    flex: 1;
+}
 
 .inspector-window {
     width: 100%;
@@ -145,21 +154,7 @@ color: var(--font-color1);
     box-sizing: border-box;
 }
 
-.btn-clear {
-    background: rgba(220, 53, 69, 0.1);
-    color: #dc3545;
-    border: 1px solid #dc3545;
-    padding: 4px 8px;
-    font-size: 0.8rem;
-    border-radius: 4px;
-    align-self: flex-end;
-    transition: 0.2s;
-}
 
-.btn-clear:hover {
-    background: #dc3545;
-    color: white;
-}
 
 /* Description field inside the preview */
 .mb2 {
@@ -169,18 +164,124 @@ color: var(--font-color1);
 /**/
 
 /*Right Bar */
-.action-container {
-    background-color: var(--surface-color);
-    box-shadow: var(--hover-shadow);
+.action-window {
+    background-color: transparent;
+    /* box-shadow: var(--hover-shadow); */
+    min-width: 210px;
     /* flex: 1; */
-    border-radius: var(--border-radius);
-    padding: 20px;
+    /* border-radius: var(--border-radius); */
+    padding:40px 10px;
+
+
 }
 
-.form-wrapper {
+::deep .form-control,
+::deep form{
+    display: flex;
+    flex-direction: column;
+    background: transparent;
+    align-items: flex-start;
+    justify-content: flex-start;
+    border: none;
+    gap: 10px;
+}
+.btn-action {
+    position: relative;
+    box-shadow: var(--hover-shadow);
+    height: 40px;
+    width: 40px;
+    min-width: 40px; 
+    flex-shrink: 0;  
+    border-radius: 20px;
+    overflow: hidden;
+    white-space: nowrap;
+    cursor: pointer;
+    box-sizing: border-box;
+    padding: 0;
+    color: var(--font-color1);
+    
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+                box-shadow 0.2s ease, 
+                background-color 0.2s ease;
+}
+/* 1. Lock icon in place */
+.btn-action i {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    font-size: 1.2rem;
+    
+    /* Perfect alignment inside 20x20 box */
     display: flex;
     align-items: center;
     justify-content: center;
+    z-index: 2;
+    pointer-events: none;
+}
+
+/* 2. Position text strictly to the right of the locked icon */
+.btn-text {
+    position: absolute;
+    left: 36px; 
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.85rem;
+    font-weight: 600;
+    opacity: 0;
+    user-select: none;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+}
+
+.btn-clear, .btn-submit, .btn-preview{
+    border: none;
+    background-color: var(--select-color);
+}
+
+.btn-visibility{
+    background-color: transparent;
+    border: solid 1px var(--border-color);
+}
+
+.btn-visible{
+    background-color: #26b050;
+}
+
+
+.btn-action:hover .btn-text {
+    opacity: 1;
+    transition-delay: 0.08s; 
+}
+
+.btn-action:hover {
+    width: 130px; 
+}
+
+.btn-action:hover .btn-text {
+    opacity: 1;
+    transition-delay: 0.05s; 
+}
+
+
+.warning-modal{
+    display: flex;
+    position: fixed;
     flex-direction: column;
-    gap: 5px;
+    top:0%;
+    padding: 20px;
+    color: var(--font-color1);
+    gap: 20px;
+    width: fit-content;
+    height: fit-content;
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 15px;
+    z-index: 9999;
+}
+
+.warning-actions{
+    align-items: end;
 }

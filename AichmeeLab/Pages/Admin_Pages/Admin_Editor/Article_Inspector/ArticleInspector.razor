@@ -1,25 +1,22 @@
 @using BootstrapBlazor.Components
 @using AichmeeLab.Services.ImageService
-@using AichmeeLab.Pages.Admin_Pages.Admin_Articles.Article_Editor.Article_Inspector.Tags_Inspector
+@using AichmeeLab.Pages.Admin_Pages.Admin_Editor.Article_Inspector.Tags_Inspector
 @inject AichmeeLab.Services.TagService.ITagService TagService
 @inject AichmeeLab.Services.ImageService.IImageService ImageService;
 
 
 <div class="inspector-layout">
 
+    <InputText @bind-Value="SelectedArticle.Title" @bind-Value:after="HandleFieldChangedAsync" class="title-input" placeholder="Title. . ."/>
+    <InputText @bind-Value="SelectedArticle.Author" @bind-Value:after="HandleFieldChangedAsync" class="author-input" placeholder="Author. . ."/>
 
-    <InputText @bind-Value="SelectedArticle.Title" class="title-input" placeholder="Title. . ." />
-
-
-
-    <InputText @bind-Value="SelectedArticle.Author" class="author-input" placeholder="Author. . ." />
-
-
-
-    <InputTextArea @bind-Value="SelectedArticle.Description" class="description-input" rows="3"
-                   placeholder="Description. . ." />
-
-
+    <InputTextArea
+    @bind-Value="SelectedArticle.Description"
+    @bind-Value:after="HandleFieldChangedAsync"
+    class="description-input"
+    rows="3"
+    placeholder="Description. . ."
+    />
 
     <div class="tags-container">
         <span>Tags: </span>
@@ -36,7 +33,7 @@
             {
                 <button class="article-tag" style="border-color: @tag.PrimaryColor; color:@tag.PrimaryColor;" @onclick='() => RemoveTag(tag)'>
                     <i class="@tag.Icon"> @tag.Name</i>
-                    <br />
+                    <br/>
                     <span>x</span>
                 </button>
             }
@@ -60,51 +57,66 @@
         else
         {
             <h3>Header Preview</h3>
-            <img class="header-preview" src="@SelectedImage.HeaderUrl" />
+            <img class="header-preview" src="@SelectedImage.HeaderUrl"/>
             <label for="header-upload" class="btn-image-action replace-mode">
                 <i class="bi bi-arrow-repeat"></i> Replace from Computer
             </label>
 
-            <InputText @bind-Value="SelectedImage.Description" class="image-description" placeholder="(Optional Note)" />
+            <InputText @bind-Value="SelectedImage.Description" class="image-description" placeholder="(Optional Note)"/>
         }
 
-        <InputFile id="header-upload" OnChange="CaptureStreamAsync" style="display:none" />
+        <InputFile id="header-upload" OnChange="CaptureStreamAsync" style="display:none"/>
 
             
     </div>
 
     @if (_tagsInspectorOpen)
     {
-        <TagsInspector OnChange="HandleTags" IncomingTags="ArticleTags"
-                       OnClose="()=> _tagsInspectorOpen = false" />
+        <TagsInspector
+        OnChange="HandleTags"
+        IncomingTags="ArticleTags"
+        OnClose="()=> _tagsInspectorOpen = false"
+        />
     }
-
-
 </div>
 
 
 @code {
+    #region ['Public Properties']
     [Parameter]
     public Image SelectedImage { get; set; } = new();
     [Parameter]
     public EventCallback<Image> OnImageChanged { get; set; }
+    [Parameter]
+    public Article SelectedArticle { get; set; } = new();
+    [Parameter]
+    public Action? HeaderChanged { get; set; }
+    public List<Aichmee.Shared.Tag> ArticleTags { get; set; } = new();
+    #endregion
+
+    #region ['Private Properties']
     bool _isUploading { get; set; } = false;
     bool _tagsInspectorOpen { get; set; } = false;
-    [Parameter]
-    public Article SelectedArticle { get; set; } = new ();
-    public List<Aichmee.Shared.Tag> ArticleTags {get;set;} = new();
+
     MemoryStream? _fileBuffer { get; set; }
     string _fileName { get; set; } = string.Empty;
-
+    #endregion 
 
     protected async override Task OnParametersSetAsync()
     {
-        var result = await TagService.GetArticleTags(SelectedArticle.Tags);
-        if (result.Data != null && result.Data.Any())
+        ArticleTags = new();
+        if (SelectedArticle.Tags.Any())
         {
-            ArticleTags = new(result.Data);
+            var result = await TagService.GetArticleTags(SelectedArticle.Tags);
+            if (result.Data != null && result.Data.Any())
+            {
+                ArticleTags = new(result.Data);
+            }
         }
     }
+
+
+    #region ['Private Helpers']
     async Task CaptureStreamAsync(InputFileChangeEventArgs e)
     {
         if (e.File == null) return;
@@ -146,7 +158,7 @@
         }
     }
 
-
+    async Task HandleFieldChangedAsync() => HeaderChanged?.Invoke();
     public async Task<ServiceResponse<Image>> ImageDbUploadAsync()
     {
 
@@ -161,7 +173,7 @@
             _fileBuffer.Position = 0;
             try
             {
-                result = await ImageService.UploadImageAsync(_fileBuffer, _fileName, SelectedArticle.Description);
+                result = await ImageService.UploadImageAsync(_fileBuffer, _fileName, SelectedImage.Description);
 
                 if (result.Success && result.Data != null)
                 {
@@ -178,15 +190,17 @@
         return result;
     }
     
-    void RemoveTag(Aichmee.Shared.Tag incomingTag){
+    void RemoveTag(Aichmee.Shared.Tag incomingTag)
+    {
         ArticleTags.Remove(incomingTag);
         HandleTags(ArticleTags);
     }
     void HandleTags(List<Aichmee.Shared.Tag> newTags)
     {
-        SelectedArticle.Tags = new(newTags.Select(t=>t.Id).ToList());
+        SelectedArticle.Tags = new(newTags.Select(t => t.Id).ToList());
         ArticleTags = newTags;
         StateHasChanged();
     }
+    #endregion
 }
 

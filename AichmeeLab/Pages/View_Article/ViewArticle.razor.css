@@ -23,18 +23,15 @@
     width: 100%;
 }
 
-.close-btn {
+.btn-close {
     background: transparent;
-    border-radius: 15px;
-    border: none;
     transform: scale(2);
     color: var(--font-color2);
     transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-.close-btn:hover {
-    box-shadow: var(--resting-shadow);
-    transform: scale(2.15);
+.btn-close:hover {
+    color: var(--font-color1);
 }
 
 .article-content {

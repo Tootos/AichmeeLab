@@ -1,115 +1,168 @@
-﻿@using AichmeeLab.Pages.Admin_Pages.Admin_Articles.Article_Editor.Article_Inspector
-@using AichmeeLab.Pages.Admin_Pages.Admin_Articles.Article_Editor.Article_Writer
+﻿@page "/admin/writer/{Id?}"
+
+@using AichmeeLab.Pages.Admin_Pages.Admin_Editor.Article_Inspector
+@using AichmeeLab.Pages.Admin_Pages.Admin_Editor.Article_Writer
 @using AichmeeLab.Pages.View_Article
-@using MyTag = Aichmee.Shared.Tag
 @using BootstrapBlazor.Components
+@using MyTag = Aichmee.Shared.Tag
 @inject IJSRuntime jSRuntime;
+@inject NavigationManager NavigationManager;
 @inject AichmeeLab.Services.WriterService.IWriterService WriterService;
 @inject AichmeeLab.Services.ImageService.IImageService ImageService;
+@inject AichmeeLab.Services.SecurityService.ISecurityService SecurityService
 
-<div class="editor-layout @(_loading ? "is-loading" : "")">
-    <div class="loading-window">
-        <div class="loader-layout">
-            <div class="spinner-icon"><i class="bi bi-arrow-clockwise"></i></div>
-            <div class="service-response">
-                <span>Service Response: </span>
-                @foreach (var message in _serviceMessages)
-                {
-                    <span>@message</span>
-                }
-            </div>
+<NavigationLock
+ConfirmExternalNavigation="_isDirty"
+OnBeforeInternalNavigation="ConfirmInternalNavigation"
+/>
 
+@if (_viewWarning)
+{
+    <div class="warning-modal">
+        <span>Leaving the page? Changes you made will not be saved.</span>
+        <div class="warning-actions">
+            <button class="btn btn-secondary" @onclick="CancelLeave">Stay</button>
+            <button class="btn btn-danger" @onclick="ConfirmLeave">Leave</button>
         </div>
     </div>
+}
 
-    @if (_isPreviewMode)
-    {
-        <button type="button" class="btn btn-outline-secondary" @onclick="HandlePreview">
-            <i class="bi bi-arrow-left me-1"></i>
-        </button>
-        <ViewArticle SelectedArticle="SelectedArticle" HeaderImage="_selectedImage" ArticleTags="_articleTags"/>
-    }
-    else
-    {
-        <div class="writer-layout">
-            <div class="inspector-window @(_isHeaderOpen ? "is-open" : "is-closed")">
-                <div class="inspector-toggle" @onclick="() => _isHeaderOpen = !_isHeaderOpen">
-                    <span><i class="bi bi-image me-2"></i> Meta Data</span>
-                    <i class="bi @(_isHeaderOpen ? "bi-chevron-up" : "bi-chevron-down")"></i>
+
+
+
+@if (_isPreviewMode)
+{
+    <button type="button" class="btn btn-outline-secondary" @onclick="HandlePreview">
+        <i class="bi bi-arrow-left me-1"></i>
+    </button>
+    <ViewArticle SelectedArticle="SelectedArticle" HeaderImage="_selectedImage" ArticleTags="_articleTags" OnExit="HandlePreview"/>
+}
+else
+{
+    <div class="editor-window">
+        <div class="editor-layout @(_loading ? "is-loading" : "")">
+            <div class="loading-window">
+                <div class="loader-layout">
+                    <div class="spinner-icon"><i class="bi bi-arrow-clockwise"></i></div>
+                    <div class="service-response">
+                        <span>Service Response: </span>
+                        @foreach (var message in _serviceMessages)
+                        {
+                            <span>@message</span>
+                        }
+                    </div>
+
                 </div>
-                <ArticleInspector @ref="_articleInspector" SelectedArticle="SelectedArticle" SelectedImage="_selectedImage"
-                                  OnImageChanged="@(img => _selectedImage = img)" />
             </div>
-            <div class="writer-window " @key="@(SelectedArticle.Id ?? "new article")">
-                <ArticleWriter @ref="_articleWriter" SelectedArticle="SelectedArticle" />
-            </div>
-
-        </div>
-
-
-        <div class="action-container">
-            <EditForm Model="SelectedArticle" OnValidSubmit="SaveEntryAsync" class="form-wrapper">
-                <DataAnnotationsValidator />
-
-                <ValidationMessage For="@(() => SelectedArticle.Title)" />
-                <ValidationMessage For="@(() => SelectedArticle.Description)" />
-                <ValidationMessage For="@(() => SelectedArticle.Author)" />
-                <button type="button" class="btn btn-primary" @onclick="HandlePreview">
-                    <i class="bi bi-eye"></i>Preview
-                </button>
-                <button type="button" class="btn btn-primary" @onclick="ResetEditorAsync">
-                    <i class="bi-arrow-clockwise"></i> Create New
-                </button>
-
-                <div class="form-check form-switch visibility-control">
-                    <input type="checkbox" class="btn-check" id="vSwitch" @bind="_isVisible" autocomplete="off">
-                    <label class="btn @(_isVisible ? "btn-success" : "btn-outline-secondary") w-100 py-2 fw-bold"
-                           for="vSwitch">
-                        <i class="bi @(_isVisible ? "bi-eye-fill" : "bi-eye-slash") me-1"></i>
-                        @(_isVisible ? "VISIBLE" : "HIDDEN")
-                    </label>
+            <div class="writer-wrapper">
+                <div class="inspector-window @(_isHeaderOpen ? "is-open" : "is-closed")">
+                    <div class="inspector-toggle" @onclick="HandleHeader">
+                        <span><i class="bi bi-image me-2"></i> Meta Data</span>
+                        <i class="bi @(_isHeaderOpen ? "bi-chevron-up" : "bi-chevron-down")"></i>
+                    </div>
+                    <ArticleInspector
+                    @ref="_articleInspector"
+                    SelectedArticle="SelectedArticle"
+                    SelectedImage="_selectedImage"
+                    OnImageChanged="@(img => _selectedImage = img)"
+                    HeaderChanged="MarkAsDirty"
+                    />
                 </div>
+                @* <div class="writer-window " @key="@(SelectedArticle.Id ?? "new article")"> *@
+                <ArticleWriter @ref="_articleWriter" SelectedArticle="SelectedArticle" ContentChanged="MarkAsDirty"/>
+                @* </div> *@
+            </div>
 
-                <button type="submit" class="btn btn-primary w-100 py-2 fw-bold mb-2">
-                    <i class="bi bi-cloud-arrow-up-fill me-1"></i> Save Article
-                </button>
+            <div class="action-window">
+                <EditForm Model="SelectedArticle" OnValidSubmit="SaveEntryAsync" class="form-control">
+                    <DataAnnotationsValidator/>
 
-                @if (!string.IsNullOrEmpty(SelectedArticle.Id))
-                {
-                    <button type="button" class="btn btn-outline-danger btn-sm w-100 border-0 mt-2"
-                            @onclick="DeleteFromDbAsync">
-                        Delete from Database
+                    <ValidationMessage For="@(() => SelectedArticle.Title)"/>
+                    <ValidationMessage For="@(() => SelectedArticle.Description)"/>
+                    <ValidationMessage For="@(() => SelectedArticle.Author)"/>
+                    <button type="button" class="btn-action btn-preview" @onclick="HandlePreview">
+                        <i class="bi bi-book-half"></i>
+                        <span class="btn-text">Preview</span>
                     </button>
+                    <button type="button" class="btn-action btn-clear" @onclick=" ResetEditorAsync">
+                        <i class="bi-arrow-clockwise"></i>
+                        <span class="btn-text">Clear Article</span>
+                    </button>
+
+                    <button type="button" class="btn-action btn-visibility @(_isVisible ? "btn-visible" : "")" @onclick="() => _isVisible = !_isVisible">
+                        <i class="bi @(_isVisible ? "bi-eye-fill" : "bi-eye-slash")"></i>
+                        <span class="btn-text">@(_isVisible ? "VISIBLE" : "HIDDEN")  </span>                         
+                    </button>
+  
+
+                    <button type="submit" class="btn-action btn-submit">
+                        <i class="bi bi-floppy"></i>
+                        <span class="btn-text">Save Article</span>
+                    </button>
+
+                    @if (!string.IsNullOrEmpty(SelectedArticle.Id))
+                    {
+                        <button
+                            type="button"
+                            class="btn btn-outline-danger btn-sm w-100 border-0 mt-2"
+                            @onclick="DeleteFromDbAsync"
+                            >
+                                <i class="bi bi-trash3"></i>
+                            </button>
+                        }
+                    </EditForm>
+                </div>
+
                 }
-            </EditForm>
+
+            </div>
         </div>
 
     }
-
-</div>
 @code {
+    
+    [Parameter]
+    public string Id { get; set; } = string.Empty;
+    
+    #region ['Private Properties']
     ArticleWriter? _articleWriter;
     ArticleInspector? _articleInspector;
-
     bool _loading { get; set; } = false;
     List<string> _serviceMessages = new List<string>();
-
-    [Parameter] public Article SelectedArticle { get; set; } = new Article();
+    Article SelectedArticle { get; set; } = new Article();
     Image _selectedImage { get; set; } = new Image();
     List<MyTag> _articleTags { get; set; } = new();
-    [Parameter] public EventCallback OnReady { get; set; }
-    [Parameter] public EventCallback<Article?> OnChange { get; set; }
+    private string _pendingTargetLocation = string.Empty;
     bool _isPreviewMode { get; set; } = false;
+    bool _hasChangesMade { get; set; } = false;
     bool _isHeaderOpen { get; set; } = false;
-    bool _isVisible { get; set; }
+    bool _isDirty { get; set; } = false;
 
-    protected override void OnInitialized()
+    bool _viewWarning { get; set; } = false;
+    bool _isVisible { get; set; }
+    #endregion
+
+    #region ['DOM Lifecycle']
+
+
+    protected override async Task OnInitializedAsync()
     {
+        if (!await SecurityService.IsAuthorizedAsync())
+            NavigationManager.NavigateTo("/unauthorized/");
+
         ImageService.Collages.Clear();
+
     }
 
     protected override async Task OnParametersSetAsync()
     {
+        SelectedArticle = new();
+        var writerResponse = await WriterService.GetArticleAsync(Id);
+
+        if (!writerResponse.Success || writerResponse?.Data == null || string.IsNullOrEmpty(writerResponse.Data.Id))
+            return;
+        
+        SelectedArticle = writerResponse.Data;
         if (!string.IsNullOrEmpty(SelectedArticle.HeaderImageId))
         {
             var result = await ImageService.GetImageAsync(SelectedArticle.HeaderImageId);
@@ -118,10 +171,13 @@
         }
 
         _isVisible = SelectedArticle.IsVisible;
+              
     }
-
+    #endregion
+    
+    #region ['Private Helpers']
     //Save Article
-    public async Task SaveEntryAsync()
+    async Task SaveEntryAsync()
     {
         _serviceMessages.Clear();
         string jsMessage = "Entry Saved.";
@@ -230,12 +286,12 @@
 
                 }
 
-                
+
 
                 var updatedVisibility = new Dictionary<string, bool>();
                 updatedVisibility.Add(savedArticle.Id, _isVisible);
 
-               
+
                 //7. Update Visibility
                 var visibilityResult = await WriterService.UpdateVisibilityAsync(updatedVisibility);
 
@@ -248,11 +304,12 @@
                 }
 
                 //8. Closing
+                _isDirty = false;
+                await jSRuntime.InvokeVoidAsync("setUnsavedChangesPrompt", false);
                 ImageService.Collages.Clear();
 
                 savedArticle.ContentBlocks = savedArticle.ContentBlocks.OrderBy(c => c.Step).ToList();
                 ImageService.Collages.Clear();
-                await OnChange.InvokeAsync(savedArticle);
             }
             else
             {
@@ -274,11 +331,11 @@
 
     async Task ResetEditorAsync()
     {
-        var article = new Article();
+        SelectedArticle = new Article();
+
         _selectedImage = new Image();
         ImageService.Collages.Clear();
 
-        await OnChange.InvokeAsync(article);
         StateHasChanged();
     }
 
@@ -292,7 +349,7 @@
             SelectedArticle.ContentBlocks = _articleWriter.ExportList();
         }
 
-            
+
         StateHasChanged();
     }
 
@@ -304,6 +361,55 @@
         await jSRuntime.InvokeVoidAsync("alert", response.Message);
 
         await ResetEditorAsync();
+    }
+
+    void HandleHeader()
+    {
+        if (!_isHeaderOpen)
+        {
+            SelectedArticle.ContentBlocks = _articleWriter.ExportList();
+        }
+        _isHeaderOpen = !_isHeaderOpen;
+        StateHasChanged();
 
     }
+
+
+    async Task ConfirmInternalNavigation(LocationChangingContext context)
+    {
+        if (_isDirty)
+        {
+            SelectedArticle.ContentBlocks = _articleWriter.ExportList();
+            context.PreventNavigation();
+            _pendingTargetLocation = context.TargetLocation;
+            _viewWarning = true;
+            StateHasChanged();
+        }
+    }
+
+    async Task ConfirmLeave()
+    {
+        _isDirty = false;
+        _viewWarning = false;
+        await jSRuntime.InvokeVoidAsync("setUnsavedChangesPrompt", false);
+        if (!string.IsNullOrEmpty(_pendingTargetLocation))
+        {
+            NavigationManager.NavigateTo(_pendingTargetLocation);
+        }
+    }
+
+    private void CancelLeave()
+    {
+        _viewWarning = false;
+        _pendingTargetLocation = null;
+    }
+
+    void MarkAsDirty()
+    {
+        if (_isDirty) return;
+
+        _isDirty = true;
+        _ = jSRuntime.InvokeVoidAsync("setUnsavedChangesPrompt", true);
+    }
+    #endregion
 }

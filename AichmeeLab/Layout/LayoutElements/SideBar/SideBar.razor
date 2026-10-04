@@ -12,7 +12,7 @@
         </button>
 
         <div class="sidebar-header">
-            <i class="bi bi-home" />
+            <i class="bi bi-home"/>
         </div>
 
         <nav class="sidebar-nav">
@@ -20,26 +20,33 @@
                 <i class="bi bi-house"></i> Feed
             </button>
 
-            @if(_selectionTags == null || _selectionTags.Count == 0){
+            
+
+            @if (_selectionTags == null || _selectionTags.Count == 0)
+            {
                 <span>Loading tags. . .</span>
-            }else{
-                foreach(var tag in _selectionTags){
-                <button class="nav-text-btn @(IsActive(tag.Name) ? "active" : "")" @onclick='() => NavigateTo($"/?tag={tag.Name}")'>
-                    <i class="@tag.Icon">@tag.Name</i>
-                </button>
+            }
+            else
+            {
+                <span class="nav-text-hint">Filter by tags</span>
+                foreach (var tag in _selectionTags)
+                {
+                    <button class="nav-text-btn @(IsActive(tag.Name) ? "active" : "")" @onclick='() => NavigateTo($"/?tag={tag.Name}")'>
+                        <i class="@tag.Icon">@tag.Name</i>
+                    </button>
                 }
                 
             }
         </nav>
 
-                    <button class="btn btn-refresh" @onclick="RefreshTags">
-                <i class="bi bi-arrow-clockwise spin-icon"></i>
-            </button>
+        <button class="btn btn-refresh" @onclick="RefreshTags">
+            <i class="bi bi-arrow-clockwise spin-icon"></i>
+        </button>
 
         @if (IsAdmin)
         {
             <div class="admin-window">
-                <AdminWidget />
+                <AdminWidget/>
             </div>
 
         }
@@ -71,9 +78,10 @@
 
     #region "[ Lifecycle Methods ]"
     protected override async Task OnInitializedAsync()
-    {  
-        if(_selectionTags == null || _selectionTags.Count == 0 ){
-                await GetTagRecommendations();
+    {
+        if (_selectionTags == null || _selectionTags.Count == 0)
+        {
+            await GetTagRecommendations();
         }
         
         NavigationManager.LocationChanged += OnLocationChanged;
@@ -83,11 +91,11 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         _isMobileDevice = await JS.InvokeAsync<bool>("isMobileDevice");
-    }  
+    }
 
-   #endregion
+    #endregion
 
-   #region "[ Helper Methods ]"
+    #region "[ Helper Methods ]"
     private void NavigateTo(string targetUrl)
     {
 
@@ -118,21 +126,24 @@
         {
             return string.Equals(actualTag, incomingTag, StringComparison.OrdinalIgnoreCase);
         }
-        return incomingTag== null;
+        return incomingTag == null;
     }
 
-    async Task RefreshTags(){
+    async Task RefreshTags()
+    {
         await GetTagRecommendations();
     }
 
-    async Task GetTagRecommendations(){
-var result = await TagService.GetRecommendedTags(_selectionTags);
-if(result.Success && result?.Data != null && result.Data.Any()){
-    _selectionTags = result.Data;
+    async Task GetTagRecommendations()
+    {
+        var result = await TagService.GetRecommendedTags(_selectionTags);
+        if (result.Success && result?.Data != null && result.Data.Any())
+        {
+            _selectionTags = result.Data;
     
-}
+        }
 
-StateHasChanged();
+        StateHasChanged();
     }
 
     public void Dispose()

@@ -6,58 +6,66 @@
 
 <div class="view-window">
     <div class="view-layout">
-        @if(SelectedArticle == null){
-<span>Loading . . .</span>
-        }else{
+        @if (SelectedArticle == null)
+        {
+            <span>Loading . . .</span>
+        }
+        else
+        {
 
         
-        <div class="top-footer">
-            <a href="/" class="close-btn"><i class="bi bi-x-lg"></i></a>
-        </div>
-        <div class="article-content">
-            <div class="header-wrapper">
-                <div class="meta-info">
-                    <h1 class="view-title">@SelectedArticle.Title</h1>
-                    <h3 class="view-author">by @SelectedArticle.Author</h3>
-                    <br>
-                    <div class="tags-container">
-                        @if(ArticleTags.Any() && ArticleTags !=null){
-                            foreach(var tag in ArticleTags){
-                                <div class="article-tag" style="border-color: @tag.PrimaryColor; color:@tag.PrimaryColor;" >@tag.Name</div>
-                            }
-                        }
-                    </div>
-                    <span class="view-date">Date Published:@SelectedArticle.DatePublished.ToString("MMM dd, yyyy")
-                        | Last Updated: @SelectedArticle.LastUpdate.ToString("MMM dd, yyyy")</span>
-
-                    </div>
-
-                    @if (HeaderImage != null && !string.IsNullOrEmpty(HeaderImage.HeaderUrl))
-                    {
-                        <div class="view-img">
-                            <img src="@HeaderImage.HeaderUrl" alt="@HeaderImage.RawImageUrl"
-                                 class="img-fluid rounded shadow-sm" />
-                        </div>
-                    }
-
-                    <p class="view-description">@SelectedArticle.Description</p>
-                </div>
-                @foreach (var block in SelectedArticle.ContentBlocks.OrderBy(x => x.Step))
-                {
-                    @if (block.Type == "text")
-                    {
-                        @* The 'Reader-Side' fix: ensure content is wrapped if it's raw text *@
-                        <div class="view-text-block">
-                            @((MarkupString)FormatContent(block.Content[0]))
-                        </div>
-                    }
-                    else if (block.Type == "collage")
-                    {
-                        @* We will build this next, but for now, it's ready for images *@
-                        <Collage IncomingCollage="@block.Content" />
-                    }
-                }
+            <div class="top-footer">
+                <button class="btn-close" @onclick="OnExitAsync"><i class="bi bi-x-lg"></i></button>
             </div>
+            <div class="article-content">
+                <div class="header-wrapper">
+                    <div class="meta-info">
+                        <h1 class="view-title">@SelectedArticle.Title</h1>
+                        <h3 class="view-author">by @SelectedArticle.Author</h3>
+                        <br>
+                        <div class="tags-container">
+                            @if (ArticleTags.Any() && ArticleTags != null)
+                            {
+                                foreach (var tag in ArticleTags)
+                                {
+                                    <div class="article-tag" style="border-color: @tag.PrimaryColor; color:@tag.PrimaryColor;">@tag.Name</div>
+                                }
+                            }
+                        </div>
+                        <span class="view-date">Date Published:@SelectedArticle.DatePublished.ToString("MMM dd, yyyy")
+                            | Last Updated: @SelectedArticle.LastUpdate.ToString("MMM dd, yyyy")</span>
+
+                        </div>
+
+                        @if (HeaderImage != null && !string.IsNullOrEmpty(HeaderImage.HeaderUrl))
+                        {
+                            <div class="view-img">
+                                <img
+                                src="@HeaderImage.HeaderUrl"
+                                alt="@HeaderImage.RawImageUrl"
+                                class="img-fluid rounded shadow-sm"
+                                />
+                            </div>
+                        }
+
+                        <p class="view-description">@SelectedArticle.Description</p>
+                    </div>
+                    @foreach (var block in SelectedArticle.ContentBlocks.OrderBy(x => x.Step))
+                    {
+                        @if (block.Type == "text")
+                        {
+                            @* The 'Reader-Side' fix: ensure content is wrapped if it's raw text *@
+                            <div class="view-text-block">
+                                @((MarkupString)FormatContent(block.Content[0]))
+                            </div>
+                        }
+                        else if (block.Type == "collage")
+                        {
+                            @* We will build this next, but for now, it's ready for images *@
+                            <Collage IncomingCollage="@block.Content"/>
+                        }
+                    }
+                </div>
             }
         </div>
     </div>
@@ -66,13 +74,14 @@
 
 @code {
     [Parameter]
-    public Article SelectedArticle { get; set; } = new ();
+    public Article SelectedArticle { get; set; } = new();
     [Parameter]
     public Image HeaderImage { get; set; } = new();
     [Parameter]
-    public List<Tag> ArticleTags {get;set;} = new();
-
-
+    public List<Tag> ArticleTags { get; set; } = new();
+    [Parameter]
+    public EventCallback OnExit { get; set; }
+    
     public class ListItem
     {
         public string? Content { get; set; }
@@ -91,5 +100,7 @@
         }
         return trimmed;
     }
+
+    void OnExitAsync() => OnExit.InvokeAsync();
 
 }
